@@ -1,0 +1,1 @@
+# Manages the Piezo buzzer and LED alert patterns.
