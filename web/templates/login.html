@@ -1,20 +1,48 @@
 {% extends "layout.html" %}
+
 {% block body %}
-<form action="/login" method="post">
-  <input
-    type="username"
-    name="username"
-    placeholder="username"
-    autocomplete="off"
-    required
-  />
-  <input
-    type="password"
-    name="password"
-    placeholder="Password"
-    required
-  />
-  <button type="submit">Login</button>
-</form>
-<p>No Account <a href="/register" style="text-decoration: none;">Register</a></p>
+<div class="flex items-center justify-center min-h-screen bg-gray-900">
+    <div class="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-xl shadow-2xl">
+        <h2 class="text-2xl font-bold text-center text-white">Sign In to Thermo-Track</h2>
+
+        <!-- Login Form -->
+        <form action="/login" method="post" class="space-y-4">
+            <!-- Username/Email Input -->
+            <div>
+                <input
+                    type="text"
+                    name="username"
+                    placeholder="Username or Email"
+                    autocomplete="off"
+                    required
+                    class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+            </div>
+
+            <!-- Password Input -->
+            <div>
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    required
+                    class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="w-full py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                Login
+            </button>
+        </form>
+
+        <!-- Register Link -->
+        <p class="text-sm text-center text-gray-400">
+            No Account?
+            <a href="/register" class="text-blue-400 hover:text-blue-300 font-medium transition duration-300">
+                Register
+            </a>
+        </p>
+    </div>
+</div>
 {% endblock %}
