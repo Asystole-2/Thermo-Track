@@ -34,7 +34,9 @@ if ServerSession:
 
 # Regex (REGISTER only)
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
-PWD_RE = re.compile(r"^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'\",.<>/?\\|`~]).{8,}$")
+PWD_RE = re.compile(
+    r"^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'\",.<>/?\\|`~]).{8,}$"
+)
 
 
 # Authentication Decorator
@@ -97,7 +99,7 @@ def login():
         try:
             ok = check_password_hash(pwd_hash, password)
         except Exception:
-            ok = (pwd_hash == password)  # Fallback for old/bad hashes
+            ok = pwd_hash == password  # Fallback for old/bad hashes
 
         if not ok:
             flash("Incorrect username or password.", "error")
@@ -124,8 +126,8 @@ def register():
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()
         email = (request.form.get("email") or "").strip()
-        password = (request.form.get("password") or "")
-        confirm = (request.form.get("confirmation") or "")
+        password = request.form.get("password") or ""
+        confirm = request.form.get("confirmation") or ""
 
         username_lc = username.lower()
         email_lc = email.lower()
@@ -143,7 +145,9 @@ def register():
         if not password:
             errors["password"] = "Password is required."
         elif not PWD_RE.match(password):
-            errors["password"] = "Password must be ≥ 8 chars, include one uppercase, one number, and one symbol."
+            errors["password"] = (
+                "Password must be ≥ 8 chars, include one uppercase, one number, and one symbol."
+            )
         if not confirm:
             errors["confirmation"] = "Please confirm your password."
         elif password != confirm:
@@ -155,11 +159,15 @@ def register():
         cur = mysql.connection.cursor()
         try:
             # Uniqueness checks
-            cur.execute("SELECT 1 FROM users WHERE LOWER(username)=%s LIMIT 1", (username_lc,))
+            cur.execute(
+                "SELECT 1 FROM users WHERE LOWER(username)=%s LIMIT 1", (username_lc,)
+            )
             if cur.fetchone():
                 errors["username"] = "This username is already taken."
 
-            cur.execute("SELECT 1 FROM users WHERE LOWER(email)=%s LIMIT 1", (email_lc,))
+            cur.execute(
+                "SELECT 1 FROM users WHERE LOWER(email)=%s LIMIT 1", (email_lc,)
+            )
             if cur.fetchone():
                 errors["email"] = "This email is already registered."
 
@@ -251,7 +259,9 @@ def setup():
         try:
             default_setpoint = float(default_setpoint)
             if not (15.0 <= default_setpoint <= 30.0):
-                errors["default_setpoint"] = "Setpoint must be between 15.0 and 30.0 °C."
+                errors["default_setpoint"] = (
+                    "Setpoint must be between 15.0 and 30.0 °C."
+                )
         except (ValueError, TypeError):
             errors["default_setpoint"] = "Invalid setpoint value."
 
@@ -260,7 +270,11 @@ def setup():
         if not bms_zone_id:
             errors["bms_zone_id"] = "BMS Zone ID is required."
 
-        values = {"room_name": room_name, "bms_zone_id": bms_zone_id, "default_setpoint": default_setpoint}
+        values = {
+            "room_name": room_name,
+            "bms_zone_id": bms_zone_id,
+            "default_setpoint": default_setpoint,
+        }
 
         if not errors:
             cur = mysql.connection.cursor()
@@ -270,12 +284,18 @@ def setup():
                     (user_id, room_name, bms_zone_id, default_setpoint),
                 )
                 mysql.connection.commit()
-                flash(f"Room '{room_name}' added successfully! (Zone ID: {bms_zone_id})", "success")
+                flash(
+                    f"Room '{room_name}' added successfully! (Zone ID: {bms_zone_id})",
+                    "success",
+                )
                 values = {}
 
             except IntegrityError:
                 mysql.connection.rollback()
-                flash("A room with that name or zone ID already exists for your account.", "error")
+                flash(
+                    "A room with that name or zone ID already exists for your account.",
+                    "error",
+                )
             except Exception as e:
                 mysql.connection.rollback()
                 print(f"Room insertion error: {e}")
@@ -286,7 +306,9 @@ def setup():
     # Re-fetch rooms after a POST or for a GET request
     rooms = get_user_rooms(user_id)
 
-    return render_template("setup.html", active_page="setup", rooms=rooms, errors=errors, values=values)
+    return render_template(
+        "setup.html", active_page="setup", rooms=rooms, errors=errors, values=values
+    )
 
 
 @app.route("/reports")
@@ -314,7 +336,9 @@ def settings():
 
 
 if __name__ == "__main__":
-    if not all([app.config["MYSQL_HOST"], app.config["MYSQL_USER"], app.config["MYSQL_DB"]]):
+    if not all(
+        [app.config["MYSQL_HOST"], app.config["MYSQL_USER"], app.config["MYSQL_DB"]]
+    ):
         print("\n!!! ERROR: Database environment variables are not set. !!!")
         raise SystemExit(1)
 
