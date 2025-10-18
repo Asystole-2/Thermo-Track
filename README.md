@@ -21,6 +21,13 @@
 
 ---
 
+## Setup Instructions
+-**Clone the Repository:** cd ThermoTrack/web
+-**Create Virtual Environment:** python -m venv venv, venv\Scripts\activate (windows)
+-**Install Dependencies:** pip install flask,pip instal flask-mysqldb, pip install python-dotenv, pip install flask-session  
+-**Run the Application:** Run the Application
+
+
 
 
   
