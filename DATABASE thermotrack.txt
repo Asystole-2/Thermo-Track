@@ -15,11 +15,11 @@ MYSQL_PASSWORD= insert your mariaDB password
 MYSQL_DB=thermotrack
 PORT=3306
 
-1.CREATE DATABASE thermotrack;
-2.USE thermotrack;
-
-
 Database Schema:
+
+CREATE DATABASE thermotrack;
+USE thermotrack;
+
 
 -- USERS: login + registration
 CREATE TABLE users (
