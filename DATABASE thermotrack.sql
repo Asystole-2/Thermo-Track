@@ -1,21 +1,21 @@
-first time setup web app
--open terminal make sure you are inside the web or run cd web
--run those 
-    python -m venv venv
-    venv\Scripts\activate
-    pip install flask 
-    pip install flask flask-mysqldb  
-    pip install python-dotenv  
+-- first time setup web app
+-- -open terminal make sure you are inside the web or run cd web
+-- -run those
+--     python -m venv venv
+--     venv\Scripts\activate
+--     pip install flask
+--     pip install flask flask-mysqldb
+--     pip install python-dotenv
+--
+--
+-- Create .env file inside web folder
+-- MYSQL_HOST=127.0.0.1
+-- MYSQL_USER=root
+-- MYSQL_PASSWORD= insert your mariaDB password
+-- MYSQL_DB=thermotrack
+-- PORT=3306
 
-
-Create .env file inside web folder
-MYSQL_HOST=127.0.0.1
-MYSQL_USER=root
-MYSQL_PASSWORD= insert your mariaDB password
-MYSQL_DB=thermotrack
-PORT=3306
-
-Database Schema:
+-- Database Schema:
 
 CREATE DATABASE thermotrack;
 USE thermotrack;
