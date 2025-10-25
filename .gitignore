@@ -143,6 +143,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+# Ignore environment and secret files
+.env
+*.env
+
 
 # Spyder project settings
 .spyderproject
