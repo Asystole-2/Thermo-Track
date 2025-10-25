@@ -15,12 +15,12 @@
 
 ## Technology Stack
 
-- **Frontend:** HTML, Tailwind CSS, JavaScript
-- **Backend:** Python (Flask Framework)
-- **Database:** MariaDB
-- **Hardware:** Raspberry Pi with PIR & DHT22 sensors
-- **Realtime Communication:** PubNub
-- **Security:** bcrypt password hashing
+- **Frontend:** ![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwindcss&logoColor=white) ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black) |
+- **Backend:** ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-000000?logo=flask&logoColor=white) |
+- **Database:** ![MariaDB](https://img.shields.io/badge/MariaDB-003545?logo=mariadb&logoColor=white) |
+- **Hardware:** ![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-A22846?logo=raspberrypi&logoColor=white) ![DHT22](https://img.shields.io/badge/DHT22_Sensor-00BFFF?logo=sensors&logoColor=white) ![PIR Sensor](https://img.shields.io/badge/PIR_Sensor-FF4500?logo=sensors&logoColor=white) |
+- **Realtime Communication:** ![PubNub](https://img.shields.io/badge/PubNub-E61C3F?logo=pubnub&logoColor=white) |
+- **Security:** ![bcrypt](https://img.shields.io/badge/bcrypt-00BFA6?logo=lock&logoColor=white) ![HTTPS](https://img.shields.io/badge/HTTPS-00599C?logo=ssl&logoColor=white) |
 
 ---
 
