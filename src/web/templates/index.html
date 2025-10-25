@@ -1,26 +1,26 @@
 {% extends "layout.html" %}
 
 {% block body %}
-<div class="p-8 text-center min-h-screen flex flex-col items-center justify-center bg-gray-900">
-    {% if session.username %}
-    <div class="text-white text-3xl font-light mb-4">
-        Welcome, <span class="font-semibold text-blue-400">{{ session.username }}</span>.
-    </div>
-    <p class="text-gray-400 mb-8">You are logged in.</p>
-    <a href="/logout" class="px-6 py-3 text-lg font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-300">
-        Log out
+<div class="flex-center min-h-screen bg-gray-900 flex-col p-8 text-center">
+  {% if session.username %}
+  <div class="text-white text-3xl font-light mb-4">
+    Welcome, <span class="font-semibold text-blue-400">{{ session.username }}</span>.
+  </div>
+  <p class="text-muted mb-8">You are logged in.</p>
+  <a href="/logout" class="btn btn-danger text-lg">
+    Log out
+  </a>
+  {% else %}
+  <h1 class="text-white text-4xl font-bold mb-4">Welcome to Thermo-Track</h1>
+  <p class="text-muted text-lg mb-8">You are currently not logged in.</p>
+  <div class="space-x-4">
+    <a href="/login" class="btn btn-primary text-lg">
+      Log in
     </a>
-    {% else %}
-    <h1 class="text-white text-4xl font-bold mb-4">Welcome to Thermo-Track</h1>
-    <p class="text-gray-400 text-lg mb-8">You are currently not logged in.</p>
-    <div class="space-x-4">
-        <a href="/login" class="px-6 py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300">
-            Log in
-        </a>
-        <a href="/register" class="px-6 py-3 text-lg font-semibold text-blue-400 border border-blue-400 rounded-lg hover:bg-gray-800 transition duration-300">
-            Register
-        </a>
-    </div>
-    {% endif %}
+    <a href="/register" class="btn btn-secondary text-lg">
+      Register
+    </a>
+  </div>
+  {% endif %}
 </div>
-{% endblock%}
+{% endblock %}

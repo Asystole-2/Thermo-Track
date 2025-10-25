@@ -1,77 +1,43 @@
-<!-- Collapsible Sidebar Menu -->
 <aside id="sidebar" class="flex flex-col flex-shrink-0 bg-gray-800 transition-all duration-300 ease-in-out z-20"
        style="width: 250px;">
 
-    <!-- Sidebar Header (Logo/Title - only visible when expanded) -->
+    <!-- Sidebar Header -->
     <div class="flex items-center justify-between h-16 px-4 border-b border-gray-700 flex-shrink-0">
-        <span id="logo-text"
-              class="text-xl font-extrabold text-blue-400 tracking-tight transition-opacity duration-300">
+        <span id="logo-text" class="text-xl font-extrabold text-blue-400 tracking-tight transition-opacity duration-300">
             ThermoTrack
         </span>
-        <!-- Collapse Button (always visible) -->
-        <button id="toggle-sidebar-btn" class="p-2 rounded-lg hover:bg-gray-700 text-gray-400 focus:outline-none">
+        <button id="toggle-sidebar-btn" class="btn p-2 hover:bg-gray-700 text-gray-400">
             <svg id="collapse-icon" class="w-6 h-6 transform rotate-0 transition-transform duration-300" fill="none"
-                 stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                 stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
             </svg>
         </button>
     </div>
 
-    <!-- Navigation Links (Main scrolling area) -->
+    <!-- Navigation Links -->
     <nav class="flex-1 overflow-y-auto p-4 space-y-2">
-        <!-- Dashboard -->
-        <a href="{{ url_for('dashboard') }}" class="flex items-center p-3 rounded-lg font-semibold transition duration-200 whitespace-nowrap
-            {% if active_page == 'dashboard' %}bg-blue-700 text-white shadow-md{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
-            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                 xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M3 10h18M3 14h18m-9-4v8m-9-6h2m13 0h2m-2-2h2m-13-2h2"></path>
-            </svg>
-            <span class="link-text">Dashboard</span>
-        </a>
+        {% set nav_items = [
+            {'endpoint': 'dashboard', 'text': 'Dashboard', 'icon': 'M3 10h18M3 14h18m-9-4v8m-9-6h2m13 0h2m-2-2h2m-13-2h2'},
+            {'endpoint': 'setup', 'text': 'Setup', 'icon': 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z'},
+            {'endpoint': 'reports', 'text': 'Reports', 'icon': 'M9 17v-2m3 2v-4m3 4v-6m2 2h2m-13 0h2M6 10h.01M10 10h.01M14 10h.01M18 10h.01M5 16h2m10 0h2M12 4h.01M12 20h.01M4 14h2m14 0h2M4 18h2m14 0h2m-4-8h-6m2 0H8M12 4v2m0 12v2'},
+            {'endpoint': 'policies', 'text': 'Policies', 'icon': 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'}
+        ] %}
 
-        <!-- Setup -->
-        <a href="{{ url_for('setup') }}" class="flex items-center p-3 rounded-lg font-semibold transition duration-200 whitespace-nowrap
-            {% if active_page == 'setup' %}bg-blue-700 text-white shadow-md{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
-            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                 xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        {% for item in nav_items %}
+        <a href="{{ url_for(item.endpoint) }}" class="flex items-center p-3 rounded-lg font-semibold transition duration-200 whitespace-nowrap
+            {% if active_page == item.endpoint %}bg-blue-700 text-white shadow-md{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ item.icon }}"></path>
             </svg>
-            <span class="link-text">Setup</span>
+            <span class="link-text">{{ item.text }}</span>
         </a>
-
-        <!-- Reports -->
-        <a href="{{ url_for('reports') }}" class="flex items-center p-3 rounded-lg font-semibold transition duration-200 whitespace-nowrap
-            {% if active_page == 'reports' %}bg-blue-700 text-white shadow-md{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
-            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                 xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M9 17v-2m3 2v-4m3 4v-6m2 2h2m-13 0h2M6 10h.01M10 10h.01M14 10h.01M18 10h.01M5 16h2m10 0h2M12 4h.01M12 20h.01M4 14h2m14 0h2M4 18h2m14 0h2m-4-8h-6m2 0H8M12 4v2m0 12v2"></path>
-            </svg>
-            <span class="link-text">Reports</span>
-        </a>
-
-        <!-- Policies -->
-        <a href="{{ url_for('policies') }}" class="flex items-center p-3 rounded-lg font-semibold transition duration-200 whitespace-nowrap
-            {% if active_page == 'policies' %}bg-blue-700 text-white shadow-md{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
-            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                 xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <span class="link-text">Policies</span>
-        </a>
+        {% endfor %}
 
         {% if session.get('username') %}
-        <!-- Settings -->
         <a href="{{ url_for('settings') }}" class="flex items-center p-3 rounded-lg font-semibold transition duration-200 whitespace-nowrap
                 {% if active_page == 'settings' %}bg-blue-700 text-white shadow-md{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
-            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                 xmlns="http://www.w3.org/2000/svg">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -82,29 +48,24 @@
         {% endif %}
     </nav>
 
-    <!-- Fixed Bottom Section: Greeting and Logout/Auth Links -->
+    <!-- Fixed Bottom Section -->
     <div class="px-4 py-3 border-t border-gray-700 flex-shrink-0">
         {% if session.get('username') %}
-        <!-- User Greeting -->
         <div class="mb-3">
-            <p id="user-greeting"
-               class="text-xs text-gray-400 font-medium whitespace-nowrap transition-opacity duration-300">
+            <p id="user-greeting" class="text-xs text-gray-400 font-medium whitespace-nowrap transition-opacity duration-300">
                 Greeting: <span class="text-sm font-bold text-white">{{ session.get('username') }}</span>
             </p>
         </div>
 
-        <!-- Logout Button at the bottom -->
         <a href="{{ url_for('logout') }}"
            class="flex items-center p-3 rounded-lg font-semibold text-red-400 bg-gray-700 hover:bg-red-900/50 transition duration-200 whitespace-nowrap">
-            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                 xmlns="http://www.w3.org/2000/svg">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
             </svg>
             <span class="link-text">Logout</span>
         </a>
         {% else %}
-        <!-- Login/Register links when logged out -->
         <div id="auth-links" class="space-y-2">
             <a href="{{ url_for('login') }}"
                class="block px-3 py-2 rounded-md font-medium text-blue-400 hover:bg-gray-700">Login</a>
@@ -115,84 +76,4 @@
     </div>
 </aside>
 
-<!-- JavaScript for Sidebar Toggle Logic -->
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const sidebar = document.getElementById('sidebar');
-        const toggleBtn = document.getElementById('toggle-sidebar-btn');
-        const collapseIcon = document.getElementById('collapse-icon');
-        const logoText = document.getElementById('logo-text');
-
-        // Select all elements whose text should collapse/expand.
-        const linkTexts = document.querySelectorAll('.link-text');
-        const userGreeting = document.getElementById('user-greeting');
-        const authLinksContainer = document.getElementById('auth-links');
-
-        // Initial state
-        let isExpanded = true;
-        const expandedWidth = '250px';
-        const collapsedWidth = '80px';
-        const transitionDuration = '300'; // ms
-
-        // Set initial styles for all collapsible text elements
-        const collapsibleElements = [logoText, userGreeting, ...Array.from(linkTexts)];
-        if (authLinksContainer) {
-            collapsibleElements.push(...Array.from(authLinksContainer.querySelectorAll('a')));
-        }
-
-        // Function to set the initial state (expanded)
-        const initializeSidebar = () => {
-            isExpanded = true;
-            sidebar.style.width = expandedWidth;
-            collapseIcon.style.transform = 'rotate(0deg)';
-
-            collapsibleElements.forEach(el => {
-                if (el) {
-                    el.style.opacity = 1;
-                    el.style.visibility = 'visible';
-                    el.style.transition = `opacity ${transitionDuration}ms ease-in-out, visibility 0ms`;
-                }
-            });
-        };
-
-        initializeSidebar();
-
-
-        const toggleSidebar = () => {
-            isExpanded = !isExpanded;
-
-            if (isExpanded) {
-                // Expand
-                sidebar.style.width = expandedWidth;
-                collapseIcon.style.transform = 'rotate(0deg)';
-
-                // Delay visibility change slightly after transition starts
-                setTimeout(() => {
-                    collapsibleElements.forEach(el => {
-                        if (el) {
-                            el.style.opacity = 1;
-                            el.style.visibility = 'visible';
-                        }
-                    });
-                }, 50);
-
-            } else {
-                // Collapse
-                sidebar.style.width = collapsedWidth;
-                collapseIcon.style.transform = 'rotate(180deg)';
-
-                collapsibleElements.forEach(el => {
-                    if (el) {
-                        el.style.opacity = 0;
-                        // Delay visibility change slightly after transition starts
-                        setTimeout(() => {
-                            el.style.visibility = 'hidden';
-                        }, 200);
-                    }
-                });
-            }
-        };
-
-        toggleBtn.addEventListener('click', toggleSidebar);
-    });
-</script>
+<script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
