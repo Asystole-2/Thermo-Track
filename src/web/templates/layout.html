@@ -3,13 +3,88 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark">
     <title>Thermo-Track</title>
+    <!-- Critical CSS for theme to prevent flashing -->
+    <script>
+      (function() {
+        const storedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = storedTheme || (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+
+        // CSS variables based on detected theme
+        const style = document.createElement('style');
+        style.textContent = `
+          :root {
+            --bg-tertiary-light: #e2e8f0;
+            --text-primary-light: #1a202c;
+            --text-secondary-light: #4a5568;
+            --text-muted-light: #718096;
+            --border-color-light: #cbd5e0;
+            --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+            --bg-primary-dark: #0d1117;
+            --bg-secondary-dark: #1f2937;
+            --bg-tertiary-dark: #374151;
+            --text-primary-dark: #ffffff;
+            --text-secondary-dark: #d1d5db;
+            --text-muted-dark: #9ca3af;
+            --border-color-dark: #374151;
+            --shadow-dark: 0 4px 6px rgba(0, 0, 0, 0.3);
+          }
+
+          [data-theme="light"] {
+            --bg-primary: var(--bg-primary-light);
+            --bg-secondary: var(--bg-secondary-light);
+            --bg-tertiary: var(--bg-tertiary-light);
+            --text-primary: var(--text-primary-light);
+            --text-secondary: var(--text-secondary-light);
+            --text-muted: var(--text-muted-light);
+            --border-color: var(--border-color-light);
+            --shadow: var(--shadow-light);
+          }
+
+          [data-theme="dark"] {
+            --bg-primary: var(--bg-primary-dark);
+            --bg-secondary: var(--bg-secondary-dark);
+            --bg-tertiary: var(--bg-tertiary-dark);
+            --text-primary: var(--text-primary-dark);
+            --text-secondary: var(--text-secondary-dark);
+            --text-muted: var(--text-muted-dark);
+            --border-color: var(--border-color-dark);
+            --shadow: var(--shadow-dark);
+          }
+
+          /* Apply theme immediately */
+          body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+          }
+
+          /* Hide content until fully loaded */
+          .no-flash {
+            opacity: 0;
+          }
+
+          .content-loaded {
+            opacity: 1;
+            transition: opacity 0.1s ease-in;
+          }
+        `;
+        document.head.appendChild(style);
+      })();
+    </script>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Custom CSS -->
     <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
   </head>
-  <body>
+  <body class="no-flash">
     {% block body %}
     {% endblock %}
 
@@ -24,6 +99,8 @@
       {% endif %}
     {% endwith %}
 
+    <!-- Theme Management Script -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <!-- Voice Recognition Script -->
     <script src="{{ url_for('static', filename='js/voice-recognition.js') }}"></script>
   </body>
