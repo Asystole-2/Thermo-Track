@@ -334,6 +334,20 @@ def settings():
     rooms = get_user_rooms(user_id)
     return render_template("settings.html", active_page="settings", rooms=rooms)
 
+@app.context_processor
+def inject_theme():
+    """Inject theme preference into all templates"""
+    theme = session.get('theme', 'system')
+    return dict(current_theme=theme)
+
+@app.route('/set-theme/<theme>')
+@login_required
+def set_theme(theme):
+    """Set user's theme preference"""
+    if theme in ['light', 'dark', 'system']:
+        session['theme'] = theme
+        flash(f'Themed changed to {theme} mode', 'success')
+    return redirect(request.referrer or url_for('dashboard'))
 
 if __name__ == "__main__":
     if not all(
