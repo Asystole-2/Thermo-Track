@@ -1,0 +1,82 @@
+-- first time setup web app
+-- -open terminal make sure you are inside the web or run cd web
+-- -run those
+--     python -m venv venv
+--     venv\Scripts\activate
+--     pip install flask
+--     pip install flask flask-mysqldb
+--     pip install python-dotenv
+--
+--
+-- Create .env file inside web folder
+-- MYSQL_HOST=127.0.0.1
+-- MYSQL_USER=root
+-- MYSQL_PASSWORD= insert your mariaDB password
+-- MYSQL_DB=thermotrack
+-- PORT=3306
+
+-- Database Schema:
+
+CREATE DATABASE thermotrack;
+USE thermotrack;
+
+
+-- USERS: login + registration
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ROOMS: physical spaces being monitored
+CREATE TABLE rooms (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    location VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- DEVICES: sensors installed in each room
+CREATE TABLE devices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    room_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(50), -- e.g., 'Temperature', 'Humidity', 'Motion'
+    status VARCHAR(50) DEFAULT 'active',
+    installed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+);
+
+-- READINGS: temperature, humidity, motion data
+CREATE TABLE readings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    device_id INT NOT NULL,
+    temperature FLOAT,
+    humidity FLOAT,
+    motion_detected BOOLEAN DEFAULT 0,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+);
+
+-- ALERTS: generated if readings exceed thresholds
+CREATE TABLE alerts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    room_id INT NOT NULL,
+    message VARCHAR(255) NOT NULL,
+    severity ENUM('info','warning','critical') DEFAULT 'info',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+);
+
+-- AUDIT LOGS: tracks actions like login, logout, or alerts cleared
+CREATE TABLE audit_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    action VARCHAR(100) NOT NULL,
+    details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+

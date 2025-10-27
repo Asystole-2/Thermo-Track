@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<div class="flex-center min-h-screen bg-gray-900">
+  <div class="form-container space-y-6">
+    <h2 class="text-2xl font-bold text-center text-white">Create an Account</h2>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% if msgs %}
+        {% for category, message in msgs %}
+          {% if category == 'success' %}
+            <div class="flash success text-center">{{ message }}</div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% set errors = errors|default({}) %}
+    {% set values = values|default({}) %}
+
+    <form id="registerForm" action="{{ url_for('register') }}" method="post" class="space-y-4" novalidate>
+      <!-- Username -->
+      <div>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          autocomplete="off"
+          placeholder="Username"
+          required
+          value="{{ values.get('username','') }}"
+          class="form-input"
+        />
+        <p id="usernameError" class="form-error {{ '' if errors.get('username') else 'hidden' }}">
+          {{ errors.get('username','') }}
+        </p>
+      </div>
+
+      <!-- Email -->
+      <div>
+        <input
+          id="email"
+          name="email"
+          type="text"
+          autocomplete="off"
+          placeholder="Email Address"
+          required
+          value="{{ values.get('email','') }}"
+          class="form-input"
+        />
+        <p id="emailError" class="form-error {{ '' if errors.get('email') else 'hidden' }}">
+          {{ errors.get('email','') }}
+        </p>
+      </div>
+
+      <!-- Password -->
+      <div>
+        <input
+          id="password"
+          type="password"
+          name="password"
+          placeholder="Password"
+          required
+          class="form-input"
+        />
+        <p class="text-sm text-muted mt-1">
+          ≥ 8 characters, one uppercase, one number, one symbol.
+        </p>
+        <p id="passwordError" class="form-error {{ '' if errors.get('password') else 'hidden' }}">
+          {{ errors.get('password','') }}
+        </p>
+      </div>
+
+      <!-- Confirm Password -->
+      <div>
+        <input
+          id="confirmation"
+          type="password"
+          name="confirmation"
+          placeholder="Confirm Password"
+          required
+          class="form-input"
+        />
+        <p id="confirmError" class="form-error {{ '' if errors.get('confirmation') else 'hidden' }}">
+          {{ errors.get('confirmation','') }}
+        </p>
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-success w-full text-lg">
+        Register
+      </button>
+    </form>
+
+    <p class="text-sm text-center text-muted">
+      Already have an account?
+      <a href="{{ url_for('login') }}" class="text-blue-400 hover:text-blue-300 font-medium transition duration-300">Login</a>
+    </p>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/register-validation.js') }}"></script>
+{% endblock %}
