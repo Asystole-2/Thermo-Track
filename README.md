@@ -30,3 +30,21 @@
 - **Create Virtual Environment:** python -m venv venv, venv\Scripts\activate (windows)
 - **Install Dependencies:** pip install flask,pip install flask-mysqldb, pip install python-dotenv, pip install flask-session
 - **Run the Application:** flask run
+
+---
+
+## Setup Instructions Pi
+
+- **Clone the Repository:**git clone https://github.com/Asystole-2/Thermo-Track.git
+cd Thermo-Track
+- **Install Raspberry Pi GPIO:**sudo apt install -y python3-rpi.gpio
+- **create and activate your virtual environment:**python3 -m venv venv , 
+source venv/bin/activate
+- **Install dependencies:**pip install -U pip
+pip install python-dotenv
+pip install 'pubnub>=10.4.1'
+- **Create your .env file:** nano .env (Use the .env.example template and replace your PUBNUB keys)
+- **Set your path:** export PYTHONPATH="$PWD/src"
+
+
+
