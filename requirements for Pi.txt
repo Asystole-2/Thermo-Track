@@ -1,0 +1,25 @@
+sudo apt update
+#install git
+sudo apt install -y git
+#clone repository
+cd ~
+git clone https://github.com/Asystole-2/Thermo-Track.git
+cd Thermo-Track
+# make sure you are in the right branch
+#install Raspberry Pi GPIO
+sudo apt install -y python3-rpi.gpio python3-dev gcc
+#create and activate your virtual environment
+python3 -m venv venv
+source venv/bin/activate
+#Install dependencies
+pip install -U pip
+pip install python-dotenv
+pip install 'pubnub>=10.4.1'
+#create .env check the .env.example file copy paste that one change only the PUBNUB_PUBLISH_KEY and PUBNUB_SUBSCRIBE_KEY with your key
+nano .env
+#next set your path
+export PYTHONPATH="$PWD/src"
+#final step run motion 
+python src/run_motion.py
+
+
