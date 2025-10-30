@@ -48,78 +48,51 @@ pip install 'pubnub>=10.4.1'
 
 ---
 
-🌡️ DHT22 Sensor Setup 
+🌡️ DHT22 Sensor Setup Guide
+Hardware Requirements
+Component	Description
+Single-Board Computer	Raspberry Pi (any model with GPIO pins - Pi 3, 4, or Zero)
+Sensor	DHT22 temperature and humidity sensor (compatible with DHT11/AM2302)
+Wiring	Jumper wires (female-to-female for sensor connection)
+Optional	10kΩ pull-up resistor (often built into sensor modules)
+🔌 Wiring the DHT22 Sensor
+The DHT22 uses a single-wire digital interface. Follow this pinout configuration:
 
-1. Hardware Requirements
-
-Single-Board Computer (SBC): Raspberry Pi (any model with GPIO pins, e.g., Pi 3, 4, or Zero).
-
-Sensor: DHT22 (or DHT11/AM2302) temperature and humidity sensor.
-
-Wiring: Jumper wires.
-
-Optional: A 10kΩ pull-up resistor (often built into the sensor module, but required for the bare sensor).
-
-2. Wiring the DHT22 Sensor
-
-The DHT22 is a single-wire digital interface sensor. You will connect it to the Raspberry Pi's GPIO pins.
-
-Pinout (Bare Sensor)
-
-DHT22 Pin
-
-Function
-
-Raspberry Pi Pin
-
-1
-
-VCC (3.3V-5V)
-
-Any 3.3V or 5V Power Pin (e.g., Pin 1 or 2)
-
-2
-
-Data Out
-
-Any GPIO Pin (e.g., GPIO 4 / Pin 7)
-
-3
-
-N/C (Not Connected)
-
-N/A
-
-4
-
-Ground
-
-Any Ground Pin (e.g., Pin 6)
-
+DHT22 Pinout to Raspberry Pi
+DHT22 Pin	Function	Raspberry Pi Pin
+1	VCC (3.3V-5V)	3.3V or 5V Power (Pin 1 or 2)
+2	Data Out	GPIO 4 (Pin 7) or any GPIO
+3	N/C (Not Connected)	—
+4	Ground	Ground (Pin 6)
 Wiring Steps
+Power Connection: Connect DHT22 VCC to Raspberry Pi 3.3V (Pin 1) or 5V (Pin 2)
 
-Connect the VCC (Power) pin of the DHT22 to the 3.3V (Pin 1) or 5V (Pin 2) power supply on the Raspberry Pi.
+Ground Connection: Connect DHT22 Ground to Raspberry Pi GND (Pin 6)
 
-Connect the Ground pin of the DHT22 to a GND (Ground, e.g., Pin 6) pin on the Raspberry Pi.
+Data Connection: Connect DHT22 Data Out to GPIO 4 (Pin 7) - or any available GPIO pin
 
-Connect the Data Out pin of the DHT22 to a chosen GPIO pin. GPIO 4 (Pin 7) is typically used for examples and works well, but any available GPIO pin will suffice.
+Optional: For bare sensors (not modules), add 10kΩ pull-up resistor between VCC and Data pins
 
-If using a bare sensor (not a module board), place a 10kΩ pull-up resistor between the VCC and Data Out pins.
+💻 Software Setup & Dependencies
+The DHT22 integration requires these Python libraries for hardware access and data transmission:
 
-3. Software Setup and Dependencies
+Installation Commands
+Run these commands on your Raspberry Pi terminal:
 
-The DHT22 script relies on the Adafruit Blinka library for low-level hardware access and the PubNub library for data transmission.
-
-Run the following commands on your Raspberry Pi terminal:
-
-# 1. Update package list
+bash
+# Update package list
 sudo apt-get update
 
-# 2. Install Python 3 headers (required for Adafruit Blinka compilation)
+# Install Python 3 headers (required for Adafruit Blinka compilation)
 sudo apt-get install python3-dev libgpiod-dev -y
 
-# 3. Install necessary Python libraries (as defined in requirements.txt)
+# Install required Python libraries
 pip3 install adafruit-circuitpython-dht
 pip3 install Adafruit-Blinka
 pip3 install pubnub
+Required Libraries
+adafruit-circuitpython-dht: DHT sensor communication
 
+Adafruit-Blinka: Hardware abstraction layer for GPIO access
+
+pubnub: Real-time data transmission to Thermo-Track dashboard
