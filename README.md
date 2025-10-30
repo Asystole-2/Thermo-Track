@@ -95,7 +95,8 @@ nano .env  # Add your PUBNUB keys
 export PYTHONPATH="$PWD/src"
 ```
 ---
-#DHT22 Setup
+
+## DHT22 Setup
 ```bash
 
 DHT22 Pin → Raspberry Pi Pin
