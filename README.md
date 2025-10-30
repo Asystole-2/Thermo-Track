@@ -46,5 +46,80 @@ pip install 'pubnub>=10.4.1'
 - **Create your .env file:** nano .env (Use the .env.example template and replace your PUBNUB keys)
 - **Set your path:** export PYTHONPATH="$PWD/src"
 
+---
 
+🌡️ DHT22 Sensor Setup 
+
+1. Hardware Requirements
+
+Single-Board Computer (SBC): Raspberry Pi (any model with GPIO pins, e.g., Pi 3, 4, or Zero).
+
+Sensor: DHT22 (or DHT11/AM2302) temperature and humidity sensor.
+
+Wiring: Jumper wires.
+
+Optional: A 10kΩ pull-up resistor (often built into the sensor module, but required for the bare sensor).
+
+2. Wiring the DHT22 Sensor
+
+The DHT22 is a single-wire digital interface sensor. You will connect it to the Raspberry Pi's GPIO pins.
+
+Pinout (Bare Sensor)
+
+DHT22 Pin
+
+Function
+
+Raspberry Pi Pin
+
+1
+
+VCC (3.3V-5V)
+
+Any 3.3V or 5V Power Pin (e.g., Pin 1 or 2)
+
+2
+
+Data Out
+
+Any GPIO Pin (e.g., GPIO 4 / Pin 7)
+
+3
+
+N/C (Not Connected)
+
+N/A
+
+4
+
+Ground
+
+Any Ground Pin (e.g., Pin 6)
+
+Wiring Steps
+
+Connect the VCC (Power) pin of the DHT22 to the 3.3V (Pin 1) or 5V (Pin 2) power supply on the Raspberry Pi.
+
+Connect the Ground pin of the DHT22 to a GND (Ground, e.g., Pin 6) pin on the Raspberry Pi.
+
+Connect the Data Out pin of the DHT22 to a chosen GPIO pin. GPIO 4 (Pin 7) is typically used for examples and works well, but any available GPIO pin will suffice.
+
+If using a bare sensor (not a module board), place a 10kΩ pull-up resistor between the VCC and Data Out pins.
+
+3. Software Setup and Dependencies
+
+The DHT22 script relies on the Adafruit Blinka library for low-level hardware access and the PubNub library for data transmission.
+
+Run the following commands on your Raspberry Pi terminal:
+
+# 1. Update package list
+sudo apt-get update
+
+# 2. Install Python 3 headers (required for Adafruit Blinka compilation)
+sudo apt-get install python3-dev libgpiod-dev -y
+
+# 3. Install necessary Python libraries (as defined in requirements.txt)
+pip3 install adafruit-circuitpython-dht
+pip3 install Adafruit-Blinka
+pip3 install pubnub
 
