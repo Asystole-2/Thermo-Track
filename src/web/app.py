@@ -1,9 +1,12 @@
 import os
 import re
-from flask import Flask, render_template, redirect, request, session, flash, url_for
+from functools import wraps
+
+from flask import (
+    Flask, render_template, redirect, request, session, flash, url_for, jsonify
+)
 from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
-from functools import wraps
 
 try:
     from flask_session import Session as ServerSession
@@ -12,34 +15,37 @@ except ModuleNotFoundError:
 
 from werkzeug.security import generate_password_hash, check_password_hash
 import MySQLdb
-from MySQLdb import IntegrityError
+from MySQLdb._exceptions import IntegrityError
 
+# -----------------------------------------------------------------------------
 # App & Config
-app = Flask(__name__)
-
+# -----------------------------------------------------------------------------
+app = Flask(__name__, template_folder="templates", static_folder="static")
 load_dotenv(find_dotenv())
 
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-change-me")
-app.config["MYSQL_HOST"] = os.environ.get("MYSQL_HOST")
-app.config["MYSQL_USER"] = os.environ.get("MYSQL_USER")
-app.config["MYSQL_PASSWORD"] = os.environ.get("MYSQL_PASSWORD")
-app.config["MYSQL_DB"] = os.environ.get("MYSQL_DB")
+app.config["MYSQL_HOST"] = os.environ.get("MYSQL_HOST", "127.0.0.1")
+app.config["MYSQL_USER"] = os.environ.get("MYSQL_USER", "root")
+app.config["MYSQL_PASSWORD"] = os.environ.get("MYSQL_PASSWORD", "")
+app.config["MYSQL_DB"] = os.environ.get("MYSQL_DB", "thermotrack")
+app.config["MYSQL_PORT"] = int(os.environ.get("PORT", "3306"))
+# Return dict-like rows everywhere
+app.config["MYSQL_CURSORCLASS"] = "DictCursor"
 
-mysql = MySQL(app)
-
+# Sessions
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 if ServerSession:
     ServerSession(app)
 
-# Regex (REGISTER only)
+mysql = MySQL(app)
+
+# -----------------------------------------------------------------------------
+# Utilities
+# -----------------------------------------------------------------------------
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
-PWD_RE = re.compile(
-    r"^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'\",.<>/?\\|`~]).{8,}$"
-)
+PWD_RE = re.compile(r"^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'\",.<>/?\\|`~]).{8,}$")
 
-
-# Authentication Decorator
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -47,17 +53,57 @@ def login_required(f):
             flash("Please log in to access this page.", "warning")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
-
     return decorated_function
 
+def db_cursor():
+    return mysql.connection.cursor()
 
-# Routes
+def get_rooms_summary():
+    """
+    Returns one row per room with:
+      - devices_count
+      - devices_with_readings
+      - avg_temp / avg_humidity from latest reading per device
+      - last_update
+    Works even if a room has 0 devices/readings.
+    """
+    c = db_cursor()
+    c.execute("""
+        SELECT
+            rm.id                                        AS id,
+            rm.name                                      AS room_name,
+            rm.location                                   AS location,
+            COUNT(DISTINCT d.id)                          AS devices_count,
+            COUNT(lr.id)                                  AS devices_with_readings,
+            ROUND(AVG(lr.temperature), 1)                 AS avg_temp,
+            ROUND(AVG(lr.humidity), 1)                    AS avg_humidity,
+            MAX(lr.recorded_at)                           AS last_update
+        FROM rooms rm
+        LEFT JOIN devices d ON d.room_id = rm.id
+        LEFT JOIN (
+            SELECT r.*
+            FROM readings r
+            JOIN (
+                SELECT device_id, MAX(recorded_at) AS max_time
+                FROM readings
+                GROUP BY device_id
+            ) m ON m.device_id = r.device_id AND m.max_time = r.recorded_at
+        ) lr ON lr.device_id = d.id
+        GROUP BY rm.id, rm.name, rm.location
+        ORDER BY rm.name
+    """)
+    rows = c.fetchall()
+    c.close()
+    return rows
+
+# -----------------------------------------------------------------------------
+# Routes: Landing & Auth
+# -----------------------------------------------------------------------------
 @app.route("/")
 def index():
     if session.get("username"):
         return redirect(url_for("dashboard"))
     return render_template("index.html")
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -72,7 +118,7 @@ def login():
         ident_lc = identifier.lower()
 
         try:
-            cur = mysql.connection.cursor()
+            cur = db_cursor()
             if "@" in ident_lc:
                 cur.execute(
                     "SELECT id, username, email, password FROM users WHERE LOWER(email)=%s LIMIT 1",
@@ -94,12 +140,14 @@ def login():
             flash("Incorrect username or password.", "error")
             return render_template("login.html")
 
-        user_id, username_db, email_db, pwd_hash = row
+        user_id = row["id"]
+        username_db = row["username"]
+        pwd_hash = row["password"]
 
         try:
             ok = check_password_hash(pwd_hash, password)
         except Exception:
-            ok = pwd_hash == password  # Fallback for old/bad hashes
+            ok = (pwd_hash == password)  # fallback only for legacy plaintext
 
         if not ok:
             flash("Incorrect username or password.", "error")
@@ -112,14 +160,12 @@ def login():
 
     return render_template("login.html")
 
-
 @app.route("/logout")
 @login_required
 def logout():
     session.clear()
     flash("You have been logged out.", "success")
-    return redirect("/")
-
+    return redirect(url_for("index"))
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -135,7 +181,6 @@ def register():
         errors = {}
         values = {"username": username, "email": email}
 
-        # Field validation
         if not username:
             errors["username"] = "Username is required."
         if not email:
@@ -145,9 +190,7 @@ def register():
         if not password:
             errors["password"] = "Password is required."
         elif not PWD_RE.match(password):
-            errors["password"] = (
-                "Password must be ≥ 8 chars, include one uppercase, one number, and one symbol."
-            )
+            errors["password"] = "Password must be ≥ 8 chars, include one uppercase, one number, and one symbol."
         if not confirm:
             errors["confirmation"] = "Please confirm your password."
         elif password != confirm:
@@ -156,25 +199,19 @@ def register():
         if errors:
             return render_template("register.html", errors=errors, values=values)
 
-        cur = mysql.connection.cursor()
+        cur = db_cursor()
         try:
-            # Uniqueness checks
-            cur.execute(
-                "SELECT 1 FROM users WHERE LOWER(username)=%s LIMIT 1", (username_lc,)
-            )
+            cur.execute("SELECT 1 FROM users WHERE LOWER(username)=%s LIMIT 1", (username_lc,))
             if cur.fetchone():
                 errors["username"] = "This username is already taken."
 
-            cur.execute(
-                "SELECT 1 FROM users WHERE LOWER(email)=%s LIMIT 1", (email_lc,)
-            )
+            cur.execute("SELECT 1 FROM users WHERE LOWER(email)=%s LIMIT 1", (email_lc,))
             if cur.fetchone():
                 errors["email"] = "This email is already registered."
 
             if errors:
                 return render_template("register.html", errors=errors, values=values)
 
-            # Insert new user
             pwd_hash = generate_password_hash(password)
             cur.execute(
                 "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
@@ -193,7 +230,6 @@ def register():
                 if "email" in msg:
                     errors["email"] = "This email is already registered."
                 return render_template("register.html", errors=errors, values=values)
-
             flash("Database error during registration.", "error")
             return render_template("register.html", values=values)
 
@@ -207,153 +243,104 @@ def register():
 
     return render_template("register.html")
 
-
-def get_user_rooms(user_id):
-    """Utility function to fetch all rooms for the logged-in user."""
-    rooms = []
-    if user_id is None:
-        return rooms
-
-    cur = mysql.connection.cursor()
-    try:
-        cur.execute(
-            "SELECT id, room_name, bms_zone_id, default_setpoint FROM rooms WHERE user_id=%s ORDER BY room_name ASC",
-            (user_id,),
-        )
-        rooms_tuple = cur.fetchall()
-
-        # Convert tuples to list of dictionaries
-        column_names = [desc[0] for desc in cur.description]
-        rooms = [dict(zip(column_names, row)) for row in rooms_tuple]
-
-    except Exception as e:
-        # In a production app, you would log this error more formally
-        print(f"Error fetching rooms: {e}")
-        flash("Could not load room data.", "error")
-    finally:
-        cur.close()
-
-    return rooms
-
-
+# -----------------------------------------------------------------------------
+# Dashboard (Rooms + latest conditions)
+# -----------------------------------------------------------------------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    user_id = session.get("user_id")
-    rooms = get_user_rooms(user_id)
+    rooms = []
+    try:
+        rooms = get_rooms_summary()
+    except Exception as e:
+        # Keep the page loading; show toast in UI if you handle flashes
+        print(f"[dashboard] error: {e}")
+        flash("Could not load room data.", "error")
     return render_template("dashboard.html", active_page="dashboard", rooms=rooms)
 
-
+# -----------------------------------------------------------------------------
+# Optional pages — feed them rooms as well (non-blocking)
+# -----------------------------------------------------------------------------
 @app.route("/setup", methods=["GET", "POST"])
 @login_required
 def setup():
-    user_id = session.get("user_id")
-    errors = {}
-    values = {}
-
-    if request.method == "POST":
-        room_name = (request.form.get("room_name") or "").strip()
-        bms_zone_id = (request.form.get("bms_zone_id") or "").strip()
-        default_setpoint = request.form.get("default_setpoint")
-
-        try:
-            default_setpoint = float(default_setpoint)
-            if not (15.0 <= default_setpoint <= 30.0):
-                errors["default_setpoint"] = (
-                    "Setpoint must be between 15.0 and 30.0 °C."
-                )
-        except (ValueError, TypeError):
-            errors["default_setpoint"] = "Invalid setpoint value."
-
-        if not room_name:
-            errors["room_name"] = "Room Name is required."
-        if not bms_zone_id:
-            errors["bms_zone_id"] = "BMS Zone ID is required."
-
-        values = {
-            "room_name": room_name,
-            "bms_zone_id": bms_zone_id,
-            "default_setpoint": default_setpoint,
-        }
-
-        if not errors:
-            cur = mysql.connection.cursor()
-            try:
-                cur.execute(
-                    "INSERT INTO rooms (user_id, room_name, bms_zone_id, default_setpoint) VALUES (%s, %s, %s, %s)",
-                    (user_id, room_name, bms_zone_id, default_setpoint),
-                )
-                mysql.connection.commit()
-                flash(
-                    f"Room '{room_name}' added successfully! (Zone ID: {bms_zone_id})",
-                    "success",
-                )
-                values = {}
-
-            except IntegrityError:
-                mysql.connection.rollback()
-                flash(
-                    "A room with that name or zone ID already exists for your account.",
-                    "error",
-                )
-            except Exception as e:
-                mysql.connection.rollback()
-                print(f"Room insertion error: {e}")
-                flash(f"Unexpected error while adding room.", "error")
-            finally:
-                cur.close()
-
-    # Re-fetch rooms after a POST or for a GET request
-    rooms = get_user_rooms(user_id)
-
-    return render_template(
-        "setup.html", active_page="setup", rooms=rooms, errors=errors, values=values
-    )
-
+    rooms = []
+    try:
+        rooms = get_rooms_summary()
+    except Exception as e:
+        print(f"[setup] error: {e}")
+    return render_template("setup.html", active_page="setup", rooms=rooms)
 
 @app.route("/reports")
 @login_required
 def reports():
-    user_id = session.get("user_id")
-    rooms = get_user_rooms(user_id)
+    rooms = []
+    try:
+        rooms = get_rooms_summary()
+    except Exception as e:
+        print(f"[reports] error: {e}")
     return render_template("reports.html", active_page="reports", rooms=rooms)
-
 
 @app.route("/policies")
 @login_required
 def policies():
-    user_id = session.get("user_id")
-    rooms = get_user_rooms(user_id)
+    rooms = []
+    try:
+        rooms = get_rooms_summary()
+    except Exception as e:
+        print(f"[policies] error: {e}")
     return render_template("policies.html", active_page="policies", rooms=rooms)
-
 
 @app.route("/settings")
 @login_required
 def settings():
-    user_id = session.get("user_id")
-    rooms = get_user_rooms(user_id)
+    rooms = []
+    try:
+        rooms = get_rooms_summary()
+    except Exception as e:
+        print(f"[settings] error: {e}")
     return render_template("settings.html", active_page="settings", rooms=rooms)
 
+# -----------------------------------------------------------------------------
+# Theme helpers
+# -----------------------------------------------------------------------------
 @app.context_processor
 def inject_theme():
-    """Inject theme preference into all templates"""
-    theme = session.get('theme', 'system')
-    return dict(current_theme=theme)
+    return dict(current_theme=session.get("theme", "system"))
 
-@app.route('/set-theme/<theme>')
+@app.route("/set-theme/<theme>")
 @login_required
 def set_theme(theme):
-    """Set user's theme preference"""
-    if theme in ['light', 'dark', 'system']:
-        session['theme'] = theme
-        flash(f'Themed changed to {theme} mode', 'success')
-    return redirect(request.referrer or url_for('dashboard'))
+    if theme in ["light", "dark", "system"]:
+        session["theme"] = theme
+        flash(f"Theme changed to {theme} mode", "success")
+    return redirect(request.referrer or url_for("dashboard"))
 
+# -----------------------------------------------------------------------------
+# Debug/utility APIs (optional)
+# -----------------------------------------------------------------------------
+@app.get("/api/rooms")
+@login_required
+def api_rooms():
+    try:
+        return jsonify(get_rooms_summary())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.get("/api/readings")
+@login_required
+def api_readings():
+    c = db_cursor()
+    c.execute("SELECT * FROM readings ORDER BY recorded_at DESC LIMIT 200")
+    data = c.fetchall()
+    c.close()
+    return jsonify(data)
+
+# -----------------------------------------------------------------------------
+# Entrypoint
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    if not all(
-        [app.config["MYSQL_HOST"], app.config["MYSQL_USER"], app.config["MYSQL_DB"]]
-    ):
+    if not all([app.config["MYSQL_HOST"], app.config["MYSQL_USER"], app.config["MYSQL_DB"]]):
         print("\n!!! ERROR: Database environment variables are not set. !!!")
         raise SystemExit(1)
-
     app.run(debug=True)
