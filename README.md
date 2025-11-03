@@ -122,7 +122,7 @@ The AI-powered condition suggester analyzes real-time
 environmental data (temperature, humidity, occupancy)
 combined with local weather forecasts to provide
 intelligent HVAC recommendations.
-It uses Google's Gemini AI to generate
+It uses Googles Gemini AI to generate
 context-aware suggestions for optimal
 comfort and energy efficiency.
 
