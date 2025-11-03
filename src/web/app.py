@@ -4,6 +4,7 @@ from flask import Flask, render_template, redirect, request, session, flash, url
 from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
 from functools import wraps
+from utils.weather_gemini import WeatherAIAnalyzer
 
 try:
     from flask_session import Session as ServerSession
@@ -348,6 +349,42 @@ def set_theme(theme):
         session['theme'] = theme
         flash(f'Themed changed to {theme} mode', 'success')
     return redirect(request.referrer or url_for('dashboard'))
+
+@app.route('/ai-recommendations')
+@login_required
+def ai_recommendations():
+    """Get AI-powered HVAC recommendations"""
+    user_id = session.get('user_id')
+
+    # Get room data
+    room_data = get_current_room_data(user_id)
+
+    # Initialize AI analyzer
+    analyzer = WeatherAIAnalyzer()
+
+    # Get weather data
+    weather_data = analyzer.get_weather_data()
+
+    # Generate AI recommendations
+    recommendations = analyzer.generate_recommendations(room_data, weather_data)
+
+    return render_template('ai_recommendations.html',
+                           active_page='ai_recommendations',
+                           room_data=room_data,
+                           weather_data=weather_data,
+                           recommendations=recommendations,
+                           rooms=get_user_rooms(user_id))
+
+
+def get_current_room_data(user_id):
+    """Get current room sensor data """
+    # This is a placeholder
+    return {
+        'temperature': 22.5,  # From DHT22 sensor
+        'humidity': 65,  # From DHT22 sensor
+        'occupancy': 3,  # From PIR sensor or manual input
+        'room_type': 'office'
+    }
 
 if __name__ == "__main__":
     if not all(
