@@ -116,9 +116,15 @@ pip3 install adafruit-circuitpython-dht Adafruit-Blinka pubnub
 ```
 ---
 
-##🤖 AI Condition Suggester
+### **🤖 AI Condition Suggester**
 ```bash
-The AI-powered condition suggester analyzes real-time environmental data (temperature, humidity, occupancy) combined with local weather forecasts to provide intelligent HVAC recommendations. It uses Google's Gemini AI to generate context-aware suggestions for optimal comfort and energy efficiency.
+The AI-powered condition suggester analyzes real-time
+environmental data (temperature, humidity, occupancy)
+combined with local weather forecasts to provide
+intelligent HVAC recommendations.
+It uses Google's Gemini AI to generate
+context-aware suggestions for optimal
+comfort and energy efficiency.
 
 # Install AI and weather dependencies
 pip install google-generativeai requests python-dotenv
@@ -135,8 +141,9 @@ OPENWEATHER_API_KEY=your_openweather_api_key_here
 DEFAULT_CITY=Dublin
 DEFAULT_COUNTRY=IE
 
-#🔑 Obtaining API Keys
-Google Gemini API
+🔑 Obtaining API Keys
+
+-Google Gemini API
 Visit Google AI Studio
 
 Sign in with your Google account
@@ -145,7 +152,7 @@ Click "Create API Key" in the sidebar
 
 Copy the generated key and add it to your .env file as GEMINI_API_KEY
 
-OpenWeather API
+-OpenWeather API
 Register at OpenWeatherMap
 
 Verify your email address
