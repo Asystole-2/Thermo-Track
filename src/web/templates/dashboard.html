@@ -5,42 +5,175 @@
   {% include 'menu.html' %}
 
   <main class="main-content">
+    <!-- Header -->
     <header class="page-header">
       <div class="header-content">
         <svg class="header-icon text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
         </svg>
         <div>
           <h1 class="header-title">Facilities Dashboard</h1>
-          <p class="header-subtitle">Overview of campus-wide HVAC performance.</p>
+          <p class="header-subtitle">
+            Overview of campus-wide HVAC performance.
+            <span class="ml-2 inline-block px-2 py-0.5 rounded bg-blue-900/40 text-blue-200 text-xs align-middle">
+              Your readings only
+            </span>
+          </p>
         </div>
       </div>
-      <button class="btn p-2 hover:bg-gray-700 transition duration-200 relative">
-        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.405L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-        </svg>
-        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full ring-2 ring-gray-900 bg-red-500"></span>
-      </button>
+
+      <div class="flex items-center gap-3">
+        <a href="/api/rooms" class="btn p-2 hover:bg-gray-700 text-sm">Rooms JSON</a>
+        <a href="/api/readings" class="btn p-2 hover:bg-gray-700 text-sm">Readings JSON</a>
+      </div>
     </header>
 
-    <section>
-      <h3 class="text-xl font-semibold mb-4 text-gray-300">Building Overview</h3>
-      <div class="grid-cards">
-        <div class="card">
-          <h4 class="text-lg font-bold text-gray-300 mb-2">No Rooms Loaded</h4>
-          <p class="text-sm text-muted">
-            Room data will appear here once linked to your system's data source.
-          </p>
-          <div class="mt-4 pt-4 border-t border-gray-700">
-            <a href="{{ url_for('setup') }}" class="text-sm text-blue-400 hover:text-blue-300">Go to Setup to add zones &rarr;</a>
-          </div>
+    <!-- ===================== ROOMS ===================== -->
+    {% if rooms and rooms|length > 0 %}
+      <section class="mt-4">
+        <h3 class="text-xl font-semibold mb-4 text-gray-300">Rooms</h3>
+
+        <div class="grid-cards">
+          {% for r in rooms %}
+            <div class="card">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="text-lg font-bold text-gray-200">
+                    {{ r.room_name }}
+                  </h4>
+                  <p class="text-sm text-gray-400">
+                    {{ r.location or 'Unspecified location' }}
+                  </p>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-gray-400">Devices</div>
+                  <div class="text-xl font-semibold">{{ r.devices_count or 0 }}</div>
+                </div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-2 gap-4">
+                <div class="p-3 rounded bg-gray-900/40">
+                  <div class="text-xs text-gray-400">Avg Temperature</div>
+                  <div class="text-xl font-semibold">
+                    {% if r.avg_temp is not none %}{{ r.avg_temp }}°C{% else %}—{% endif %}
+                  </div>
+                </div>
+                <div class="p-3 rounded bg-gray-900/40">
+                  <div class="text-xs text-gray-400">Avg Humidity</div>
+                  <div class="text-xl font-semibold">
+                    {% if r.avg_humidity is not none %}{{ r.avg_humidity }}%{% else %}—{% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 text-xs text-gray-400">
+                <div>Devices with readings: <span class="text-gray-300">{{ r.devices_with_readings or 0 }}</span></div>
+                <div>
+                  Last update:
+                  <span class="text-gray-300">
+                    {% if r.last_update %}
+                      {{ (r.last_update|string).replace('T',' ') }}
+                    {% else %}—{% endif %}
+                  </span>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    <!-- ===================== RECENT READINGS (user-scoped) ===================== -->
+    {% if rows and rows|length > 0 %}
+      <section class="mt-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-semibold text-gray-300">Recent Readings</h3>
+          <span class="text-xs text-gray-400">
+            Showing readings for your account only
+          </span>
         </div>
 
-        <div class="card"></div>
-        <div class="card"></div>
-        <div class="card"></div>
-      </div>
-    </section>
+        <div class="overflow-x-auto">
+          <table class="min-w-full border border-gray-700 text-gray-300">
+            <thead class="bg-gray-800">
+              <tr>
+                <th class="p-2 text-left">Device</th>
+                <th class="p-2 text-left">UID</th>
+                <th class="p-2 text-left">Type</th>
+                <th class="p-2 text-left">Temp (°C)</th>
+                <th class="p-2 text-left">Humidity (%)</th>
+                <th class="p-2 text-left">Motion</th>
+                <th class="p-2 text-left">Recorded</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rows %}
+              <tr class="hover:bg-gray-700/40 transition">
+                <td class="p-2">{{ r.device_name or 'N/A' }}</td>
+                <td class="p-2 text-gray-400">{{ r.device_uid or '—' }}</td>
+
+                <!-- Accept either device_type (backend alias) or type -->
+                <td class="p-2">
+                  {{ r.device_type if r.device_type is defined else (r.type or '—') }}
+                </td>
+
+                <td class="p-2">{{ r.temperature if r.temperature is not none else '—' }}</td>
+                <td class="p-2">{{ r.humidity if r.humidity is not none else '—' }}</td>
+                <td class="p-2">
+                  {% if r.motion_detected == 1 %}
+                    <span class="text-green-400 font-semibold">Yes</span>
+                  {% elif r.motion_detected == 0 %}
+                    <span class="text-red-400">No</span>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  {% if r.recorded_at %}{{ (r.recorded_at|string).replace('T',' ') }}{% else %}—{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% endif %}
+
+    <!-- ===================== EMPTY STATE ===================== -->
+    {% if (not rooms or rooms|length == 0) and (not rows or rows|length == 0) %}
+      <section class="mt-4">
+        <div class="grid-cards">
+          <div class="card">
+            <h4 class="text-lg font-bold text-gray-300 mb-2">No Data Found</h4>
+            <p class="text-sm text-muted mb-4">
+              To preview the dashboard, insert a user, room(s), device(s), and <code>readings</code> with that
+              user’s <code>user_id</code>. Then refresh this page.
+            </p>
+
+            <div class="mt-4 pt-4 border-t border-gray-700 text-sm">
+              Example SQL for testing (adjust IDs/password to match your data):
+              <pre class="bg-gray-900 p-3 rounded text-gray-200 overflow-x-auto">
+-- 1) Create a user (id will auto-increment to 1 on a fresh DB)
+INSERT INTO users (username, email, password)
+VALUES ('demo_user', 'demo@example.com', '&lt;hashed_password_here&gt;');
+
+-- 2) Create a room
+INSERT INTO rooms (name, location) VALUES ('Server Room', 'Building A');
+
+-- 3) Create a device pointing to that room
+INSERT INTO devices (room_id, name, device_uid, type, status)
+VALUES (1, 'Raspberry Pi #1', 'pi-001', 'Temperature', 'active');
+
+-- 4) Insert readings linked to the user and device
+INSERT INTO readings (user_id, device_id, temperature, humidity, motion_detected)
+VALUES (1, 1, 24.8, 46.2, 0), (1, 1, 25.1, 45.9, 0);
+              </pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    {% endif %}
   </main>
 </div>
 {% endblock %}
