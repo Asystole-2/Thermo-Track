@@ -10,6 +10,8 @@ from flask import (
 )
 from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
+from functools import wraps
+from utils.weather_gemini import WeatherAIAnalyzer
 
 # Robust import: any failure disables server-side sessions gracefully
 try:
