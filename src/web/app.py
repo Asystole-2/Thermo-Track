@@ -91,7 +91,6 @@ def _jsonify_rows(rows):
             if isinstance(v, (datetime, date)):
                 r[k] = v.isoformat()
             elif isinstance(v, Decimal):
-                # If exactness matters, consider str(v) instead
                 r[k] = float(v)
     return rows
 
@@ -199,6 +198,61 @@ def get_recent_readings(limit=50, offset=0, user_id=None):
     rows = c.fetchall()
     c.close()
     return rows
+
+# -----------------------------------------------------------------------------
+# Rooms helpers used by setuprooms_* endpoints
+# -----------------------------------------------------------------------------
+def create_room(name, location=None, user_id=None):
+    """
+    Create a room with all its fields.
+    Current schema supports: name, location.
+    """
+    name = (name or "").strip()
+    location = (location or "").strip() or None
+    if not name:
+        raise ValueError("Room name is required.")
+    cur = db_cursor()
+    try:
+        # If you later add user-scoping, extend the INSERT accordingly.
+        cur.execute("INSERT INTO rooms (name, location) VALUES (%s, %s)", (name, location))
+        mysql.connection.commit()
+    finally:
+        cur.close()
+
+def update_room(room_id, name=None, location=None, user_id=None):
+    """
+    Update room fields (name/location). Safe no-op if nothing provided.
+    """
+    fields = []
+    params = []
+    if name is not None and name.strip():
+        fields.append("name=%s")
+        params.append(name.strip())
+    if location is not None:
+        loc_val = location.strip() or None
+        fields.append("location=%s")
+        params.append(loc_val)
+
+    if not fields:
+        return 0  # nothing to update
+
+    params.append(room_id)
+    cur = db_cursor()
+    try:
+        cur.execute(f"UPDATE rooms SET {', '.join(fields)} WHERE id=%s", tuple(params))
+        mysql.connection.commit()
+        return cur.rowcount
+    finally:
+        cur.close()
+
+def delete_room(room_id, user_id=None):
+    cur = db_cursor()
+    try:
+        cur.execute("DELETE FROM rooms WHERE id=%s", (room_id,))
+        mysql.connection.commit()
+        return cur.rowcount
+    finally:
+        cur.close()
 
 # -----------------------------------------------------------------------------
 # Routes: Landing & Auth
@@ -374,12 +428,28 @@ def dashboard():
         "dashboard.html",
         active_page="dashboard",
         rooms=rooms,
-        rows=rows,   # ✅ provide for template’s “Recent Readings” table
+        rows=rows,
     )
 
 # -----------------------------------------------------------------------------
 # Optional pages — feed them rooms as well (scoped)
 # -----------------------------------------------------------------------------
+@app.route("/ai/recommendations")
+@login_required
+def ai_recommendations():
+    user_id = session.get("user_id")
+    rooms = []
+    try:
+        rooms = get_rooms_summary(user_id=user_id)
+    except Exception as e:  # noqa: BLE001
+        log.exception("[ai_recommendations] rooms load error: %s", e)
+
+    return render_template(
+        "ai_recommendations.html",
+        active_page="ai_recommendations",
+        rooms=rooms,
+    )
+
 @app.route("/setup", methods=["GET", "POST"])
 @login_required
 def setup():
@@ -423,6 +493,136 @@ def settings():
     except Exception as e:  # noqa: BLE001
         log.exception("[settings] error: %s", e)
     return render_template("settings.html", active_page="settings", rooms=rooms)
+
+# -----------------------------------------------------------------------------
+# Setup Rooms CRUD (named as requested: setuprooms_*)
+# -----------------------------------------------------------------------------
+@app.post("/setuprooms/create")
+@login_required
+def setuprooms_create():
+    room_name = request.form.get("room_name", "").strip()
+    room_location = (request.form.get("room_location") or "").strip() or None
+    try:
+        create_room(room_name, location=room_location, user_id=session.get("user_id"))
+        flash("Room added.", "success")
+    except ValueError as ve:
+        flash(str(ve), "error")
+    except Exception as e:  # noqa: BLE001
+        log.exception("[setuprooms_create] error: %s", e)
+        flash("Could not add room.", "error")
+    return redirect(url_for("setup"))
+
+@app.post("/setuprooms/<int:room_id>/delete")
+@login_required
+def setuprooms_delete(room_id):
+    try:
+        deleted = delete_room(room_id, user_id=session.get("user_id"))
+        if deleted:
+            flash("Room deleted.", "success")
+        else:
+            flash("Room not found.", "warning")
+    except Exception as e:  # noqa: BLE001
+        log.exception("[setuprooms_delete] error: %s", e)
+        flash("Could not delete room.", "error")
+    return redirect(url_for("setup"))
+
+@app.post("/setuprooms/<int:room_id>/update")
+@login_required
+def setuprooms_update(room_id):
+    """
+    Optional: update room name/location from a form with fields
+    'room_name' and/or 'room_location'.
+    """
+    name = request.form.get("room_name")
+    location = request.form.get("room_location")
+    try:
+        changed = update_room(room_id, name=name, location=location, user_id=session.get("user_id"))
+        if changed:
+            flash("Room updated.", "success")
+        else:
+            flash("No changes applied.", "warning")
+    except Exception as e:  # noqa: BLE001
+        log.exception("[setuprooms_update] error: %s", e)
+        flash("Could not update room.", "error")
+    return redirect(url_for("setup"))
+
+# -----------------------------------------------------------------------------
+# Convenience routes for setup forms
+# -----------------------------------------------------------------------------
+@app.post("/rooms/add")
+@login_required
+def rooms_add_alias():
+    """
+    Compatibility for forms that post to /rooms/add with fields 'name' and optional 'location'.
+    Internally uses create_room to keep behavior consistent.
+    """
+    room_name = (request.form.get("name") or "").strip()
+    room_location = (request.form.get("location") or "").strip() or None
+    if not room_name:
+        flash("Room name is required.", "error")
+        return redirect(url_for("setup"))
+    try:
+        create_room(room_name, location=room_location, user_id=session.get("user_id"))
+        flash("Room added.", "success")
+    except Exception as e:  # noqa: BLE001
+        log.exception("[rooms_add_alias] error: %s", e)
+        flash("Could not add room.", "error")
+    return redirect(url_for("setup"))
+
+@app.post("/devices/add")
+@login_required
+def add_device():
+    """
+    Adds a device to a room.
+    Expects: room_id, name, device_uid, type (optional), status (optional)
+    """
+    name = (request.form.get("name") or "").strip()
+    device_uid = (request.form.get("device_uid") or "").strip()
+    device_type = (request.form.get("type") or "").strip()
+    status = (request.form.get("status") or "active").strip()
+    room_id = request.form.get("room_id", type=int)
+
+    # Basic validation
+    errors = []
+    if not room_id:
+        errors.append("Room is required.")
+    if not name:
+        errors.append("Device name is required.")
+    if not device_uid:
+        errors.append("Device UID is required.")
+
+    if errors:
+        for e in errors:
+            flash(e, "error")
+        return redirect(url_for("setup"))
+
+    cur = db_cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO devices (room_id, name, device_uid, type, status)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (room_id, name, device_uid, device_type or None, status or "active"),
+        )
+        mysql.connection.commit()
+        flash("Device added successfully.", "success")
+    except IntegrityError as e:
+        mysql.connection.rollback()
+        # Likely duplicate UID
+        log.exception("Add device integrity error: %s", e)
+        flash("Could not add device: device UID must be unique.", "error")
+    except Exception as e:  # noqa: BLE001
+        mysql.connection.rollback()
+        log.exception("Add device failed: %s", e)
+        flash("Could not add device. Ensure the room exists.", "error")
+    finally:
+        try:
+            cur.close()
+        except Exception:
+            pass
+
+    return redirect(url_for("setup"))
 
 # -----------------------------------------------------------------------------
 # Theme helpers

@@ -16,7 +16,7 @@ CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
     email VARCHAR(255)  NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,  -- store hashed only
+    password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -31,7 +31,7 @@ CREATE TABLE rooms (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_rooms_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_rooms_user (user_id),
-    UNIQUE KEY uq_user_room_name (user_id, name) -- optional: prevent duplicate room names per user
+    UNIQUE KEY uq_user_room_name (user_id, name)
 ) ENGINE=InnoDB;
 
 -- ============================================
@@ -52,16 +52,16 @@ CREATE TABLE devices (
 ) ENGINE=InnoDB;
 
 -- ============================================
--- READINGS  (use DECIMAL for precision)
+-- READINGS
 -- ============================================
 CREATE TABLE readings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     device_id INT NOT NULL,
-    temperature DECIMAL(5,2) NULL,     -- e.g., -50.00 to 999.99 if needed; adjust as appropriate
-    humidity DECIMAL(5,2) NULL,        -- 0–100.00 typical
+    temperature DECIMAL(5,2) NULL,
+    humidity DECIMAL(5,2) NULL,
     motion_detected BOOLEAN DEFAULT 0,
-    pressure DECIMAL(7,2) NULL,        -- e.g., 300.00–1100.00 hPa
-    light_level DECIMAL(10,2) NULL,    -- arbitrary units
+    pressure DECIMAL(7,2) NULL,
+    light_level DECIMAL(10,2) NULL,
     recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_readings_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE,
     INDEX idx_readings_device_time (device_id, recorded_at),
@@ -100,7 +100,7 @@ CREATE TABLE audit_log (
 ) ENGINE=InnoDB;
 
 -- ============================================
--- VIEW: latest reading per device (handy for dashboards)
+-- VIEW: latest reading per device
 -- ============================================
 CREATE OR REPLACE VIEW v_latest_device_reading AS
 SELECT r.*
@@ -112,15 +112,8 @@ JOIN (
 ) m ON m.device_id = r.device_id AND m.max_time = r.recorded_at;
 
 -- ============================================
--- SAMPLE DATA (two users; rooms/devices scoped)
+-- SAMPLE DATA
 -- ============================================
-
--- Users (hashed passwords)
--- admin / password: admin123
--- alice / password: alice123!
-INSERT INTO users (username, email, password) VALUES
-('admin', 'admin@example.com',  'pbkdf2:sha256:260000$Bx0p3vKcQm8lC7bS$1f8a3d6b1d1f9c8a3c1c8b0a7b2a0e3d5a6c7f8a9b0c1d2e3f4a5b6c7d8e9f0a'),
-('alice', 'alice@example.com',  'pbkdf2:sha256:260000$7X2m9Qz1Yk2dT4uN$9e4f1c2b3a5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1');
 
 -- Rooms (scoped to user_id)
 -- admin's rooms: ids will be 1..3
@@ -173,14 +166,4 @@ INSERT INTO alerts (device_id, room_id, message, severity, created_at) VALUES
 (5, 3, 'Warehouse cooling unit stable',         'info',     '2025-11-01 14:59:00'),
 (7, 4, 'Studio temperature normal',             'info',     '2025-11-01 14:40:00');
 
--- Optional: a couple of audit entries
-INSERT INTO audit_log (user_id, action, details) VALUES
-(1, 'login',  'Admin logged in'),
-(2, 'login',  'Alice logged in');
 
--- ============================================
--- ✅ READY: multi-tenant schema + hashed demo users
--- Login:
---   admin / admin123
---   alice / alice123!
--- ============================================
