@@ -5,35 +5,193 @@
   {% include 'menu.html' %}
 
   <main class="main-content">
+    <!-- Header -->
     <header class="page-header">
       <div class="header-content">
         <svg class="header-icon text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
         </svg>
         <div>
           <h1 class="header-title">System Setup</h1>
-          <p class="header-subtitle">Configure zones, sensors, and scheduling profiles.</p>
+          <p class="header-subtitle">Create rooms and manage what’s already there.</p>
         </div>
       </div>
-      <button class="btn p-2 hover:bg-gray-700 transition duration-200">
-        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.405L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-        </svg>
-      </button>
+
+      <!-- Right header actions -->
+      <div class="flex items-center gap-3">
+        <button id="openAddDeviceModal" class="btn p-2 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded">
+          + Add Device
+        </button>
+        <button class="btn p-2 hover:bg-gray-700 transition duration-200" title="Notifications">
+          <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 17h5l-1.405-1.405A2 2 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.405L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+          </svg>
+        </button>
+      </div>
     </header>
 
-    <!-- Main Content: Setup Form/Content -->
+    <!-- Create Room -->
+    <section class="mb-6">
+      <h3 class="text-xl font-semibold mb-4 text-gray-300">Create a new room</h3>
+      <form action="{{ url_for('setuprooms_create') }}" method="post" class="card p-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div class="md:col-span-2">
+            <label for="room_name" class="form-label">Room Name</label>
+            <input
+              id="room_name"
+              name="room_name"
+              type="text"
+              class="form-input"
+              placeholder="e.g. Chemistry Lab 2"
+              required
+            />
+          </div>
+          <div class="md:col-span-1">
+            <label for="room_location" class="form-label">Location (optional)</label>
+            <input
+              id="room_location"
+              name="room_location"
+              type="text"
+              class="form-input"
+              placeholder="e.g. Building B"
+            />
+          </div>
+          <div class="md:col-span-1">
+            <button type="submit" class="btn btn-primary w-full">Add Room</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Existing Rooms -->
     <section>
-      <h3 class="text-xl font-semibold mb-4 text-gray-300">Zone Management</h3>
-      <div class="card">
-        <p class="text-muted">Placeholder for zone configuration forms and sensor calibration tools.</p>
-        <button class="btn btn-primary mt-4">
-          Add New Zone
-        </button>
+      <h3 class="text-xl font-semibold mb-4 text-gray-300">Existing Rooms</h3>
+      <div class="card p-0 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="table w-full">
+            <thead>
+              <tr>
+                <th class="text-left">Room Name</th>
+                <th class="text-left">Location</th>
+                <th class="text-center">Devices</th>
+                <th class="text-center">With Readings</th>
+                <th class="text-center">Avg Temp</th>
+                <th class="text-center">Avg Humidity</th>
+                <th class="text-center">Last Update</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rooms %}
+              <tr>
+                <td class="whitespace-nowrap">{{ r.room_name }}</td>
+                <td class="whitespace-nowrap text-gray-400">{{ r.location or '—' }}</td>
+                <td class="text-center">{{ r.devices_count or 0 }}</td>
+                <td class="text-center">{{ r.devices_with_readings or 0 }}</td>
+                <td class="text-center">
+                  {% if r.avg_temp is not none %}{{ '%.1f'|format(r.avg_temp) }}°C{% else %}—{% endif %}
+                </td>
+                <td class="text-center">
+                  {% if r.avg_humidity is not none %}{{ '%.1f'|format(r.avg_humidity) }}%{% else %}—{% endif %}
+                </td>
+                <td class="text-center whitespace-nowrap">
+                  {% if r.last_update %}{{ (r.last_update|string).replace('T',' ') }}{% else %}—{% endif %}
+                </td>
+                <td class="text-right">
+                  <form action="{{ url_for('setuprooms_delete', room_id=r.id) }}" method="post" class="inline">
+                    <button type="submit"
+                            class="btn btn-danger btn-sm"
+                            onclick="return confirm('Delete {{ r.room_name }}?')">
+                      Delete
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="8" class="text-center text-gray-400 py-6">
+                  No rooms yet — add your first one above.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
+    <!-- Add Device Modal -->
+    <div id="addDeviceModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+      <div class="bg-gray-900 rounded-xl shadow-xl w-full max-w-lg p-6 border border-gray-700">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-200">Add Device</h3>
+          <button id="closeAddDeviceModal" class="text-gray-400 hover:text-gray-200">&times;</button>
+        </div>
+
+        <form method="post" action="{{ url_for('add_device') }}" class="space-y-4">
+          <div>
+            <label class="form-label">Room</label>
+            <select name="room_id" class="form-input" required>
+              <option value="" disabled selected>Select a room</option>
+              {% for r in rooms %}
+                <option value="{{ r.id }}">{{ r.room_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Device Name</label>
+            <input type="text" name="name" class="form-input" placeholder="e.g. ESP32 Sensor" required />
+          </div>
+
+          <div>
+            <label class="form-label">Device UID</label>
+            <input type="text" name="device_uid" class="form-input" placeholder="unique-id or MAC/MQTT topic" required />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="form-label">Type</label>
+              <input type="text" name="type" class="form-input" placeholder="Temperature, Humidity, Motion…" />
+            </div>
+            <div>
+              <label class="form-label">Status</label>
+              <select name="status" class="form-input">
+                <option value="active" selected>active</option>
+                <option value="inactive">inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" id="cancelAddDevice" class="btn bg-gray-700 hover:bg-gray-600">Cancel</button>
+            <button class="btn btn-primary">Save Device</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </main>
 </div>
+
+<script>
+  (function () {
+    const open = document.getElementById('openAddDeviceModal');
+    const modal = document.getElementById('addDeviceModal');
+    const close = document.getElementById('closeAddDeviceModal');
+    const cancel = document.getElementById('cancelAddDevice');
+
+    function show() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+    function hide() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+
+    if (open) open.addEventListener('click', show);
+    if (close) close.addEventListener('click', hide);
+    if (cancel) cancel.addEventListener('click', hide);
+    if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) hide(); });
+  })();
+</script>
 {% endblock %}
