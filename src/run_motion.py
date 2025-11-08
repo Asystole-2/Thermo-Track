@@ -7,11 +7,14 @@ load_dotenv(find_dotenv())
 
 
 def main():
-    pir_pin = int(os.getenv("PIR_PIN", "11"))
-    buzzer_pin = int(os.getenv("BUZZER_PIN", "7"))
-    service = MotionService(pir_pin=pir_pin, buzzer_pin=buzzer_pin)
-    service.run()
-
+    try:
+        pir_pin = int(os.getenv("PIR_PIN", "11"))
+        buzzer_pin = int(os.getenv("BUZZER_PIN", "7"))
+        service = MotionService(pir_pin=pir_pin, buzzer_pin=buzzer_pin)
+        service.run()
+    except RuntimeError as e:
+        # Clean message on non-Pi machines
+        print(str(e))
 
 if __name__ == "__main__":
     main()
