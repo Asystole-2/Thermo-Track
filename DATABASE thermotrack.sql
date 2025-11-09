@@ -166,4 +166,5 @@ INSERT INTO alerts (device_id, room_id, message, severity, created_at) VALUES
 (5, 3, 'Warehouse cooling unit stable',         'info',     '2025-11-01 14:59:00'),
 (7, 4, 'Studio temperature normal',             'info',     '2025-11-01 14:40:00');
 
+ALTER TABLE rooms ADD COLUMN temperature_unit ENUM('celsius', 'fahrenheit', 'kelvin') DEFAULT 'celsius';
 

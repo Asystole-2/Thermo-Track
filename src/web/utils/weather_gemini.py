@@ -20,7 +20,12 @@ class WeatherAIAnalyzer:
 
     def get_weather_data(self, city="Dublin", country_code="IE"):
         """Get current weather data from OpenWeather API"""
+        print(f"DEBUG: Weather API Key exists: {bool(self.weather_api_key)}")
+        print(
+            f"DEBUG: Weather API Key: {self.weather_api_key[:10]}...{self.weather_api_key[-4:] if self.weather_api_key and len(self.weather_api_key) > 14 else 'N/A'}")
+
         if not self.weather_api_key:
+            print("DEBUG: No weather API key found")
             return {
                 'error': 'Weather API key not configured',
                 'temperature': 15,
@@ -31,33 +36,44 @@ class WeatherAIAnalyzer:
 
         try:
             url = f"http://api.openweathermap.org/data/2.5/weather?q={city},{country_code}&appid={self.weather_api_key}&units=metric"
+            print(f"DEBUG: API URL: {url.replace(self.weather_api_key, 'API_KEY_REDACTED')}")
+
             response = requests.get(url)
+            print(f"DEBUG: Response status: {response.status_code}")
+            print(f"DEBUG: Response content: {response.text[:200]}...")
+
             data = response.json()
 
             if response.status_code == 200:
+                print("DEBUG: Successfully got weather data")
                 return {
                     'temperature': data['main']['temp'],
                     'humidity': data['main']['humidity'],
                     'description': data['weather'][0]['description'],
                     'wind_speed': data['wind']['speed'],
-                    'city': data['name']
+                    'city': data['name'],
+                    'condition': data['weather'][0]['main']  # Add this for condition
                 }
             else:
+                print(f"DEBUG: API Error: {data}")
                 return {
-                    'error': 'Weather data unavailable',
+                    'error': f"Weather data unavailable: {data.get('message', 'Unknown error')}",
                     'temperature': 15,
                     'humidity': 75,
                     'description': 'Partly cloudy',
-                    'wind_speed': 3.5
+                    'wind_speed': 3.5,
+                    'condition': 'Cloudy'
                 }
 
         except Exception as e:
+            print(f"DEBUG: Exception occurred: {e}")
             return {
                 'error': str(e),
                 'temperature': 15,
                 'humidity': 75,
                 'description': 'Partly cloudy',
-                'wind_speed': 3.5
+                'wind_speed': 3.5,
+                'condition': 'Cloudy'
             }
 
     def generate_recommendations(self, room_data, weather_data, room_type="office"):
