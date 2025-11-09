@@ -96,58 +96,33 @@ def _jsonify_rows(rows):
 
 def get_rooms_summary(user_id=None):
     """
-    Returns one row per room with:
-      - devices_count
-      - devices_with_readings
-      - avg_temp / avg_humidity from latest reading per device
-      - last_update
-
-    If user_id provided, aggregate using only readings for that user.
+    Returns one row per room with device counts and latest readings.
+    If user_id provided, returns only that user's rooms.
     """
     c = db_cursor()
 
     params = []
-    # Latest-reading-per-device subquery, optionally filtered by user_id
+    user_filter = ""
     if user_id is not None:
-        latest_subquery = """
-            SELECT r.*
-            FROM readings r
-            JOIN (
-                SELECT device_id, MAX(recorded_at) AS max_time
-                FROM readings
-                WHERE user_id = %s
-                GROUP BY device_id
-            ) m ON m.device_id = r.device_id AND m.max_time = r.recorded_at
-            WHERE r.user_id = %s
-        """
-        params.extend([user_id, user_id])
-    else:
-        latest_subquery = """
-            SELECT r.*
-            FROM readings r
-            JOIN (
-                SELECT device_id, MAX(recorded_at) AS max_time
-                FROM readings
-                GROUP BY device_id
-            ) m ON m.device_id = r.device_id AND m.max_time = r.recorded_at
-        """
+        user_filter = "WHERE rm.user_id = %s"
+        params.append(user_id)
 
     query = f"""
         SELECT
             rm.id                                        AS id,
             rm.name                                      AS room_name,
             rm.location                                  AS location,
+            rm.created_at                                AS created_at,
             COUNT(DISTINCT d.id)                         AS devices_count,
-            COUNT(lr.id)                                 AS devices_with_readings,
+            COUNT(DISTINCT lr.device_id)                 AS devices_with_readings,
             ROUND(AVG(lr.temperature), 1)                AS avg_temp,
             ROUND(AVG(lr.humidity), 1)                   AS avg_humidity,
             MAX(lr.recorded_at)                          AS last_update
         FROM rooms rm
         LEFT JOIN devices d ON d.room_id = rm.id
-        LEFT JOIN (
-            {latest_subquery}
-        ) lr ON lr.device_id = d.id
-        GROUP BY rm.id, rm.name, rm.location
+        LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+        {user_filter}
+        GROUP BY rm.id, rm.name, rm.location, rm.created_at
         ORDER BY rm.name
     """
 
@@ -155,7 +130,6 @@ def get_rooms_summary(user_id=None):
     rows = c.fetchall()
     c.close()
     return rows
-
 def get_recent_readings(limit=50, offset=0, user_id=None):
     """
     Recent readings, newest first, joined with device and room.
@@ -204,21 +178,76 @@ def get_recent_readings(limit=50, offset=0, user_id=None):
 # -----------------------------------------------------------------------------
 def create_room(name, location=None, user_id=None):
     """
-    Create a room with all its fields.
-    Current schema supports: name, location.
+    Create a room for a specific user.
     """
     name = (name or "").strip()
     location = (location or "").strip() or None
     if not name:
         raise ValueError("Room name is required.")
+    if not user_id:
+        raise ValueError("User ID is required.")
+
     cur = db_cursor()
     try:
-        # If you later add user-scoping, extend the INSERT accordingly.
-        cur.execute("INSERT INTO rooms (name, location) VALUES (%s, %s)", (name, location))
+        cur.execute(
+            "INSERT INTO rooms (name, location, user_id) VALUES (%s, %s, %s)",
+            (name, location, user_id)
+        )
         mysql.connection.commit()
+    except Exception as e:
+        mysql.connection.rollback()
+        raise e
     finally:
         cur.close()
 
+
+def update_room(room_id, name=None, location=None, user_id=None):
+    """
+    Update room fields (name/location) for a specific user.
+    """
+    fields = []
+    params = []
+    if name is not None and name.strip():
+        fields.append("name=%s")
+        params.append(name.strip())
+    if location is not None:
+        loc_val = location.strip() or None
+        fields.append("location=%s")
+        params.append(loc_val)
+
+    if not fields:
+        return 0  # nothing to update
+
+    params.extend([room_id, user_id])
+    cur = db_cursor()
+    try:
+        cur.execute(
+            f"UPDATE rooms SET {', '.join(fields)} WHERE id=%s AND user_id=%s",
+            tuple(params)
+        )
+        mysql.connection.commit()
+        return cur.rowcount
+    except Exception as e:
+        mysql.connection.rollback()
+        raise e
+    finally:
+        cur.close()
+
+
+def delete_room(room_id, user_id=None):
+    """
+    Delete a room only if it belongs to the user.
+    """
+    cur = db_cursor()
+    try:
+        cur.execute("DELETE FROM rooms WHERE id=%s AND user_id=%s", (room_id, user_id))
+        mysql.connection.commit()
+        return cur.rowcount
+    except Exception as e:
+        mysql.connection.rollback()
+        raise e
+    finally:
+        cur.close()
 def update_room(room_id, name=None, location=None, user_id=None):
     """
     Update room fields (name/location). Safe no-op if nothing provided.

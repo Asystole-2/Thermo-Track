@@ -1,7 +1,7 @@
 import time
 from typing import Optional
 
-from core.pubnub_client import publish_data
+from src.core.pubnub_client import publish_data
 
 try:
     import RPi.GPIO as GPIO

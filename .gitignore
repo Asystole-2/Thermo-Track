@@ -140,6 +140,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+Thermo_Track.egg-info
 src/web/.env
 .envrc
 .venv
