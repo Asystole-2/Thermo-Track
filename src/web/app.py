@@ -141,9 +141,9 @@ def get_recent_readings(limit=50, offset=0, user_id=None):
     c = db_cursor()
 
     params = []
-    where_user = ""
+    user_filter = ""
     if user_id is not None:
-        where_user = "WHERE r.user_id = %s"
+        user_filter = "WHERE rm.user_id = %s"
         params.append(user_id)
 
     query = f"""
@@ -152,7 +152,9 @@ def get_recent_readings(limit=50, offset=0, user_id=None):
             r.device_id,
             r.temperature,
             r.humidity,
+            r.motion_detected,
             r.pressure,
+            r.light_level,
             r.recorded_at,
             d.name          AS device_name,
             d.device_uid    AS device_uid,
@@ -162,7 +164,7 @@ def get_recent_readings(limit=50, offset=0, user_id=None):
         FROM readings r
         JOIN devices d ON d.id = r.device_id
         JOIN rooms rm   ON rm.id = d.room_id
-        {where_user}
+        {user_filter}
         ORDER BY r.recorded_at DESC
         LIMIT %s OFFSET %s
     """
@@ -172,7 +174,6 @@ def get_recent_readings(limit=50, offset=0, user_id=None):
     rows = c.fetchall()
     c.close()
     return rows
-
 # -----------------------------------------------------------------------------
 # Rooms helpers used by setuprooms_* endpoints
 # -----------------------------------------------------------------------------
@@ -558,10 +559,7 @@ def setuprooms_delete(room_id):
 @app.post("/setuprooms/<int:room_id>/update")
 @login_required
 def setuprooms_update(room_id):
-    """
-    Optional: update room name/location from a form with fields
-    'room_name' and/or 'room_location'.
-    """
+
     name = request.form.get("room_name")
     location = request.form.get("room_location")
     try:

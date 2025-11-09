@@ -141,6 +141,7 @@ celerybeat.pid
 
 # Environments
 Thermo_Track.egg-info
+pyproject.toml
 src/web/.env
 .envrc
 .venv
