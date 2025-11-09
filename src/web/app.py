@@ -249,40 +249,7 @@ def delete_room(room_id, user_id=None):
         raise e
     finally:
         cur.close()
-def update_room(room_id, name=None, location=None, user_id=None):
-    """
-    Update room fields (name/location). Safe no-op if nothing provided.
-    """
-    fields = []
-    params = []
-    if name is not None and name.strip():
-        fields.append("name=%s")
-        params.append(name.strip())
-    if location is not None:
-        loc_val = location.strip() or None
-        fields.append("location=%s")
-        params.append(loc_val)
 
-    if not fields:
-        return 0  # nothing to update
-
-    params.append(room_id)
-    cur = db_cursor()
-    try:
-        cur.execute(f"UPDATE rooms SET {', '.join(fields)} WHERE id=%s", tuple(params))
-        mysql.connection.commit()
-        return cur.rowcount
-    finally:
-        cur.close()
-
-def delete_room(room_id, user_id=None):
-    cur = db_cursor()
-    try:
-        cur.execute("DELETE FROM rooms WHERE id=%s", (room_id,))
-        mysql.connection.commit()
-        return cur.rowcount
-    finally:
-        cur.close()
 
 # -----------------------------------------------------------------------------
 # Routes: Landing & Auth
@@ -464,21 +431,135 @@ def dashboard():
 # -----------------------------------------------------------------------------
 # Optional pages — feed them rooms as well (scoped)
 # -----------------------------------------------------------------------------
-@app.route("/ai/recommendations")
+
+def get_room_details(room_id, user_id=None):
+    """
+    Returns the room details, its devices, and the latest readings for those devices.
+    If user_id is provided, enforces ownership check.
+    """
+    c = db_cursor()
+    params = [room_id]
+    user_filter = ""
+    if user_id is not None:
+        user_filter = " AND rm.user_id = %s"
+        params.append(user_id)
+
+    # 1. Get Room Summary (similar to get_rooms_summary but for one room)
+    room_query = f"""
+        SELECT
+            rm.id, rm.name AS room_name, rm.location, rm.created_at,
+            COUNT(DISTINCT d.id) AS devices_count,
+            ROUND(AVG(lr.temperature), 1) AS avg_temp,
+            ROUND(AVG(lr.humidity), 1) AS avg_humidity,
+            MAX(lr.recorded_at) AS last_update
+        FROM rooms rm
+        LEFT JOIN devices d ON d.room_id = rm.id
+        LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+        WHERE rm.id = %s {user_filter}
+        GROUP BY rm.id
+    """
+    c.execute(room_query, tuple(params))
+    room_data = c.fetchone()
+    if not room_data:
+        c.close()
+        return None, None
+
+    # 2. Get all devices for this room with their latest reading
+    devices_query = """
+        SELECT
+            d.id, d.name AS device_name, d.device_uid, d.type, d.status,
+            lr.temperature, lr.humidity, lr.recorded_at, lr.motion_detected
+        FROM devices d
+        LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+        WHERE d.room_id = %s
+        ORDER BY d.name
+    """
+    c.execute(devices_query, (room_id,))
+    devices_data = c.fetchall()
+    c.close()
+
+    return room_data, devices_data
+
+# room details
+@app.route("/room/<int:room_id>")
 @login_required
-def ai_recommendations():
+def room(room_id):
     user_id = session.get("user_id")
-    rooms = []
+    room_data, devices_data = None, None
+
     try:
-        rooms = get_rooms_summary(user_id=user_id)
-    except Exception as e:  # noqa: BLE001
-        log.exception("[ai_recommendations] rooms load error: %s", e)
+        # Fetch room details, devices, and latest readings
+        room_data, devices_data = get_room_details(room_id, user_id=user_id)
+    except Exception as e:
+        log.exception("[room] error loading details for room %s: %s", room_id, e)
+        flash("Could not load room details.", "error")
+        return redirect(url_for("dashboard"))
+
+    if not room_data:
+        flash("Room not found or you do not have permission to view it.", "error")
+        return redirect(url_for("dashboard"))
+
+    # --- 1. PREPARE AI INPUT DATA ---
+    current_temp = room_data.get('avg_temp') if room_data.get('avg_temp') is not None else 21.0
+    current_humidity = room_data.get('avg_humidity') if room_data.get('avg_humidity') is not None else 50
+    # Placeholder for occupancy: Count devices with motion detected, or use a default
+    occupancy = sum(1 for d in devices_data if d.get('motion_detected') == 1) if devices_data else 0
+
+    ai_room_input = {
+        'temperature': current_temp,
+        'humidity': current_humidity,
+        'occupancy': occupancy,
+        # Room type can be derived from the name/location or be a column in the DB
+        'room_type': room_data.get('location', 'Unspecified')
+    }
+
+    # --- 2. RUN AI ANALYSIS ---
+    weather_analyzer = WeatherAIAnalyzer()
+    weather_data = weather_analyzer.get_weather_data()
+    recommendations = weather_analyzer.generate_recommendations(
+        room_data=ai_room_input,
+        weather_data=weather_data,
+        room_type=ai_room_input['room_type']  # Pass the derived room type
+    )
+
+    # Simple status logic for display
+    room_data['current_status'] = "Normal"
+    room_data['status_class'] = "text-green-400"
+    if current_temp > 24 or current_temp < 18:
+        room_data['current_status'] = "Warning"
+        room_data['status_class'] = "text-orange-400"
+    if current_temp > 26 or current_temp < 16:
+        room_data['current_status'] = "Critical"
+        room_data['status_class'] = "text-red-400"
+
+    # Default setpoint (for the slider)
+    room_data['current_setpoint'] = 22.0
 
     return render_template(
-        "ai_recommendations.html",
-        active_page="ai_recommendations",
-        rooms=rooms,
+        "room.html",
+        active_page="dashboard",
+        room=room_data,
+        devices=devices_data,
+        recommendations=recommendations,
+        weather_data=weather_data,
     )
+
+
+# --- Add a route for applying the AI suggestion (POST) ---
+@app.post("/room/<int:room_id>/apply_ai")
+@login_required
+def room_apply_ai(room_id):
+    try:
+        new_setpoint = request.form.get("new_setpoint", type=float)
+        if new_setpoint:
+            flash(f"New setpoint {new_setpoint}°C applied successfully via AI recommendation.", "success")
+        else:
+            flash("Invalid temperature received.", "error")
+    except Exception as e:
+        log.exception("Error applying setpoint: %s", e)
+        flash("Failed to apply setpoint.", "error")
+
+    return redirect(url_for("room", room_id=room_id))
 
 @app.route("/setup", methods=["GET", "POST"])
 @login_required

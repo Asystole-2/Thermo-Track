@@ -16,13 +16,6 @@
     </div>
 
     <!-- Navigation Links -->
-    <a href="{{ url_for('ai_recommendations') }}" class="flex items-center p-3 rounded-lg font-semibold transition duration-200 whitespace-nowrap
-    {% if active_page == 'ai_recommendations' %}bg-purple-700 text-white shadow-md{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
-    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-    </svg>
-    <span class="link-text">AI Recommendations</span>
-</a>
     <nav class="flex-1 p-4 space-y-2">
         {% set nav_items = [
             {'endpoint': 'dashboard', 'text': 'Dashboard', 'icon': 'M3 10h18M3 14h18m-9-4v8m-9-6h2m13 0h2m-2-2h2m-13-2h2'},
