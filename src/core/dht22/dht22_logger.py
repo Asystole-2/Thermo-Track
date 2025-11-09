@@ -4,6 +4,9 @@ import adafruit_dht
 import board
 from datetime import datetime
 
+#PubNub publisher
+from core.pubnub_client import publish_data
+
 # --- CONFIGURATION ---
 # Sensor is connected to GPIO 4 (BCM numbering)
 DHT_PIN = board.D4 
@@ -37,7 +40,7 @@ except Exception as e:
     # Set log file handle to None so we don't try to write to it later
     f = None
 
-print("\n--- Starting Unified DHT22 Monitoring and Logging ---")
+print("\n--- Starting Unified DHT22 Monitoring and Logging + PubNub ---")
 
 # --- MAIN LOOP ---
 while True:
@@ -64,14 +67,29 @@ while True:
             # Format time/date for CSV logging
             date_str = datetime.now().strftime('%m/%d/%y')
             time_str = datetime.now().strftime('%H:%M:%S')
+            ts = int(time.time())
             
             # Write to CSV
             log_line = f"{date_str},{time_str},{temperature_c:0.1f},{temperature_f:0.1f},{humidity:0.1f}\r\n"
             f.write(log_line)
+            #publish to PubNub
+        try:
+            payload = {
+                "event": "dht22_reading",
+                "temperature_c": round(float(temperature_c), 2),
+                "humidity": round(float(humidity), 2),
+                "at": ts
+            }
+            publish_data(payload)
+        except Exception as e:
+            print(f"[DHT22] PubNub publish error: {e}")
 
     except RuntimeError as err:
         # Handle specific sensor read errors (like bad checksum)
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Sensor Read Error: {err.args[0]}")
+    except KeyboardInterrupt:
+        print("\n[DHT22] stopping...")
+        break
     
     except Exception as e:
         # Handle all other unexpected errors

@@ -1,7 +1,7 @@
 import time
 from typing import Optional
 
-from src.core.pubnub_client import publish_data
+from core.pubnub_client import publish_data
 
 try:
     import RPi.GPIO as GPIO
@@ -19,6 +19,8 @@ class MotionService:
         self.buzzer_pin = buzzer_pin
         self.cooldown = cooldown
         self._gpio = GPIO
+        if not self._gpio:
+            raise RuntimeError(" Please connect to your Raspberry Pi hardware — GPIO not available.")
         self._setup_gpio()
 
     def _setup_gpio(self) -> None:
@@ -48,9 +50,11 @@ class MotionService:
         - Optional on_event callback receives the payload dict.
         """
         print("Waiting for motion... (Ctrl+C to stop)")
+        last_state = None
         try:
             while True:
-                if self._gpio.input(self.pir_pin):
+                current_state = self._gpio.input(self.pir_pin)
+                if current_state == 1 and last_state != 1:
                     print("[Motion] DETECTED!")
                     self._beep()
 
@@ -59,16 +63,18 @@ class MotionService:
                         publish_data(payload)  # → PubNub (channel from .env)
                     except Exception as e:
                         print(f"[Motion] PubNub publish error: {e}")
+                    last_state = 1
+                elif current_state == 0 and last_state != 0:
+                    #no motion detected
+                    print("[Motion] No motion detected.")
+                    payload = {"event": "motion", "occupied": 0, "at": int(time.time())}
+                    try:
+                        publish_data(payload)  # → PubNub (channel from .env)
+                    except Exception as e:
+                        print(f"[Motion] PubNub publish error: {e}")
+                    last_state = 0
+                time.sleep(0.1)
 
-                    if on_event:
-                        try:
-                            on_event(payload)
-                        except Exception as e:
-                            print(f"[Motion] on_event error: {e}")
-
-                    time.sleep(self.cooldown)  # cooldown to avoid rapid retriggers
-                else:
-                    time.sleep(0.1)
         except KeyboardInterrupt:
             print("\nStopping motion service...")
         finally:
