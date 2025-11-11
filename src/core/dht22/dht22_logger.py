@@ -5,7 +5,7 @@ import board
 from datetime import datetime
 
 #PubNub publisher
-from core.pubnub_client import publish_data
+from src.core.pubnub_client import publish_data
 
 # --- CONFIGURATION ---
 # Sensor is connected to GPIO 4 (BCM numbering)
