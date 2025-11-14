@@ -335,17 +335,21 @@ def login():
         cur = db_cursor()
 
         try:
+            # Load role as well
             if "@" in ident_lc:
                 cur.execute(
-                    "SELECT id, username, email, password FROM users WHERE LOWER(email)=%s LIMIT 1",
+                    "SELECT id, username, email, password, role FROM users WHERE LOWER(email)=%s LIMIT 1",
                     (ident_lc,),
                 )
             else:
                 cur.execute(
-                    "SELECT id, username, email, password FROM users WHERE LOWER(username)=%s LIMIT 1",
+                    "SELECT id, username, email, password, role FROM users WHERE LOWER(username)=%s LIMIT 1",
                     (ident_lc,),
                 )
             row = cur.fetchone()
+            print("LOGIN DEBUG — identifier:", identifier)
+            print("LOGIN DEBUG — fetched row:", row)
+
             cur.close()
         except Exception as e:
             mysql.connection.rollback()
@@ -362,6 +366,8 @@ def login():
 
         try:
             ok = check_password_hash(pwd_hash, password)
+            print("PASSWORD CHECK:", ok)
+
         except Exception:
             ok = (pwd_hash == password)
 
@@ -369,12 +375,27 @@ def login():
             flash("Incorrect username or password.", "error")
             return render_template("login.html")
 
+        # Store role in session (NEW)
         session["user_id"] = user_id
         session["username"] = row["username"]
+        session["role"] = row["role"]
+
         flash("Login successful!", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("login.html")
+
+def role_required(*roles):
+    def wrapper(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_role = session.get("role")
+            if user_role not in roles:
+                flash("You do not have permission to access this page.", "error")
+                return redirect(url_for("dashboard"))
+            return f(*args, **kwargs)
+        return decorated_function
+    return wrapper
 
 
 @app.route("/logout")
