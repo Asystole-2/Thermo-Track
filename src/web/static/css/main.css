@@ -467,3 +467,27 @@ body {
   border-color: var(--border-color) !important;
 }
 
+/* Filter Button Styles */
+.filter-btn {
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
+}
+
+.filter-btn.active {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.filter-btn.inactive {
+    background-color: #4b5563 !important;
+    color: #d1d5db !important;
+}
+
+.filter-btn.inactive:hover {
+    background-color: #6b7280 !important;
+    color: white !important;
+}
