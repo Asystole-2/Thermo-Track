@@ -1,5 +1,4 @@
 import time
-import os
 from typing import Optional
 
 # --- Hardware Libraries ---

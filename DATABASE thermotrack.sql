@@ -169,3 +169,39 @@ INSERT INTO alerts (device_id, room_id, message, severity, created_at) VALUES
 
 ALTER TABLE rooms ADD COLUMN temperature_unit ENUM('celsius', 'fahrenheit', 'kelvin') DEFAULT 'celsius';
 
+-- Add tables for room condition requests and notifications
+CREATE TABLE IF NOT EXISTS room_condition_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    room_id INT NOT NULL,
+    user_id INT NOT NULL,
+    request_type ENUM('temperature_change', 'fan_adjustment', 'air_quality') NOT NULL,
+    current_temperature DECIMAL(5,2),
+    target_temperature DECIMAL(5,2),
+    fan_level_request ENUM('more_air', 'less_air'),
+    user_notes TEXT,
+    status ENUM('pending', 'viewed', 'approved', 'denied', 'completed') DEFAULT 'pending',
+    estimated_completion_time TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_requests_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
+    CONSTRAINT fk_requests_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_requests_status (status),
+    INDEX idx_requests_room (room_id),
+    INDEX idx_requests_user (user_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS user_notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    request_id INT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type ENUM('info', 'success', 'warning', 'error') DEFAULT 'info',
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_notifications_request FOREIGN KEY (request_id) REFERENCES room_condition_requests(id) ON DELETE SET NULL,
+    INDEX idx_notifications_user (user_id),
+    INDEX idx_notifications_read (is_read)
+) ENGINE=InnoDB;
+

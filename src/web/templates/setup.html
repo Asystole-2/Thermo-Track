@@ -1,69 +1,28 @@
-{% extends "layout.html" %} {% block body %}
-<div class="app-container">
-  {% include 'menu.html' %}
+{% extends "layout.html" %}
 
-  <main class="main-content">
-    <!-- Header -->
-    <header class="page-header">
-      <div class="header-content">
-        <svg
-          class="header-icon text-blue-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"
-          ></path>
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          ></path>
-        </svg>
-        <div>
-          <h1 class="header-title">System Setup</h1>
-          <p class="header-subtitle">
-            Create rooms and manage what’s already there.
-          </p>
-        </div>
-      </div>
+{% block body %}
+    <div class="app-container">
+        {% include 'components/menu.html' %}
 
-      <!-- Right header actions -->
-      <div class="flex items-center gap-3">
-        {% if session.role == 'admin' %}
-        <button
-          id="openAddDeviceModal"
-          class="btn p-2 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded"
-        >
-          + Add Device
-        </button>
-        {% endif %}
+        <main class="main-content">
+            <!-- Header -->
+            <header class="page-header">
+                <div class="header-content">
+                    <div>
+                        <h1 class="header-title">System Setup</h1>
+                        <p class="header-subtitle">Create rooms and manage what’s already there.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button id="openAddDeviceModal"
+                                class="btn p-2 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded">
+                            + Add Device
+                        </button>
+                        <!-- Right side: Notification bell -->
+                        {% include 'components/notification_bell.html' %}
+                    </div>
+                </div>
 
-        <button
-          class="btn p-2 hover:bg-gray-700 transition duration-200"
-          title="Notifications"
-        >
-          <svg
-            class="w-6 h-6 text-gray-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 17h5l-1.405-1.405A2 2 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.405L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-            ></path>
-          </svg>
-        </button>
-      </div>
-    </header>
+            </header>
 
     <!-- Create Room -->
     {% if session.role == 'admin' %}
@@ -113,7 +72,7 @@
     <!-- Existing Rooms -->
     <section>
       <h3 class="text-xl font-semibold mb-4 text-gray-300">Existing Rooms</h3>
-      <div class="card p-0 overflow-hidden">
+      <div class="card p-5 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="table w-full">
             <thead>
@@ -202,102 +161,79 @@
           </button>
         </div>
 
-        <form
-          method="post"
-          action="{{ url_for('add_device') }}"
-          class="space-y-4"
-        >
-          <div>
-            <label class="form-label">Room</label>
-            <select name="room_id" class="form-input" required>
-              <option value="" disabled selected>Select a room</option>
-              {% for r in rooms %}
-              <option value="{{ r.id }}">{{ r.room_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
+                    <form method="post" action="{{ url_for('add_device') }}" class="space-y-4">
+                        <div>
+                            <label class="form-label">Room</label>
+                            <select name="room_id" class="form-input" required>
+                                <option value="" disabled selected>Select a room</option>
+                                {% for r in rooms %}
+                                    <option value="{{ r.id }}">{{ r.room_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
-          <div>
-            <label class="form-label">Device Name</label>
-            <input
-              type="text"
-              name="name"
-              class="form-input"
-              placeholder="e.g. ESP32 Sensor"
-              required
-            />
-          </div>
+                        <div>
+                            <label class="form-label">Device Name</label>
+                            <input type="text" name="name" class="form-input" placeholder="e.g. ESP32 Sensor" required/>
+                        </div>
 
-          <div>
-            <label class="form-label">Device UID</label>
-            <input
-              type="text"
-              name="device_uid"
-              class="form-input"
-              placeholder="unique-id or MAC/MQTT topic"
-              required
-            />
-          </div>
+                        <div>
+                            <label class="form-label">Device UID</label>
+                            <input type="text" name="device_uid" class="form-input"
+                                   placeholder="unique-id or MAC/MQTT topic" required/>
+                        </div>
 
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="form-label">Type</label>
-              <input
-                type="text"
-                name="type"
-                class="form-input"
-                placeholder="Temperature, Humidity, Motion…"
-              />
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label">Type</label>
+                                <input type="text" name="type" class="form-input"
+                                       placeholder="Temperature, Humidity, Motion…"/>
+                            </div>
+                            <div>
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-input">
+                                    <option value="active" selected>active</option>
+                                    <option value="inactive">inactive</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-2">
+                            <button type="button" id="cancelAddDevice" class="btn bg-gray-700 hover:bg-gray-600">
+                                Cancel
+                            </button>
+                            <button class="btn btn-primary">Save Device</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div>
-              <label class="form-label">Status</label>
-              <select name="status" class="form-input">
-                <option value="active" selected>active</option>
-                <option value="inactive">inactive</option>
-              </select>
-            </div>
-          </div>
 
-          <div class="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              id="cancelAddDevice"
-              class="btn bg-gray-700 hover:bg-gray-600"
-            >
-              Cancel
-            </button>
-            <button class="btn btn-primary">Save Device</button>
-          </div>
-        </form>
-      </div>
+        </main>
     </div>
-    {% endif %}
-  </main>
-</div>
 
-<script>
-  (function () {
-    const open = document.getElementById("openAddDeviceModal");
-    const modal = document.getElementById("addDeviceModal");
-    const close = document.getElementById("closeAddDeviceModal");
-    const cancel = document.getElementById("cancelAddDevice");
+    <script>
+        (function () {
+            const open = document.getElementById('openAddDeviceModal');
+            const modal = document.getElementById('addDeviceModal');
+            const close = document.getElementById('closeAddDeviceModal');
+            const cancel = document.getElementById('cancelAddDevice');
 
-    function show() {
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-    }
-    function hide() {
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-    }
+            function show() {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
 
-    if (open) open.addEventListener("click", show);
-    if (close) close.addEventListener("click", hide);
-    if (cancel) cancel.addEventListener("click", hide);
-    if (modal)
-      modal.addEventListener("click", (e) => {
-        if (e.target === modal) hide();
-      });
-  })();
-</script>
+            function hide() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            if (open) open.addEventListener('click', show);
+            if (close) close.addEventListener('click', hide);
+            if (cancel) cancel.addEventListener('click', hide);
+            if (modal) modal.addEventListener('click', (e) => {
+                if (e.target === modal) hide();
+            });
+        })();
+    </script>
 {% endblock %}

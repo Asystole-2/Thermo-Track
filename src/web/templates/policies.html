@@ -1,52 +1,50 @@
 {% extends "layout.html" %}
 
 {% block body %}
-<div class="app-container">
-  {% include 'menu.html' %}
+    <div class="app-container">
+        {% include 'components/menu.html' %}
 
-  <main class="main-content">
-    <header class="page-header">
-      <div class="header-content">
-        <svg class="header-icon text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.617-4.238A6.995 6.995 0 0112 5c-3.14 0-5.922 1.487-7.617 3.762A.5.5 0 004 8.248V16a2 2 0 002 2h12a2 2 0 002-2V8.248a.5.5 0 00-.383-.486z"/>
-        </svg>
-        <div>
-          <h1 class="header-title">Policy Management</h1>
-          <p class="header-subtitle">Define and automate energy-saving rules and schedules.</p>
-        </div>
-      </div>
-      <button class="btn p-2 hover:bg-gray-700 transition duration-200">
-        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.405L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-        </svg>
-      </button>
-    </header>
+        <main class="main-content">
+            <header class="page-header">
+                <div class="header-content">
+                    <div>
+                        <h1 class="header-title">Policy Management</h1>
+                        <p class="header-subtitle">Define and automate energy-saving rules and schedules.</p>
+                    </div>
+                      <!-- Right side: Notification bell -->
+                {% include 'components/notification_bell.html' %}
+                </div>
+            </header>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="mb-6">
-      {% for category, message in messages %}
-      <div class="flash {{ category }} rounded-lg text-sm" role="alert">
-        {{ message }}
-      </div>
-      {% endfor %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }} rounded-lg text-sm" role="alert">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <section>
+                <h3 class="text-xl font-semibold mb-4 text-gray-300">Automated Rules</h3>
+                <div class="card">
+                    <div class="card-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-green-400" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12l2 2 4-4m5.617-4.238A6.995 6.995 0 0112 5c-3.14 0-5.922 1.487-7.617 3.762A.5.5 0 004 8.248V16a2 2 0 002 2h12a2 2 0 002-2V8.248a.5.5 0 00-.383-.486z"/>
+                        </svg>
+                        <h3 class="mt-2 text-xl font-medium text-gray-200">Feature In Progress</h3>
+                        <p class="mt-1 text-muted">Automated scheduling and policy creation tools are currently being
+                            developed.</p>
+                        <p class="mt-4 text-sm text-gray-500">Manage cooling/heating schedules for
+                            your {{ rooms|length }} connected rooms here.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
-    {% endif %}
-    {% endwith %}
-
-    <section>
-      <h3 class="text-xl font-semibold mb-4 text-gray-300">Automated Rules</h3>
-      <div class="card">
-        <div class="card-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.617-4.238A6.995 6.995 0 0112 5c-3.14 0-5.922 1.487-7.617 3.762A.5.5 0 004 8.248V16a2 2 0 002 2h12a2 2 0 002-2V8.248a.5.5 0 00-.383-.486z"/>
-          </svg>
-          <h3 class="mt-2 text-xl font-medium text-gray-200">Feature In Progress</h3>
-          <p class="mt-1 text-muted">Automated scheduling and policy creation tools are currently being developed.</p>
-          <p class="mt-4 text-sm text-gray-500">Manage cooling/heating schedules for your {{ rooms|length }} connected rooms here.</p>
-        </div>
-      </div>
-    </section>
-  </main>
-</div>
 {% endblock %}
