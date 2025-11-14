@@ -372,17 +372,21 @@ def login():
         cur = db_cursor()
 
         try:
+            # Load role as well
             if "@" in ident_lc:
                 cur.execute(
-                    "SELECT id, username, email, password FROM users WHERE LOWER(email)=%s LIMIT 1",
+                    "SELECT id, username, email, password, role FROM users WHERE LOWER(email)=%s LIMIT 1",
                     (ident_lc,),
                 )
             else:
                 cur.execute(
-                    "SELECT id, username, email, password FROM users WHERE LOWER(username)=%s LIMIT 1",
+                    "SELECT id, username, email, password, role FROM users WHERE LOWER(username)=%s LIMIT 1",
                     (ident_lc,),
                 )
             row = cur.fetchone()
+            print("LOGIN DEBUG — identifier:", identifier)
+            print("LOGIN DEBUG — fetched row:", row)
+
             cur.close()
         except Exception as e:
             mysql.connection.rollback()
@@ -399,6 +403,8 @@ def login():
 
         try:
             ok = check_password_hash(pwd_hash, password)
+            print("PASSWORD CHECK:", ok)
+
         except Exception:
             ok = (pwd_hash == password)
 
@@ -406,12 +412,27 @@ def login():
             flash("Incorrect username or password.", "error")
             return render_template("login.html")
 
+        # Store role in session (NEW)
         session["user_id"] = user_id
         session["username"] = row["username"]
+        session["role"] = row["role"]
+
         flash("Login successful!", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("login.html")
+
+def role_required(*roles):
+    def wrapper(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_role = session.get("role")
+            if user_role not in roles:
+                flash("You do not have permission to access this page.", "error")
+                return redirect(url_for("dashboard"))
+            return f(*args, **kwargs)
+        return decorated_function
+    return wrapper
 
 
 @app.route("/logout")
@@ -683,18 +704,18 @@ def policies():
     return render_template("policies.html", active_page="policies", rooms=rooms)
 
 
-@app.route("/settings")
-@login_required
-def settings():
-    user_id = session.get("user_id")
-    rooms = []
+# @app.route("/settings")
+# @login_required
+# def settings():
+#     user_id = session.get("user_id")
+#     rooms = []
 
-    try:
-        rooms = get_rooms_summary(user_id=user_id)
-    except Exception as e:
-        log.exception("[settings] error: %s", e)
+#     try:
+#         rooms = get_rooms_summary(user_id=user_id)
+#     except Exception as e:
+#         log.exception("[settings] error: %s", e)
 
-    return render_template("settings.html", active_page="settings", rooms=rooms)
+#     return render_template("settings.html", active_page="settings", rooms=rooms)
 
 
 # Room Management Routes
@@ -1485,6 +1506,87 @@ def set_theme(theme):
         flash(f"Theme changed to {theme} mode", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
+
+@app.route("/admin/create-user", methods=["POST"])
+@role_required("admin")
+def admin_create_user():
+    username = request.form["username"].strip()
+    email = request.form["email"].strip()
+    password = request.form["password"].strip()
+    role = request.form["role"].strip()
+
+    # Technicians/users cannot create admins — safety
+    if role == "admin":
+        flash("You cannot create admin accounts.", "error")
+        return redirect(url_for("settings"))
+
+    hashed = generate_password_hash(password)
+
+    cur = db_cursor()
+    try:
+        cur.execute(
+            "INSERT INTO users (username, email, password, role) VALUES (%s, %s, %s, %s)",
+            (username, email, hashed, role),
+        )
+        mysql.connection.commit()
+        flash("User created successfully.", "success")
+    except Exception as e:
+        mysql.connection.rollback()
+        flash("Failed to create user: " + str(e), "error")
+
+    return redirect(url_for("settings"))
+
+
+@app.route("/admin/delete-user/<int:user_id>", methods=["POST"])
+@role_required("admin")
+def admin_delete_user(user_id):
+    cur = db_cursor()
+
+    # Prevent deletion of admin accounts
+    cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+    row = cur.fetchone()
+    if row and row["role"] == "admin":
+        flash("You cannot delete admin accounts.", "error")
+        return redirect(url_for("settings"))
+
+    cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+    mysql.connection.commit()
+
+    flash("User deleted.", "success")
+    return redirect(url_for("settings"))
+
+
+@app.route("/settings")
+@login_required
+def settings():
+    users = []
+
+    if session.get("role") == "admin":
+        cur = db_cursor()
+        cur.execute("SELECT id, username, email, role FROM users ORDER BY id ASC")
+        users = cur.fetchall()
+        cur.close()
+
+    # rooms is already being loaded in your app
+    return render_template(
+        "settings.html",
+        users=users,
+        rooms=get_user_rooms(session["user_id"]),  # your existing function
+        active_page="settings"
+    )
+
+
+def get_user_rooms(user_id):
+    cur = db_cursor()
+    cur.execute("""
+        SELECT id, name, location
+        FROM rooms
+        WHERE user_id = %s
+        ORDER BY name ASC
+    """, (user_id,))
+    rooms = cur.fetchall()
+    cur.close()
+    return rooms
 
 # Application Entry Point
 if __name__ == "__main__":
