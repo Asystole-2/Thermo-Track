@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 
 {% block body %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
 <div class="app-container">
     {% include 'menu.html' %}
 
@@ -22,28 +23,101 @@
                     </p>
                 </div>
             </div>
-
             <div class="flex items-center gap-3">
                 <a href="/api/rooms" class="btn p-2 hover:bg-gray-700 text-sm">Rooms JSON</a>
                 <a href="/api/readings" class="btn p-2 hover:bg-gray-700 text-sm">Readings JSON</a>
             </div>
         </header>
 
+                <!-- Search Bar -->
+        <section class="mb-6">
+            <div class="card p-4">
+                <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div class="flex-1 w-full md:w-auto">
+                        <div class="relative">
+                            <input
+                                    type="text"
+                                    id="searchInput"
+                                    placeholder="Search rooms, devices, locations, or sensor values..."
+                                    class="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                            >
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </div>
+                            <button
+                                    id="clearSearch"
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition duration-200 hidden"
+                            >
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                                id="filterRooms"
+                                class="filter-btn active px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-blue-600 text-white"
+                                data-filter="rooms"
+                        >
+                            Rooms
+                        </button>
+                        <button
+                                id="filterReadings"
+                                class="filter-btn inactive px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-gray-600 text-gray-300"
+                                data-filter="readings"
+                        >
+                            Sensor Logs
+                        </button>
+                        <button
+                                id="filterAll"
+                                class="filter-btn inactive px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-gray-600 text-gray-300"
+                                data-filter="all"
+                        >
+                            All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search Results Summary -->
+                <div id="searchResults" class="mt-3 text-sm text-gray-400 hidden">
+                    Found <span id="resultsCount">0</span> results
+                </div>
+            </div>
+        </section>
+
         <!-- ===================== ROOMS ===================== -->
         {% if rooms and rooms|length > 0 %}
-        <section class="mt-4">
-            <h3 class="text-xl font-semibold mb-4 text-gray-300">Rooms</h3>
+        <section class="mt-4" id="roomsSection">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-semibold text-gray-300">Rooms</h3>
+                <span class="text-xs text-gray-400 room-count">
+                    {{ rooms|length }} room{% if rooms|length != 1 %}s{% endif %}
+                </span>
+            </div>
 
-            <div class="grid-cards">
+            <div class="grid-cards" id="roomsGrid">
                 {% for r in rooms %}
                 <a href="{{ url_for('room', room_id=r.id) }}"
-                   class="card hover:ring-2 hover:ring-blue-500/50 transition duration-150 ease-in-out">
+                   class="card hover:ring-2 hover:ring-blue-500/50 transition duration-150 ease-in-out room-card"
+                   data-room-name="{{ r.room_name.lower() }}"
+                   data-location="{{ (r.location or '').lower() }}"
+                   data-devices="{{ r.devices_count }}"
+                   data-temp="{{ r.avg_temp or '' }}"
+                   data-humidity="{{ r.avg_humidity or '' }}"
+                >
                     <div class="flex items-start justify-between">
                         <div>
-                            <h4 class="text-xl font-bold text-gray-200 mb-1">
+                            <h4 class="text-xl font-bold text-gray-200 mb-1 room-name">
                                 {{ r.room_name }}
                             </h4>
-                            <p class="text-sm text-gray-400 flex items-center gap-1">
+                            <p class="text-sm text-gray-400 flex items-center gap-1 room-location">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
@@ -54,13 +128,24 @@
                             </p>
                         </div>
 
+                        {% set status_label = "Normal" %}
+                        {% set status_class = "bg-green-500/20 text-green-400" %}
+                        {% if r.avg_temp and (r.avg_temp > 24 or r.avg_temp < 18) %}
+                        {% set status_label = "Warning" %}
+                        {% set status_class = "bg-orange-500/20 text-orange-400" %}
+                        {% endif %}
+                        {% if r.avg_temp and (r.avg_temp > 26 or r.avg_temp < 16) %}
+                        {% set status_label = "Critical" %}
+                        {% set status_class = "bg-red-500/20 text-red-400" %}
+                        {% endif %}
+
                         <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ status_class }}">
-        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round"
-                                                                                              stroke-linejoin="round"
-                                                                                              stroke-width="2"
-                                                                                              d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-        {{ status_label }}
-      </span>
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                            {{ status_label }}
+                        </span>
                     </div>
 
                     <div class="mt-4 grid grid-cols-3 gap-4 border-t border-gray-700/50 pt-3">
@@ -71,7 +156,7 @@
                             </svg>
                             <div>
                                 <div class="text-xs text-gray-400">Temp</div>
-                                <div class="text-lg font-semibold">
+                                <div class="text-lg font-semibold room-temp">
                                     {% if r.avg_temp is not none %}{{ r.avg_temp }}°C{% else %}—{% endif %}
                                 </div>
                             </div>
@@ -83,7 +168,7 @@
                             </svg>
                             <div>
                                 <div class="text-xs text-gray-400">Humidity</div>
-                                <div class="text-lg font-semibold">
+                                <div class="text-lg font-semibold room-humidity">
                                     {% if r.avg_humidity is not none %}{{ r.avg_humidity }}%{% else %}—{% endif %}
                                 </div>
                             </div>
@@ -94,27 +179,27 @@
                                       d="M12 4.5V1m0 3v20m0-12h12m-12 0H1"></path>
                             </svg>
                             <div>
-                                <div class="text-xs text-gray-400">Occupants</div>
-                                {# This is hardcoded as occupant count isn't in get_rooms_summary #}
-                                <div class="text-lg font-semibold">
-                                    {{ loop.index * 5 % 45 }}
+                                <div class="text-xs text-gray-400">Devices</div>
+                                <div class="text-lg font-semibold room-devices">
+                                    {{ r.devices_count or 0 }}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </a> {% endfor %}
+                </a>
+                {% endfor %}
             </div>
         </section>
         {% endif %}
 
-        <!-- ===================== RECENT READINGS (user-scoped) ===================== -->
+        <!-- ===================== RECENT READINGS ===================== -->
         {% if rows and rows|length > 0 %}
-        <section class="mt-8">
+        <section class="mt-8" id="readingsSection">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-semibold text-gray-300">Recent Readings</h3>
-                <span class="text-xs text-gray-400">
-            Showing readings for your account only
-          </span>
+                <span class="text-xs text-gray-400 readings-count">
+                    {{ rows|length }} reading{% if rows|length != 1 %}s{% endif %}
+                </span>
             </div>
 
             <div class="overflow-x-auto">
@@ -130,20 +215,24 @@
                         <th class="p-2 text-left">Recorded</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="readingsTable">
                     {% for r in rows %}
-                    <tr class="hover:bg-gray-700/40 transition">
-                        <td class="p-2">{{ r.device_name or 'N/A' }}</td>
-                        <td class="p-2 text-gray-400">{{ r.device_uid or '—' }}</td>
-
-                        <!-- Accept either device_type (backend alias) or type -->
-                        <td class="p-2">
+                    <tr class="hover:bg-gray-700/40 transition reading-row"
+                        data-device-name="{{ (r.device_name or 'N/A').lower() }}"
+                        data-device-uid="{{ (r.device_uid or '').lower() }}"
+                        data-device-type="{{ ((r.device_type if r.device_type is defined else r.type) or '').lower() }}"
+                        data-temp="{{ r.temperature or '' }}"
+                        data-humidity="{{ r.humidity or '' }}"
+                        data-motion="{{ r.motion_detected or '' }}"
+                    >
+                        <td class="p-2 reading-device">{{ r.device_name or 'N/A' }}</td>
+                        <td class="p-2 text-gray-400 reading-uid">{{ r.device_uid or '—' }}</td>
+                        <td class="p-2 reading-type">
                             {{ r.device_type if r.device_type is defined else (r.type or '—') }}
                         </td>
-
-                        <td class="p-2">{{ r.temperature if r.temperature is not none else '—' }}</td>
-                        <td class="p-2">{{ r.humidity if r.humidity is not none else '—' }}</td>
-                        <td class="p-2">
+                        <td class="p-2 reading-temp">{{ r.temperature if r.temperature is not none else '—' }}</td>
+                        <td class="p-2 reading-humidity">{{ r.humidity if r.humidity is not none else '—' }}</td>
+                        <td class="p-2 reading-motion">
                             {% if r.motion_detected == 1 %}
                             <span class="text-green-400 font-semibold">Yes</span>
                             {% elif r.motion_detected == 0 %}
@@ -152,7 +241,7 @@
                             —
                             {% endif %}
                         </td>
-                        <td class="p-2 whitespace-nowrap">
+                        <td class="p-2 whitespace-nowrap reading-time">
                             {% if r.recorded_at %}{{ (r.recorded_at|string).replace('T',' ') }}{% else %}—{% endif %}
                         </td>
                     </tr>
@@ -164,6 +253,20 @@
         {% endif %}
 
         <!-- ===================== EMPTY STATE ===================== -->
+        <div id="noResults" class="hidden">
+            <div class="card text-center py-12">
+                <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-300 mb-2">No results found</h3>
+                <p class="text-gray-400 text-sm">
+                    Try adjusting your search terms or filters to find what you're looking for.
+                </p>
+            </div>
+        </div>
+
+        <!-- Original empty state (when no data at all) -->
         {% if (not rooms or rooms|length == 0) and (not rows or rows|length == 0) %}
         <section class="mt-4">
             <div class="grid-cards">
@@ -171,32 +274,25 @@
                     <h4 class="text-lg font-bold text-gray-300 mb-2">No Data Found</h4>
                     <p class="text-sm text-muted mb-4">
                         To preview the dashboard, insert a user, room(s), device(s), and <code>readings</code> with that
-                        user’s <code>user_id</code>. Then refresh this page.
+                        user's <code>user_id</code>. Then refresh this page.
                     </p>
-
-                    <div class="mt-4 pt-4 border-t border-gray-700 text-sm">
-                        Example SQL for testing (adjust IDs/password to match your data):
-                        <pre class="bg-gray-900 p-3 rounded text-gray-200 overflow-x-auto">
--- 1) Create a user (id will auto-increment to 1 on a fresh DB)
-INSERT INTO users (username, email, password)
-VALUES ('demo_user', 'demo@example.com', '&lt;hashed_password_here&gt;');
-
--- 2) Create a room
-INSERT INTO rooms (name, location) VALUES ('Server Room', 'Building A');
-
--- 3) Create a device pointing to that room
-INSERT INTO devices (room_id, name, device_uid, type, status)
-VALUES (1, 'Raspberry Pi #1', 'pi-001', 'Temperature', 'active');
-
--- 4) Insert readings linked to the user and device
-INSERT INTO readings (user_id, device_id, temperature, humidity, motion_detected)
-VALUES (1, 1, 24.8, 46.2, 0), (1, 1, 25.1, 45.9, 0);
-              </pre>
-                    </div>
                 </div>
             </div>
         </section>
         {% endif %}
     </main>
 </div>
+<script>
+console.log('Debug: Page loaded');
+console.log('Filter buttons found:', document.querySelectorAll('.filter-btn').length);
+console.log('Search input found:', document.getElementById('searchInput') !== null);
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        console.log('Button clicked - filter:', this.dataset.filter);
+        console.log('Button classes:', this.className);
+    });
+});
+</script>
 {% endblock %}
+

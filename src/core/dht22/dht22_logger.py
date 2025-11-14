@@ -3,13 +3,14 @@ import time
 import adafruit_dht
 import board
 from datetime import datetime
+from src.core.pubnub_client import publish_data
 
 #PubNub publisher
 from src.core.pubnub_client import publish_data
 
 # --- CONFIGURATION ---
 # Sensor is connected to GPIO 4 (BCM numbering)
-DHT_PIN = board.D4 
+DHT_PIN = board.D4
 LOG_FILE_PATH = 'CA/Thermo-Track/src/core/dht22/humidity.csv'
 READ_INTERVAL_SECONDS = 15.0 # Log and print every 15 seconds
 
