@@ -1,69 +1,67 @@
 {% extends "layout.html" %}
 
 {% block body %}
-<div class="app-container">
-  {% include 'menu.html' %}
+    <div class="app-container">
+        {% include 'components/menu.html' %}
 
-  <main class="main-content">
-    <header class="page-header">
-      <div class="header-content">
-        <svg class="header-icon text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        <div>
-          <h1 class="header-title">User & System Settings</h1>
-          <p class="header-subtitle">Configure user profile, API keys, and system preferences.</p>
-        </div>
-      </div>
-      <button class="btn p-2 hover:bg-gray-700 transition duration-200">
-        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.405L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-        </svg>
-      </button>
-    </header>
+        <main class="main-content">
+            <header class="page-header">
+                <div class="header-content">
+                    <div>
+                        <h1 class="header-title">User & System Settings</h1>
+                        <p class="header-subtitle">Configure user profile, API keys, and system preferences.</p>
+                    </div>
+                    <!-- Right side: Notification bell -->
+                    {% include 'components/notification_bell.html' %}
+                </div>
+            </header>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="mb-6">
-      {% for category, message in messages %}
-      <div class="flash {{ category }} rounded-lg text-sm" role="alert">
-        {{ message }}
-      </div>
-      {% endfor %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }} rounded-lg text-sm" role="alert">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <section>
+                <h3 class="text-xl font-semibold mb-4 text-gray-300">Configuration Options</h3>
+                <div class="card">
+                    <div class="card-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-yellow-400" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <h3 class="mt-2 text-xl font-medium text-gray-200">Feature In Progress</h3>
+                        <p class="mt-1 text-muted">User profile management, API keys, and system configuration are
+                            currently being developed.</p>
+                        <p class="mt-4 text-sm text-gray-500">Settings will apply across your {{ rooms|length }}
+                            connected rooms.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Voice Input Example -->
+            <section class="mt-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-300">System Configuration</h3>
+                <div class="card">
+                    <label for="systemName" class="block text-sm font-medium text-gray-300 mb-2">System Name</label>
+                    <input
+                            id="systemName"
+                            name="systemName"
+                            type="text"
+                            class="tt_voiceable form-input"
+                            placeholder="Say your system name..."
+                    />
+                </div>
+            </section>
+        </main>
     </div>
-    {% endif %}
-    {% endwith %}
-
-    <section>
-      <h3 class="text-xl font-semibold mb-4 text-gray-300">Configuration Options</h3>
-      <div class="card">
-        <div class="card-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-          <h3 class="mt-2 text-xl font-medium text-gray-200">Feature In Progress</h3>
-          <p class="mt-1 text-muted">User profile management, API keys, and system configuration are currently being developed.</p>
-          <p class="mt-4 text-sm text-gray-500">Settings will apply across your {{ rooms|length }} connected rooms.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Voice Input Example -->
-    <section class="mt-8">
-      <h3 class="text-xl font-semibold mb-4 text-gray-300">System Configuration</h3>
-      <div class="card">
-        <label for="systemName" class="block text-sm font-medium text-gray-300 mb-2">System Name</label>
-        <input
-          id="systemName"
-          name="systemName"
-          type="text"
-          class="tt_voiceable form-input"
-          placeholder="Say your system name..."
-        />
-      </div>
-    </section>
-  </main>
-</div>
 {% endblock %}

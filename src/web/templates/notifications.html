@@ -1,0 +1,237 @@
+{% extends "layout.html" %}
+
+{% block body %}
+    <div class="app-container">
+        {% include 'components/menu.html' %}
+
+        <main class="main-content">
+            <header class="page-header">
+                <div class="header-content">
+                    <div>
+                        <h1 class="header-title flex items-center gap-3">
+                            My Notifications & Requests
+                        </h1>
+                        <p class="header-subtitle text-gray-400">
+                            Track all your room adjustment requests and system notifications
+                        </p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="card p-4 border-l-4 border-blue-500">
+                    <div class="text-2xl font-bold text-white">{{ total_requests }}</div>
+                    <div class="text-sm text-gray-400">Total Requests</div>
+                </div>
+                <div class="card p-4 border-l-4 border-yellow-500">
+                    <div class="text-2xl font-bold text-white">{{ pending_requests }}</div>
+                    <div class="text-sm text-gray-400">Pending</div>
+                </div>
+                <div class="card p-4 border-l-4 border-green-500">
+                    <div class="text-2xl font-bold text-white">{{ approved_requests }}</div>
+                    <div class="text-sm text-gray-400">Approved</div>
+                </div>
+                <div class="card p-4 border-l-4 border-red-500">
+                    <div class="text-2xl font-bold text-white">{{ denied_requests }}</div>
+                    <div class="text-sm text-gray-400">Denied</div>
+                </div>
+            </div>
+
+            <!-- Notifications Table -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-gray-200">Recent Requests & Notifications</h2>
+                    <div class="flex gap-2">
+                        <button onclick="markAllAsRead()" class="btn bg-blue-600 hover:bg-blue-700 text-sm">
+                            Mark All as Read
+                        </button>
+                        <button onclick="loadNotifications()" class="btn bg-gray-600 hover:bg-gray-700 text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Type</th>
+                            <th class="px-4 py-3">Room</th>
+                            <th class="px-4 py-3">Request Details</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Date</th>
+                            <th class="px-4 py-3">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="notifications-table-body">
+                        <!-- Dynamic content will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="text-center py-12 hidden">
+                    <svg class="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-400 mb-2">No notifications yet</h3>
+                    <p class="text-gray-500">Your room adjustment requests and system notifications will appear
+                        here.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loading-state" class="text-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                    <p class="text-gray-400 mt-2">Loading notifications...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Load notifications on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            loadNotifications();
+        });
+
+        function loadNotifications() {
+            const tableBody = document.getElementById('notifications-table-body');
+            const emptyState = document.getElementById('empty-state');
+            const loadingState = document.getElementById('loading-state');
+
+            tableBody.innerHTML = '';
+            emptyState.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+
+            fetch('/api/user/notifications')
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to load notifications');
+                    return response.json();
+                })
+                .then(notifications => {
+                    loadingState.classList.add('hidden');
+
+                    if (notifications.length === 0) {
+                        emptyState.classList.remove('hidden');
+                        return;
+                    }
+
+                    notifications.forEach(notification => {
+                        const row = document.createElement('tr');
+                        row.className = `border-b border-gray-700 ${!notification.is_read ? 'bg-blue-900/20' : ''}`;
+
+                        row.innerHTML = `
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full ${getNotificationColor(notification.type)}"></span>
+                                    <span class="capitalize">${notification.type}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 font-medium text-white">${notification.room_name || '—'}</td>
+                            <td class="px-4 py-3">
+                                <div>
+                                    <div class="font-medium text-white">${notification.title}</div>
+                                    <div class="text-gray-500 text-xs">${notification.message}</div>
+                                    ${notification.estimated_completion ? `
+                                        <div class="flex items-center gap-1 text-yellow-400 text-xs mt-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            Est: ${new Date(notification.estimated_completion).toLocaleString()}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(notification.request_status)}">
+                                    ${notification.request_status ? notification.request_status.replace('_', ' ') : 'notification'}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-gray-400">
+                                ${new Date(notification.created_at).toLocaleDateString()}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex gap-2">
+                                    ${!notification.is_read ? `
+                                        <button onclick="markAsRead('${notification.id}')" 
+                                                class="text-blue-400 hover:text-blue-300 text-sm">
+                                            Mark Read
+                                        </button>
+                                    ` : ''}
+                                    ${notification.request_id ? `
+                                        <button onclick="viewRequestDetails('${notification.request_id}')" 
+                                                class="text-green-400 hover:text-green-300 text-sm">
+                                            Details
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </td>
+                        `;
+
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading notifications:', error);
+                    loadingState.classList.add('hidden');
+                    emptyState.innerHTML = `
+                        <svg class="w-16 h-16 mx-auto text-red-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-red-400 mb-2">Failed to load notifications</h3>
+                        <p class="text-gray-500">Please try refreshing the page.</p>
+                    `;
+                    emptyState.classList.remove('hidden');
+                });
+        }
+
+        function getNotificationColor(type) {
+            const colors = {
+                'success': 'bg-green-500',
+                'warning': 'bg-yellow-500',
+                'error': 'bg-red-500',
+                'info': 'bg-blue-500'
+            };
+            return colors[type] || 'bg-gray-500';
+        }
+
+        function getStatusBadgeClass(status) {
+            const classes = {
+                'pending': 'bg-yellow-500/20 text-yellow-400',
+                'viewed': 'bg-blue-500/20 text-blue-400',
+                'approved': 'bg-green-500/20 text-green-400',
+                'denied': 'bg-red-500/20 text-red-400',
+                'completed': 'bg-gray-500/20 text-gray-400'
+            };
+            return classes[status] || 'bg-gray-500/20 text-gray-400';
+        }
+
+        function markAsRead(notificationId) {
+            fetch(`/api/user/notifications/${notificationId}/read`, {
+                method: 'POST'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        loadNotifications();
+                        // Update the notification bell count
+                        if (window.notificationSystem) {
+                            window.notificationSystem.loadNotificationCount();
+                        }
+                    }
+                })
+                .catch(error => console.error('Error marking as read:', error));
+        }
+
+        function viewRequestDetails(requestId) {
+            // Implement view request details functionality
+            window.location.href = `/requests/${requestId}`;
+        }
+    </script>
+{% endblock %}

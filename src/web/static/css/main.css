@@ -491,3 +491,53 @@ body {
     background-color: #6b7280 !important;
     color: white !important;
 }
+/* Ensure the notification bell is properly positioned in the menu */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 1rem;
+}
+
+.notification-bell-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.notification-bell {
+    position: relative;
+}
+
+.notification-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 0.5rem;
+    width: 20rem;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .notification-bell-container {
+        align-self: flex-end;
+    }
+
+    .notification-dropdown {
+        right: -1rem;
+        width: 90vw;
+        max-width: 20rem;
+    }
+}
