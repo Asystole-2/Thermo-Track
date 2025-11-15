@@ -1,30 +1,30 @@
-{% extends "layout.html" %} {% block body %}
-<div class="app-container">
-  {% include 'components/menu.html' %}
+{% extends "layout.html" %}
 
-  <main class="main-content">
-    <!-- Header -->
-    <header class="page-header">
-      <div class="header-content">
-        <div>
-          <h1 class="header-title">System Setup</h1>
-          <p class="header-subtitle">
-            Create rooms and manage what’s already there.
-          </p>
-        </div>
+{% block body %}
+    <div class="app-container">
+        {% include 'components/menu.html' %}
 
-        <div class="flex items-center gap-3">
-          {% if session.role in ['admin', 'technician'] %}
-          <button
-            id="openAddDeviceModal"
-            class="btn p-2 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded"
-          >
-            + Add Device
-          </button>
-          {% endif %} {% include 'components/notification_bell.html' %}
-        </div>
-      </div>
-    </header>
+        <main class="main-content">
+            <!-- Header -->
+            <header class="page-header">
+                <div class="header-content">
+                    <div>
+                        <h1 class="text-4xl font-extrabold text-text-primary mb-2">System Setup</h1>
+                        <p class="header-subtitle">
+                            Create and manage rooms.
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        {% if session.role in ['admin', 'technician'] %}
+                            <button id="openAddDeviceModal"
+                                    class="btn p-2 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded">
+                                + Add Device
+                            </button>
+                        {% endif %} {% include 'components/notification_bell.html' %}
+                    </div>
+                </div>
+            </header>
 
     <!-- Create Room (Technician and Admin) -->
     {% if session.role in ['admin', 'technician'] %}
@@ -77,7 +77,6 @@
     <!-- Existing Rooms -->
     <section>
       <h3 class="text-xl font-semibold mb-4 text-gray-300">Existing Rooms</h3>
-
       <div class="card p-5 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="table w-full">
@@ -95,7 +94,6 @@
                 {% endif %}
               </tr>
             </thead>
-
             <tbody>
               {% for r in rooms %}
               <tr>

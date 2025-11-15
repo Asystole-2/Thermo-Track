@@ -1137,24 +1137,20 @@ def admin_room_requests():
 
     cursor = mysql.connection.cursor()
 
-    # Get counts for stats
-    cursor.execute(
-        "SELECT COUNT(*) FROM room_condition_requests WHERE status = 'pending'"
-    )
-    pending_count = cursor.fetchone()[0]
+    # Get counts for stats - use dictionary access instead of index
+    cursor.execute("SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'pending'")
+    pending_count = cursor.fetchone()['count']
 
-    cursor.execute(
-        "SELECT COUNT(*) FROM room_condition_requests WHERE status = 'viewed'"
-    )
-    viewed_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'viewed'")
+    viewed_count = cursor.fetchone()['count']
 
-    cursor.execute(
-        "SELECT COUNT(*) FROM room_condition_requests WHERE status = 'approved' AND DATE(created_at) = CURDATE()"
-    )
-    approved_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'approved' AND DATE(created_at) = CURDATE()")
+    approved_count = cursor.fetchone()['count']
 
-    cursor.execute("SELECT COUNT(*) FROM rooms")
-    rooms_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) as count FROM rooms")
+    rooms_count = cursor.fetchone()['count']
+
+    cursor.close()
 
     return render_template(
         "admin_room_requests.html",
@@ -1186,24 +1182,23 @@ def get_admin_room_requests():
 
     requests = []
     for row in cursor.fetchall():
-        requests.append(
-            {
-                "id": row[0],
-                "room_id": row[1],
-                "user_id": row[2],
-                "request_type": row[3],
-                "current_temperature": float(row[4]) if row[4] else None,
-                "target_temperature": float(row[5]) if row[5] else None,
-                "fan_level_request": row[6],
-                "user_notes": row[7],
-                "status": row[8],
-                "estimated_completion_time": row[9].isoformat() if row[9] else None,
-                "created_at": row[10].isoformat(),
-                "username": row[12],
-                "room_name": row[13],
-            }
-        )
+        requests.append({
+            'id': row['id'],
+            'room_id': row['room_id'],
+            'user_id': row['user_id'],
+            'request_type': row['request_type'],
+            'current_temperature': float(row['current_temperature']) if row['current_temperature'] else None,
+            'target_temperature': float(row['target_temperature']) if row['target_temperature'] else None,
+            'fan_level_request': row['fan_level_request'],
+            'user_notes': row['user_notes'],
+            'status': row['status'],
+            'estimated_completion_time': row['estimated_completion_time'].isoformat() if row['estimated_completion_time'] else None,
+            'created_at': row['created_at'].isoformat(),
+            'username': row['username'],
+            'room_name': row['room_name']
+        })
 
+    cursor.close()
     return jsonify(requests)
 
 
@@ -1229,9 +1224,8 @@ def mark_request_viewed(request_id):
     )
     result = cursor.fetchone()
     if result:
-        user_id = result[0]
-        cursor.execute(
-            """
+        user_id = result['user_id']
+        cursor.execute("""
             INSERT INTO user_notifications (user_id, request_id, title, message, type)
             VALUES (%s, %s, 'Request Viewed', 'An admin is now reviewing your room adjustment request.', 'info')
         """,
@@ -1239,7 +1233,8 @@ def mark_request_viewed(request_id):
         )
 
     mysql.connection.commit()
-    return jsonify({"success": True})
+    cursor.close()
+    return jsonify({'success': True})
 
 
 @app.route("/api/admin/room-requests/<int:request_id>/approve", methods=["POST"])
@@ -1263,34 +1258,27 @@ def approve_room_request(request_id):
     )
 
     # Get request details for notification
-    cursor.execute(
-        """
-        SELECT r.user_id, r.request_type, r.room_id, r.target_temperature
-        FROM room_condition_requests r WHERE id = %s
-    """,
-        (request_id,),
-    )
+    cursor.execute("""
+        SELECT user_id, request_type, room_id, target_temperature
+        FROM room_condition_requests WHERE id = %s
+    """, (request_id,))
     req_data = cursor.fetchone()
 
     if req_data:
         # Create success notification for user
-        completion_time = data.get("estimated_completion_time", "soon")
-        message = f"Your {req_data[1].replace('_', ' ')} request has been approved. "
+        completion_time = data.get('estimated_completion_time', 'soon')
+        message = f"Your {req_data['request_type'].replace('_', ' ')} request has been approved. "
         message += f"Estimated completion: {completion_time}"
 
         cursor.execute(
             """
             INSERT INTO user_notifications (user_id, request_id, title, message, type)
             VALUES (%s, %s, 'Request Approved', %s, 'success')
-        """,
-            (req_data[0], request_id, message),
-        )
-
-        # Here you would integrate with your actual HVAC control system
-        # apply_room_settings(req_data[2], req_data[1], req_data[3])
+        """, (req_data['user_id'], request_id, message))
 
     mysql.connection.commit()
-    return jsonify({"success": True})
+    cursor.close()
+    return jsonify({'success': True})
 
 
 @app.route("/api/admin/room-requests/<int:request_id>/deny", methods=["POST"])
@@ -1317,10 +1305,9 @@ def deny_room_request(request_id):
     )
     result = cursor.fetchone()
     if result:
-        user_id = result[0]
-        reason = data.get("reason", "No reason provided")
-        cursor.execute(
-            """
+        user_id = result['user_id']
+        reason = data.get('reason', 'No reason provided')
+        cursor.execute("""
             INSERT INTO user_notifications (user_id, request_id, title, message, type)
             VALUES (%s, %s, 'Request Denied', %s, 'error')
         """,
@@ -1328,7 +1315,8 @@ def deny_room_request(request_id):
         )
 
     mysql.connection.commit()
-    return jsonify({"success": True})
+    cursor.close()
+    return jsonify({'success': True})
 
 
 @app.route("/api/debug/room-request-test", methods=["POST"])
