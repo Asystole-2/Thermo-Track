@@ -1,89 +1,184 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room Condition Requests - Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+{% extends "layout.html" %}
+
+{% block body %}
+    <div class="app-container">
+        {% include 'components/menu.html' %}
+
+        <main class="main-content">
+            <header class="page-header">
+                 <div class="header-content">
+                    <div>
+                <h1 class="text-4xl font-extrabold text-text-primary mb-2">Room Condition Requests</h1>
+                <p class="text-text-muted">Monitor and manage room condition adjustment requests in real-time.</p>
+                    </div>
+                    <!-- Right side: Notification bell -->
+                    {% include 'components/notification_bell.html' %}
+                </div>
+            </header>
+
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 max-w-6xl mx-auto">
+                <div class="bg-secondary p-4 rounded-xl border-l-4 border-accent-yellow">
+                    <div class="text-2xl font-bold text-text-primary">{{ pending_count }}</div>
+                    <div class="text-text-muted text-sm">Pending Requests</div>
+                </div>
+                <div class="bg-secondary p-4 rounded-xl border-l-4 border-accent-blue">
+                    <div class="text-2xl font-bold text-text-primary">{{ viewed_count }}</div>
+                    <div class="text-text-muted text-sm">Being Reviewed</div>
+                </div>
+                <div class="bg-secondary p-4 rounded-xl border-l-4 border-accent-green">
+                    <div class="text-2xl font-bold text-text-primary">{{ approved_count }}</div>
+                    <div class="text-text-muted text-sm">Approved Today</div>
+                </div>
+                <div class="bg-secondary p-4 rounded-xl border-l-4 border-accent-red">
+                    <div class="text-2xl font-bold text-text-primary">{{ rooms_count }}</div>
+                    <div class="text-text-muted text-sm">Active Rooms</div>
+                </div>
+            </div>
+
+            <!-- Requests Container -->
+            <div id="requests-list" class="max-w-6xl mx-auto space-y-4">
+                <div id="loading-indicator" class="text-center p-8">
+                    <p class="text-text-secondary text-lg">Loading requests...</p>
+                </div>
+            </div>
+
+            <!-- Action Modal -->
+            <div id="action-modal"
+                 class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                <div class="bg-secondary p-6 rounded-xl shadow-2xl w-full max-w-md border border-border">
+                    <h3 id="modal-title" class="text-xl font-bold mb-3 text-text-primary">Process Request</h3>
+                    <div id="modal-content" class="space-y-4">
+                        <!-- Dynamic content will be inserted here -->
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button id="modal-cancel-btn"
+                                class="bg-tertiary hover:bg-tertiary-hover text-text-primary font-semibold py-2 px-4 rounded-lg transition duration-150">
+                            Cancel
+                        </button>
+                        <button id="modal-confirm-btn"
+                                class="bg-accent-blue hover:bg-accent-blue-hover text-white font-semibold py-2 px-4 rounded-lg transition duration-150">
+                            Confirm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
-        }
         .request-card {
             transition: transform 0.2s, box-shadow 0.2s;
         }
+
         .request-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.4);
+            box-shadow: var(--shadow);
         }
+
         .status-badge {
             padding: 0.25rem 0.75rem;
             border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 600;
         }
-        .status-pending { background-color: #f59e0b; color: white; }
-        .status-viewed { background-color: #3b82f6; color: white; }
-        .status-approved { background-color: #10b981; color: white; }
-        .status-denied { background-color: #ef4444; color: white; }
-        .status-completed { background-color: #6b7280; color: white; }
+
+        .status-pending {
+            background-color: var(--accent-yellow);
+            color: white;
+        }
+
+        .status-viewed {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+
+        .status-approved {
+            background-color: var(--accent-green);
+            color: white;
+        }
+
+        .status-denied {
+            background-color: var(--accent-red);
+            color: white;
+        }
+
+        .status-completed {
+            background-color: var(--text-muted);
+            color: white;
+        }
+
+        /* CSS Variables for Theme Support */
+        :root {
+            /* Light Mode Colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #e2e8f0;
+            --bg-tertiary-hover: #cbd5e0;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --accent-red: #ef4444;
+            --accent-red-hover: #dc2626;
+            --accent-yellow: #f59e0b;
+            --accent-yellow-hover: #d97706;
+            --border-color: #cbd5e0;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark {
+            /* Dark Mode Colors */
+            --bg-primary: #0d1117;
+            --bg-secondary: #1f2937;
+            --bg-tertiary: #374151;
+            --bg-tertiary-hover: #4b5563;
+            --text-primary: #ffffff;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --accent-red: #ef4444;
+            --accent-red-hover: #dc2626;
+            --accent-yellow: #f59e0b;
+            --accent-yellow-hover: #d97706;
+            --border-color: #374151;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Apply CSS Variables to Tailwind-like Utility Classes */
+        .bg-primary { background-color: var(--bg-primary); }
+        .bg-secondary { background-color: var(--bg-secondary); }
+        .bg-tertiary { background-color: var(--bg-tertiary); }
+        .bg-tertiary-hover:hover { background-color: var(--bg-tertiary-hover); }
+
+        .text-text-primary { color: var(--text-primary); }
+        .text-text-secondary { color: var(--text-secondary); }
+        .text-text-muted { color: var(--text-muted); }
+
+        .border-border { border-color: var(--border-color); }
+
+        .bg-accent-blue { background-color: var(--accent-blue); }
+        .bg-accent-blue-hover:hover { background-color: var(--accent-blue-hover); }
+        .bg-accent-green { background-color: var(--accent-green); }
+        .bg-accent-green-hover:hover { background-color: var(--accent-green-hover); }
+        .bg-accent-red { background-color: var(--accent-red); }
+        .bg-accent-red-hover:hover { background-color: var(--accent-red-hover); }
+        .bg-accent-yellow { background-color: var(--accent-yellow); }
+        .bg-accent-yellow-hover:hover { background-color: var(--accent-yellow-hover); }
+
+        .border-accent-blue { border-color: var(--accent-blue); }
+        .border-accent-green { border-color: var(--accent-green); }
+        .border-accent-red { border-color: var(--accent-red); }
+        .border-accent-yellow { border-color: var(--accent-yellow); }
     </style>
-</head>
-<body>
-    <div id="app" class="min-h-screen p-4 md:p-8">
-        <!-- Header -->
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-extrabold text-white mb-2">Room Condition Requests</h1>
-            <p class="text-slate-400">Monitor and manage room condition adjustment requests in real-time.</p>
-        </header>
-
-        <!-- Stats Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 max-w-6xl mx-auto">
-            <div class="bg-slate-800 p-4 rounded-xl border-l-4 border-yellow-500">
-                <div class="text-2xl font-bold text-white">{{ pending_count }}</div>
-                <div class="text-slate-400 text-sm">Pending Requests</div>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-xl border-l-4 border-blue-500">
-                <div class="text-2xl font-bold text-white">{{ viewed_count }}</div>
-                <div class="text-slate-400 text-sm">Being Reviewed</div>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-xl border-l-4 border-green-500">
-                <div class="text-2xl font-bold text-white">{{ approved_count }}</div>
-                <div class="text-slate-400 text-sm">Approved Today</div>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-xl border-l-4 border-red-500">
-                <div class="text-2xl font-bold text-white">{{ rooms_count }}</div>
-                <div class="text-slate-400 text-sm">Active Rooms</div>
-            </div>
-        </div>
-
-        <!-- Requests Container -->
-        <div id="requests-list" class="max-w-6xl mx-auto space-y-4">
-            <div id="loading-indicator" class="text-center p-8">
-                <p class="text-slate-300 text-lg">Loading requests...</p>
-            </div>
-        </div>
-
-        <!-- Action Modal -->
-        <div id="action-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md border border-slate-700">
-                <h3 id="modal-title" class="text-xl font-bold mb-3 text-white">Process Request</h3>
-                <div id="modal-content" class="space-y-4">
-                    <!-- Dynamic content will be inserted here -->
-                </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button id="modal-cancel-btn" class="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150">
-                        Cancel
-                    </button>
-                    <button id="modal-confirm-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150">
-                        Confirm
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script>
         let currentRequestId = null;
@@ -98,7 +193,7 @@
             } catch (error) {
                 console.error('Error loading requests:', error);
                 document.getElementById('requests-list').innerHTML =
-                    '<p class="text-center text-red-400">Failed to load requests.</p>';
+                    '<p class="text-center text-accent-red">Failed to load requests.</p>';
             }
         }
 
@@ -112,89 +207,89 @@
 
             if (requests.length === 0) {
                 listElement.innerHTML = `
-                    <div class="text-center p-12 bg-slate-800 text-slate-400 rounded-xl shadow-xl border border-slate-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <h2 class="text-xl font-semibold text-white">All Clear!</h2>
-                        <p>There are no pending room condition requests at this time.</p>
-                    </div>
-                `;
+                <div class="text-center p-12 bg-secondary text-text-muted rounded-xl shadow-xl border border-border">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-4 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h2 class="text-xl font-semibold text-text-primary">All Clear!</h2>
+                    <p>There are no pending room condition requests at this time.</p>
+                </div>
+            `;
                 return;
             }
 
             requests.forEach(request => {
                 const cardHtml = `
-                    <div class="request-card bg-slate-800 p-6 rounded-xl shadow-xl border-l-4 ${
-                        request.status === 'pending' ? 'border-yellow-500' :
-                        request.status === 'viewed' ? 'border-blue-500' :
-                        request.status === 'approved' ? 'border-green-500' : 'border-red-500'
+                <div class="request-card bg-secondary p-6 rounded-xl shadow-xl border-l-4 ${
+                        request.status === 'pending' ? 'border-accent-yellow' :
+                            request.status === 'viewed' ? 'border-accent-blue' :
+                                request.status === 'approved' ? 'border-accent-green' : 'border-accent-red'
                     }">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-700 pb-3">
-                            <div>
-                                <h3 class="text-2xl font-bold text-indigo-400 capitalize">
-                                    ${request.room_name} - ${request.request_type.replace(/_/g, ' ')}
-                                </h3>
-                                <p class="text-sm text-slate-500 mt-1">
-                                    Requested by: <span class="text-slate-400">${request.username}</span>
-                                </p>
-                            </div>
-                            <div class="flex items-center gap-3 mt-2 md:mt-0">
-                                <span class="status-badge status-${request.status}">${request.status}</span>
-                                <p class="text-sm text-slate-500">
-                                    ${new Date(request.created_at).toLocaleString()}
-                                </p>
-                            </div>
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-border pb-3">
+                        <div>
+                            <h3 class="text-2xl font-bold text-accent-blue capitalize">
+                                ${request.room_name} - ${request.request_type.replace(/_/g, ' ')}
+                            </h3>
+                            <p class="text-sm text-text-muted mt-1">
+                                Requested by: <span class="text-text-secondary">${request.username}</span>
+                            </p>
                         </div>
-
-                        <div class="space-y-3 mb-6">
-                            ${request.request_type === 'temperature_change' ? `
-                                <div class="flex items-center gap-4 bg-slate-700/50 p-3 rounded-lg">
-                                    <div class="text-center">
-                                        <span class="text-sm text-slate-400">Current</span>
-                                        <p class="text-lg font-bold text-white">${request.current_temperature}°C</p>
-                                    </div>
-                                    <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                                    </svg>
-                                    <div class="text-center">
-                                        <span class="text-sm text-slate-400">Requested</span>
-                                        <p class="text-lg font-bold text-yellow-400">${request.target_temperature}°C</p>
-                                    </div>
-                                </div>
-                            ` : ''}
-
-                            ${request.request_type === 'fan_adjustment' ? `
-                                <div class="bg-slate-700/50 p-3 rounded-lg">
-                                    <p class="font-semibold text-white mb-1">Airflow Request:</p>
-                                    <p class="text-slate-300 capitalize">${request.fan_level_request.replace(/_/g, ' ')}</p>
-                                </div>
-                            ` : ''}
-
-                            ${request.user_notes ? `
-                                <div class="bg-slate-700/50 p-3 rounded-lg">
-                                    <p class="font-semibold text-white mb-1">User Notes:</p>
-                                    <p class="text-slate-300 italic">"${request.user_notes}"</p>
-                                </div>
-                            ` : ''}
-                        </div>
-
-                        <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                            <button onclick="markAsViewed('${request.id}')"
-                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-150">
-                                Mark as Viewed
-                            </button>
-                            <button onclick="showApproveModal('${request.id}')"
-                                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-150">
-                                Approve
-                            </button>
-                            <button onclick="showDenyModal('${request.id}')"
-                                class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-150">
-                                Deny
-                            </button>
+                        <div class="flex items-center gap-3 mt-2 md:mt-0">
+                            <span class="status-badge status-${request.status}">${request.status}</span>
+                            <p class="text-sm text-text-muted">
+                                ${new Date(request.created_at).toLocaleString()}
+                            </p>
                         </div>
                     </div>
-                `;
+
+                    <div class="space-y-3 mb-6">
+                        ${request.request_type === 'temperature_change' ? `
+                            <div class="flex items-center gap-4 bg-tertiary p-3 rounded-lg">
+                                <div class="text-center">
+                                    <span class="text-sm text-text-muted">Current</span>
+                                    <p class="text-lg font-bold text-text-primary">${request.current_temperature}°C</p>
+                                </div>
+                                <svg class="w-6 h-6 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                                </svg>
+                                <div class="text-center">
+                                    <span class="text-sm text-text-muted">Requested</span>
+                                    <p class="text-lg font-bold text-accent-yellow">${request.target_temperature}°C</p>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${request.request_type === 'fan_adjustment' ? `
+                            <div class="bg-tertiary p-3 rounded-lg">
+                                <p class="font-semibold text-text-primary mb-1">Airflow Request:</p>
+                                <p class="text-text-secondary capitalize">${request.fan_level_request.replace(/_/g, ' ')}</p>
+                            </div>
+                        ` : ''}
+
+                        ${request.user_notes ? `
+                            <div class="bg-tertiary p-3 rounded-lg">
+                                <p class="font-semibold text-text-primary mb-1">User Notes:</p>
+                                <p class="text-text-secondary italic">"${request.user_notes}"</p>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                        <button onclick="markAsViewed('${request.id}')"
+                            class="flex-1 bg-accent-blue hover:bg-accent-blue-hover text-white font-semibold py-3 px-4 rounded-lg transition duration-150">
+                            Mark as Viewed
+                        </button>
+                        <button onclick="showApproveModal('${request.id}')"
+                            class="flex-1 bg-accent-green hover:bg-accent-green-hover text-white font-semibold py-3 px-4 rounded-lg transition duration-150">
+                            Approve
+                        </button>
+                        <button onclick="showDenyModal('${request.id}')"
+                            class="flex-1 bg-accent-red hover:bg-accent-red-hover text-white font-semibold py-3 px-4 rounded-lg transition duration-150">
+                            Deny
+                        </button>
+                    </div>
+                </div>
+            `;
                 listElement.insertAdjacentHTML('beforeend', cardHtml);
             });
         }
@@ -204,18 +299,18 @@
             currentRequestId = requestId;
             document.getElementById('modal-title').textContent = 'Approve Request';
             document.getElementById('modal-content').innerHTML = `
-                <div class="space-y-4">
-                    <p class="text-slate-300">Are you sure you want to approve this request?</p>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-2">Estimated Completion Time:</label>
-                        <input type="datetime-local" id="completion-time" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-2">Admin Notes (optional):</label>
-                        <textarea id="admin-notes" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white" rows="3"></textarea>
-                    </div>
+            <div class="space-y-4">
+                <p class="text-text-secondary">Are you sure you want to approve this request?</p>
+                <div>
+                    <label class="block text-sm font-medium text-text-muted mb-2">Estimated Completion Time:</label>
+                    <input type="datetime-local" id="completion-time" class="w-full bg-tertiary border border-border rounded-lg px-3 py-2 text-text-primary">
                 </div>
-            `;
+                <div>
+                    <label class="block text-sm font-medium text-text-muted mb-2">Admin Notes (optional):</label>
+                    <textarea id="admin-notes" class="w-full bg-tertiary border border-border rounded-lg px-3 py-2 text-text-primary" rows="3"></textarea>
+                </div>
+            </div>
+        `;
 
             document.getElementById('modal-confirm-btn').onclick = () => approveRequest(requestId);
             document.getElementById('action-modal').classList.remove('hidden');
@@ -225,14 +320,14 @@
             currentRequestId = requestId;
             document.getElementById('modal-title').textContent = 'Deny Request';
             document.getElementById('modal-content').innerHTML = `
-                <div class="space-y-4">
-                    <p class="text-slate-300">Are you sure you want to deny this request?</p>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-2">Reason for denial:</label>
-                        <textarea id="denial-reason" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white" rows="3" placeholder="Provide a reason for denial..."></textarea>
-                    </div>
+            <div class="space-y-4">
+                <p class="text-text-secondary">Are you sure you want to deny this request?</p>
+                <div>
+                    <label class="block text-sm font-medium text-text-muted mb-2">Reason for denial:</label>
+                    <textarea id="denial-reason" class="w-full bg-tertiary border border-border rounded-lg px-3 py-2 text-text-primary" rows="3" placeholder="Provide a reason for denial..."></textarea>
                 </div>
-            `;
+            </div>
+        `;
 
             document.getElementById('modal-confirm-btn').onclick = () => denyRequest(requestId);
             document.getElementById('action-modal').classList.remove('hidden');
@@ -262,7 +357,7 @@
             try {
                 const response = await fetch(`/api/admin/room-requests/${requestId}/approve`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         estimated_completion_time: completionTime,
                         admin_notes: adminNotes
@@ -283,8 +378,8 @@
             try {
                 const response = await fetch(`/api/admin/room-requests/${requestId}/deny`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason: reason })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({reason: reason})
                 });
                 if (!response.ok) throw new Error('Failed to deny request');
                 closeModal();
@@ -301,11 +396,15 @@
         }
 
         // Event listeners
-        document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+        document.addEventListener('DOMContentLoaded', function () {
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeModal);
+            }
 
-        // Poll for new requests every 15 seconds
-        setInterval(loadRequests, 15000);
-        loadRequests(); // Initial load
+            // Poll for new requests every 3 seconds
+            setInterval(loadRequests, 3000);
+            loadRequests(); // Initial load
+        });
     </script>
-</body>
-</html>
+{% endblock %}

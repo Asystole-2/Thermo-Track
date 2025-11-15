@@ -9,7 +9,7 @@
             <header class="page-header">
                 <div class="header-content">
                     <div>
-                        <h1 class="header-title">Facilities Dashboard</h1>
+                        <h1 class="text-4xl font-extrabold text-text-primary mb-2">Facilities Dashboard</h1>
                         <p class="header-subtitle">
                             Overview of campus-wide HVAC performance.
                             <span class="ml-2 inline-block px-2 py-0.5 rounded bg-blue-900/40 text-blue-200 text-xs align-middle">
@@ -21,7 +21,7 @@
                         <a href="/api/rooms" class="btn p-2 hover:bg-gray-700 text-sm">Rooms JSON</a>
                         <a href="/api/readings" class="btn p-2 hover:bg-gray-700 text-sm">Readings JSON</a>
                         <!-- Right side: Notification bell -->
-                    {% include 'components/notification_bell.html' %}
+                        {% include 'components/notification_bell.html' %}
                     </div>
                 </div>
             </header>
@@ -89,109 +89,108 @@
                 </div>
             </section>
 
-            <!-- ===================== ROOMS ===================== -->
-            {% if rooms and rooms|length > 0 %}
-                <section class="mt-4" id="roomsSection">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-gray-300">Rooms</h3>
-                        <span class="text-xs text-gray-400 room-count">
-                    {{ rooms|length }} room{% if rooms|length != 1 %}s{% endif %}
-                </span>
-                    </div>
+<!-- ===================== ROOMS ===================== -->
+{% if rooms and rooms|length > 0 %}
+    <section class="mt-4" id="roomsSection">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-semibold text-text-secondary">Rooms</h3>
+            <span class="text-xs text-text-muted room-count">
+                {{ rooms|length }} room{% if rooms|length != 1 %}s{% endif %}
+            </span>
+        </div>
 
-                    <div class="grid-cards" id="roomsGrid">
-                        {% for r in rooms %}
-                            <a href="{{ url_for('room', room_id=r.id) }}"
-                               class="card hover:ring-2 hover:ring-blue-500/50 transition duration-150 ease-in-out room-card"
-                               data-room-name="{{ r.room_name.lower() }}"
-                               data-location="{{ (r.location or '').lower() }}"
-                               data-devices="{{ r.devices_count }}"
-                               data-temp="{{ r.avg_temp or '' }}"
-                               data-humidity="{{ r.avg_humidity or '' }}"
-                            >
-                                <div class="flex items-start justify-between">
-                                    <div>
-                                        <h4 class="text-xl font-bold text-gray-200 mb-1 room-name">
-                                            {{ r.room_name }}
-                                        </h4>
-                                        <p class="text-sm text-gray-400 flex items-center gap-1 room-location">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            </svg>
-                                            {{ r.location or 'Unspecified location' }}
-                                        </p>
-                                    </div>
+        <div class="grid-cards" id="roomsGrid">
+            {% for r in rooms %}
+                <a href="{{ url_for('room', room_id=r.id) }}"
+                   class="card hover:ring-2 hover:ring-accent-blue/50 transition duration-150 ease-in-out room-card bg-secondary"
+                   data-room-name="{{ r.room_name.lower() }}"
+                   data-location="{{ (r.location or '').lower() }}"
+                   data-devices="{{ r.devices_count }}"
+                   data-temp="{{ r.avg_temp or '' }}"
+                   data-humidity="{{ r.avg_humidity or '' }}"
+                >
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h4 class="text-xl font-bold text-text-primary mb-1 room-name">
+                                {{ r.room_name }}
+                            </h4>
+                            <p class="text-sm text-text-muted flex items-center gap-1 room-location">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                {{ r.location or 'Unspecified location' }}
+                            </p>
+                        </div>
 
-                                    {% set status_label = "Normal" %}
-                                    {% set status_class = "bg-green-500/20 text-green-400" %}
-                                    {% if r.avg_temp and (r.avg_temp > 24 or r.avg_temp < 18) %}
-                                        {% set status_label = "Warning" %}
-                                        {% set status_class = "bg-orange-500/20 text-orange-400" %}
-                                    {% endif %}
-                                    {% if r.avg_temp and (r.avg_temp > 26 or r.avg_temp < 16) %}
-                                        {% set status_label = "Critical" %}
-                                        {% set status_class = "bg-red-500/20 text-red-400" %}
-                                    {% endif %}
+                        {% set status_label = "Normal" %}
+                        {% set status_class = "bg-accent-green/20 text-accent-green" %}
+                        {% if r.avg_temp and (r.avg_temp > 24 or r.avg_temp < 18) %}
+                            {% set status_label = "Warning" %}
+                            {% set status_class = "bg-accent-yellow/20 text-accent-yellow" %}
+                        {% endif %}
+                        {% if r.avg_temp and (r.avg_temp > 26 or r.avg_temp < 16) %}
+                            {% set status_label = "Critical" %}
+                            {% set status_class = "bg-accent-red/20 text-accent-red" %}
+                        {% endif %}
 
-                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ status_class }}">
+                        <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ status_class }}">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                             </svg>
                             {{ status_label }}
                         </span>
-                                </div>
-
-                                <div class="mt-4 grid grid-cols-3 gap-4 border-t border-gray-700/50 pt-3">
-                                    <div class="flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor"
-                                             viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M17 20h5v-3m-1.5-1.5l-4-4m4 4H18m2.5 0v5"></path>
-                                        </svg>
-                                        <div>
-                                            <div class="text-xs text-gray-400">Temp</div>
-                                            <div class="text-lg font-semibold room-temp">
-                                                {% if r.avg_temp is not none %}{{ r.avg_temp }}°C{% else %}—{% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor"
-                                             viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M12 6.5v12m-6-6h12"></path>
-                                        </svg>
-                                        <div>
-                                            <div class="text-xs text-gray-400">Humidity</div>
-                                            <div class="text-lg font-semibold room-humidity">
-                                                {% if r.avg_humidity is not none %}{{ r.avg_humidity }}%{% else %}
-                                                    —{% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor"
-                                             viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M12 4.5V1m0 3v20m0-12h12m-12 0H1"></path>
-                                        </svg>
-                                        <div>
-                                            <div class="text-xs text-gray-400">Devices</div>
-                                            <div class="text-lg font-semibold room-devices">
-                                                {{ r.devices_count or 0 }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        {% endfor %}
                     </div>
-                </section>
-            {% endif %}
+
+                    <div class="mt-4 grid grid-cols-3 gap-4 border-t border-border pt-3">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M17 20h5v-3m-1.5-1.5l-4-4m4 4H18m2.5 0v5"></path>
+                            </svg>
+                            <div>
+                                <div class="text-xs text-text-muted">Temp</div>
+                                <div class="text-lg font-semibold text-text-primary room-temp">
+                                    {% if r.avg_temp is not none %}{{ r.avg_temp }}°C{% else %}—{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 6.5v12m-6-6h12"></path>
+                            </svg>
+                            <div>
+                                <div class="text-xs text-text-muted">Humidity</div>
+                                <div class="text-lg font-semibold text-text-primary room-humidity">
+                                    {% if r.avg_humidity is not none %}{{ r.avg_humidity }}%{% else %}—{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 4.5V1m0 3v20m0-12h12m-12 0H1"></path>
+                            </svg>
+                            <div>
+                                <div class="text-xs text-text-muted">Devices</div>
+                                <div class="text-lg font-semibold text-text-primary room-devices">
+                                    {{ r.devices_count or 0 }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
 
             <!-- ===================== RECENT READINGS ===================== -->
             {% if rows and rows|length > 0 %}
@@ -298,5 +297,108 @@
             });
         });
     </script>
+    <style>
+    /* CSS Variables for Theme Support */
+    :root {
+        /* Light Mode Colors */
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-tertiary: #e2e8f0;
+        --bg-tertiary-hover: #cbd5e0;
+        --text-primary: #1a202c;
+        --text-secondary: #4a5568;
+        --text-muted: #718096;
+        --accent-blue: #3b82f6;
+        --accent-blue-hover: #2563eb;
+        --accent-green: #10b981;
+        --accent-green-hover: #059669;
+        --accent-red: #ef4444;
+        --accent-red-hover: #dc2626;
+        --accent-yellow: #f59e0b;
+        --accent-yellow-hover: #d97706;
+        --border-color: #cbd5e0;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .dark {
+        /* Dark Mode Colors */
+        --bg-primary: #0d1117;
+        --bg-secondary: #1f2937;
+        --bg-tertiary: #374151;
+        --bg-tertiary-hover: #4b5563;
+        --text-primary: #ffffff;
+        --text-secondary: #d1d5db;
+        --text-muted: #9ca3af;
+        --accent-blue: #3b82f6;
+        --accent-blue-hover: #2563eb;
+        --accent-green: #10b981;
+        --accent-green-hover: #059669;
+        --accent-red: #ef4444;
+        --accent-red-hover: #dc2626;
+        --accent-yellow: #f59e0b;
+        --accent-yellow-hover: #d97706;
+        --border-color: #374151;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Apply CSS Variables to Utility Classes */
+    .bg-primary { background-color: var(--bg-primary); }
+    .bg-secondary { background-color: var(--bg-secondary); }
+    .bg-tertiary { background-color: var(--bg-tertiary); }
+    .bg-tertiary-hover:hover { background-color: var(--bg-tertiary-hover); }
+
+    .text-text-primary { color: var(--text-primary); }
+    .text-text-secondary { color: var(--text-secondary); }
+    .text-text-muted { color: var(--text-muted); }
+
+    .border-border { border-color: var(--border-color); }
+
+    .bg-accent-blue { background-color: var(--accent-blue); }
+    .bg-accent-blue-hover:hover { background-color: var(--accent-blue-hover); }
+    .bg-accent-green { background-color: var(--accent-green); }
+    .bg-accent-green-hover:hover { background-color: var(--accent-green-hover); }
+    .bg-accent-red { background-color: var(--accent-red); }
+    .bg-accent-red-hover:hover { background-color: var(--accent-red-hover); }
+    .bg-accent-yellow { background-color: var(--accent-yellow); }
+    .bg-accent-yellow-hover:hover { background-color: var(--accent-yellow-hover); }
+
+    .text-accent-blue { color: var(--accent-blue); }
+    .text-accent-blue-hover:hover { color: var(--accent-blue-hover); }
+    .text-accent-green { color: var(--accent-green); }
+    .text-accent-green-hover:hover { color: var(--accent-green-hover); }
+    .text-accent-red { color: var(--accent-red); }
+    .text-accent-red-hover:hover { color: var(--accent-red-hover); }
+    .text-accent-yellow { color: var(--accent-yellow); }
+    .text-accent-yellow-hover:hover { color: var(--accent-yellow-hover); }
+
+    /* Card specific styles */
+    .card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        transition: all 0.2s ease;
+        box-shadow: var(--card-shadow);
+    }
+
+    .card:hover {
+        box-shadow: var(--shadow);
+        transform: translateY(-1px);
+    }
+
+    .grid-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .grid-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}
 
