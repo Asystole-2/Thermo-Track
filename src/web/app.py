@@ -197,8 +197,8 @@ def get_room_details(room_id, user_id=None):
         SELECT
             rm.id, rm.name AS room_name, rm.location, rm.created_at, rm.temperature_unit,
             COUNT(DISTINCT d.id) AS devices_count,
-            ROUND(AVG(lr.temperature), 1) AS avg_temp,
-            ROUND(AVG(lr.humidity), 1) AS avg_humidity,
+            COALESCE(ROUND(AVG(lr.temperature), 1), 21.0) AS avg_temp,  -- FIX: Use COALESCE for NULL values
+            COALESCE(ROUND(AVG(lr.humidity), 1), 50.0) AS avg_humidity,  -- FIX: Use COALESCE for NULL values
             MAX(lr.recorded_at) AS last_update
         FROM rooms rm
         LEFT JOIN devices d ON d.room_id = rm.id
@@ -235,7 +235,6 @@ def get_room_details(room_id, user_id=None):
     c.close()
 
     return room_data, devices_data
-
 
 # Room Management Functions
 def create_room(name, location=None, user_id=None, temperature_unit="celsius"):
@@ -614,8 +613,10 @@ def room(room_id):
 
     room_data.setdefault("temperature_unit", "celsius")
 
-    current_temp = room_data.get("avg_temp", 21.0)
-    current_humidity = room_data.get("avg_humidity", 50)
+    # Ensure current_temp has a default value if None
+    current_temp = room_data.get("avg_temp", 21.0) or 21.0  # Default to 21.0 if None
+    current_humidity = room_data.get("avg_humidity", 50) or 50  # Default to 50 if None
+
     occupancy = (
         sum(1 for d in devices_data if d.get("motion_detected") == 1)
         if devices_data
@@ -629,11 +630,12 @@ def room(room_id):
     else:
         current_temp_for_ai = _ensure_numeric(current_temp)
 
+    # Ensure all values are not None
     ai_room_input = {
-        "temperature": current_temp_for_ai,
-        "humidity": current_humidity,
+        "temperature": current_temp_for_ai or 21.0,  # Default if None
+        "humidity": current_humidity or 50,  # Default if None
         "occupancy": occupancy,
-        "room_type": room_data.get("location", "Unspecified"),
+        "room_type": room_data.get("location", "Unspecified") or "Unspecified",
     }
 
     weather_analyzer = WeatherAIAnalyzer()

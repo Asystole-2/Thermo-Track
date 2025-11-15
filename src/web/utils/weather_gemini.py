@@ -373,8 +373,9 @@ class WeatherAIAnalyzer:
 
     def _get_fallback_recommendations(self, room_data, weather_data):
         """Provide fallback recommendations when AI is unavailable"""
-        room_temp = room_data.get('temperature', 20)
-        outside_temp = weather_data.get('temperature', 15)
+        # Handle None values with defaults
+        room_temp = room_data.get('temperature', 20) or 20
+        outside_temp = weather_data.get('temperature', 15) or 15
 
         # Simple logic-based fallback
         if room_temp > 24:
