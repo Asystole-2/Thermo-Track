@@ -6,18 +6,17 @@
 
         <main class="main-content">
             <header class="page-header">
-                 <div class="header-content">
+                <div class="header-content">
                     <div>
-                <h1 class="text-4xl font-extrabold text-text-primary mb-2">Room Condition Requests</h1>
-                <p class="text-text-muted">Monitor and manage room condition adjustment requests in real-time.</p>
+                        <h1 class="text-4xl font-extrabold text-text-primary mb-2">Room Condition Requests</h1>
+                        <p class="text-text-muted">Monitor and manage room condition adjustment requests in real-time.</p>
                     </div>
-                    <!-- Right side: Notification bell -->
                     {% include 'components/notification_bell.html' %}
                 </div>
             </header>
 
             <!-- Stats Overview -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 max-w-6xl mx-auto">
                 <div class="bg-secondary p-4 rounded-xl border-l-4 border-accent-yellow">
                     <div class="text-2xl font-bold text-text-primary">{{ pending_count }}</div>
                     <div class="text-text-muted text-sm">Pending Requests</div>
@@ -36,16 +35,73 @@
                 </div>
             </div>
 
+            <!-- Filters -->
+            <div class="max-w-6xl mx-auto mb-6">
+                <div class="bg-secondary p-4 rounded-xl border border-border">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Status Filter -->
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-2">Status Filter</label>
+                            <select id="status-filter" class="form-input text-sm py-2 bg-primary border-border w-full">
+                                <option value="all">All Requests</option>
+                                <option value="pending" selected>New Requests (Pending)</option>
+                                <option value="viewed">Being Reviewed</option>
+                                <option value="approved">Approved</option>
+                                <option value="denied">Denied</option>
+                            </select>
+                        </div>
+
+                        <!-- User Filter -->
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-2">User Filter</label>
+                            <select id="user-filter" class="form-input text-sm py-2 bg-primary border-border w-full">
+                                <option value="all">All Users</option>
+                                <!-- Users will be populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- Request Type Filter -->
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-2">Request Type</label>
+                            <select id="type-filter" class="form-input text-sm py-2 bg-primary border-border w-full">
+                                <option value="all">All Types</option>
+                                <option value="temperature_change">Temperature Change</option>
+                                <option value="fan_adjustment">Fan Adjustment</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-border">
+                        <div class="text-sm text-text-muted" id="filter-stats">
+                            Showing all requests
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="clear-filters"
+                                    class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary text-sm py-2 px-4">
+                                Clear Filters
+                            </button>
+                            <button id="refresh-requests"
+                                    class="btn bg-accent-blue hover:bg-accent-blue-hover text-white text-sm py-2 px-4 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Requests Container -->
-            <div id="requests-list" class="max-w-6xl mx-auto space-y-4">
+            <div id="requests-list" class="max-w-6xl mx-auto space-y-3">
                 <div id="loading-indicator" class="text-center p-8">
                     <p class="text-text-secondary text-lg">Loading requests...</p>
                 </div>
             </div>
 
             <!-- Action Modal -->
-            <div id="action-modal"
-                 class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+            <div id="action-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
                 <div class="bg-secondary p-6 rounded-xl shadow-2xl w-full max-w-md border border-border">
                     <h3 id="modal-title" class="text-xl font-bold mb-3 text-text-primary">Process Request</h3>
                     <div id="modal-content" class="space-y-4">
@@ -72,15 +128,17 @@
         }
 
         .request-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: var(--shadow);
         }
 
         .status-badge {
-            padding: 0.25rem 0.75rem;
+            padding: 0.2rem 0.6rem;
             border-radius: 9999px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .status-pending {
@@ -103,9 +161,62 @@
             color: white;
         }
 
-        .status-completed {
-            background-color: var(--text-muted);
-            color: white;
+        .compact-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.75rem;
+            align-items: start;
+        }
+
+        .request-main {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .request-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .request-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .detail-item {
+            background: var(--bg-tertiary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 140px;
+        }
+
+        .btn-compact {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+            border-radius: 0.375rem;
         }
 
         /* CSS Variables for Theme Support */
@@ -182,19 +293,121 @@
 
     <script>
         let currentRequestId = null;
+        let allRequests = [];
+        let allUsers = new Set();
 
         // Load requests function
         async function loadRequests() {
             try {
+                console.log('DEBUG: Loading requests from /api/admin/room-requests');
+
                 const response = await fetch('/api/admin/room-requests');
-                if (!response.ok) throw new Error('Failed to fetch requests');
-                const requests = await response.json();
-                renderRequests(requests);
+                console.log('DEBUG: Response status:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('DEBUG: Server error response:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                allRequests = await response.json();
+                console.log(`DEBUG: Received ${allRequests.length} requests:`, allRequests);
+
+                // Extract unique users
+                updateUserFilter(allRequests);
+
+                // Apply initial filter (show pending by default)
+                applyFilters();
+
             } catch (error) {
                 console.error('Error loading requests:', error);
-                document.getElementById('requests-list').innerHTML =
-                    '<p class="text-center text-accent-red">Failed to load requests.</p>';
+                document.getElementById('requests-list').innerHTML = `
+                    <div class="text-center p-8 bg-accent-red bg-opacity-20 rounded-xl">
+                        <p class="text-accent-red font-semibold">Failed to load requests</p>
+                        <p class="text-text-muted text-sm mt-2">${error.message}</p>
+                        <button onclick="loadRequests()" class="btn bg-accent-blue text-white mt-4">
+                            Retry
+                        </button>
+                    </div>
+                `;
             }
+        }
+
+        // Update user filter dropdown
+        function updateUserFilter(requests) {
+            const userFilter = document.getElementById('user-filter');
+            allUsers.clear();
+
+            // Add "All Users" option
+            userFilter.innerHTML = '<option value="all">All Users</option>';
+
+            // Extract unique users
+            requests.forEach(request => {
+                if (request.username) {
+                    allUsers.add(request.username);
+                }
+            });
+
+            // Add user options
+            allUsers.forEach(username => {
+                const option = document.createElement('option');
+                option.value = username;
+                option.textContent = username;
+                userFilter.appendChild(option);
+            });
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const statusFilter = document.getElementById('status-filter').value;
+            const userFilter = document.getElementById('user-filter').value;
+            const typeFilter = document.getElementById('type-filter').value;
+
+            let filteredRequests = allRequests.filter(request => {
+                // Status filter
+                if (statusFilter !== 'all' && request.status !== statusFilter) {
+                    return false;
+                }
+
+                // User filter
+                if (userFilter !== 'all' && request.username !== userFilter) {
+                    return false;
+                }
+
+                // Type filter
+                if (typeFilter !== 'all' && request.request_type !== typeFilter) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            // Update filter stats
+            updateFilterStats(filteredRequests.length, allRequests.length);
+
+            // Render filtered requests
+            renderRequests(filteredRequests);
+        }
+
+        // Update filter statistics
+        function updateFilterStats(filteredCount, totalCount) {
+            const statsElement = document.getElementById('filter-stats');
+            const statusFilter = document.getElementById('status-filter').value;
+            const userFilter = document.getElementById('user-filter').value;
+            const typeFilter = document.getElementById('type-filter').value;
+
+            let statsText = `Showing ${filteredCount} of ${totalCount} requests`;
+
+            const filters = [];
+            if (statusFilter !== 'all') filters.push(`Status: ${statusFilter}`);
+            if (userFilter !== 'all') filters.push(`User: ${userFilter}`);
+            if (typeFilter !== 'all') filters.push(`Type: ${typeFilter.replace('_', ' ')}`);
+
+            if (filters.length > 0) {
+                statsText += ` (${filters.join(', ')})`;
+            }
+
+            statsElement.textContent = statsText;
         }
 
         // Render requests function
@@ -207,89 +420,93 @@
 
             if (requests.length === 0) {
                 listElement.innerHTML = `
-                <div class="text-center p-12 bg-secondary text-text-muted rounded-xl shadow-xl border border-border">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-4 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <h2 class="text-xl font-semibold text-text-primary">All Clear!</h2>
-                    <p>There are no pending room condition requests at this time.</p>
-                </div>
-            `;
+                    <div class="text-center p-8 bg-secondary text-text-muted rounded-xl border border-border">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+    <path d="M12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+</svg>
+                        <h2 class="text-lg font-semibold text-text-primary mb-1">No new requests found</h2>
+                        <p class="text-sm">Try adjusting your filters to see more results.</p>
+                    </div>
+                `;
                 return;
             }
 
             requests.forEach(request => {
                 const cardHtml = `
-                <div class="request-card bg-secondary p-6 rounded-xl shadow-xl border-l-4 ${
+                    <div class="request-card bg-secondary p-4 rounded-xl border-l-4 ${
                         request.status === 'pending' ? 'border-accent-yellow' :
-                            request.status === 'viewed' ? 'border-accent-blue' :
-                                request.status === 'approved' ? 'border-accent-green' : 'border-accent-red'
+                        request.status === 'viewed' ? 'border-accent-blue' :
+                        request.status === 'approved' ? 'border-accent-green' : 'border-accent-red'
                     }">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-border pb-3">
-                        <div>
-                            <h3 class="text-2xl font-bold text-accent-blue capitalize">
-                                ${request.room_name} - ${request.request_type.replace(/_/g, ' ')}
-                            </h3>
-                            <p class="text-sm text-text-muted mt-1">
-                                Requested by: <span class="text-text-secondary">${request.username}</span>
-                            </p>
-                        </div>
-                        <div class="flex items-center gap-3 mt-2 md:mt-0">
-                            <span class="status-badge status-${request.status}">${request.status}</span>
-                            <p class="text-sm text-text-muted">
-                                ${new Date(request.created_at).toLocaleString()}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3 mb-6">
-                        ${request.request_type === 'temperature_change' ? `
-                            <div class="flex items-center gap-4 bg-tertiary p-3 rounded-lg">
-                                <div class="text-center">
-                                    <span class="text-sm text-text-muted">Current</span>
-                                    <p class="text-lg font-bold text-text-primary">${request.current_temperature}°C</p>
+                        <div class="compact-grid">
+                            <div class="request-main">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-text-primary mb-1 capitalize">
+                                            ${request.room_name} - ${request.request_type.replace(/_/g, ' ')}
+                                        </h3>
+                                        <div class="request-meta">
+                                            <span class="text-sm text-text-muted">
+                                                By: <span class="text-text-secondary font-medium">${request.username}</span>
+                                            </span>
+                                            <span class="text-sm text-text-muted">
+                                                ${new Date(request.created_at).toLocaleString()}
+                                            </span>
+                                            <span class="status-badge status-${request.status}">
+                                                ${request.status}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <svg class="w-6 h-6 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                                </svg>
-                                <div class="text-center">
-                                    <span class="text-sm text-text-muted">Requested</span>
-                                    <p class="text-lg font-bold text-accent-yellow">${request.target_temperature}°C</p>
+
+                                <div class="request-details">
+                                    ${request.request_type === 'temperature_change' && request.current_temperature && request.target_temperature ? `
+                                        <div class="detail-item">
+                                            <div class="detail-label">Temperature Change</div>
+                                            <div class="detail-value">
+                                                ${request.current_temperature}°C → ${request.target_temperature}°C
+                                            </div>
+                                        </div>
+                                    ` : ''}
+
+                                    ${request.request_type === 'fan_adjustment' && request.fan_level_request ? `
+                                        <div class="detail-item">
+                                            <div class="detail-label">Airflow Request</div>
+                                            <div class="detail-value capitalize">
+                                                ${request.fan_level_request.replace(/_/g, ' ')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+
+                                    ${request.user_notes ? `
+                                        <div class="detail-item">
+                                            <div class="detail-label">User Notes</div>
+                                            <div class="detail-value text-sm">"${request.user_notes}"</div>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
-                        ` : ''}
 
-                        ${request.request_type === 'fan_adjustment' ? `
-                            <div class="bg-tertiary p-3 rounded-lg">
-                                <p class="font-semibold text-text-primary mb-1">Airflow Request:</p>
-                                <p class="text-text-secondary capitalize">${request.fan_level_request.replace(/_/g, ' ')}</p>
+                            <div class="action-buttons">
+                                ${request.status === 'pending' ? `
+                                    <button onclick="markAsViewed('${request.id}')"
+                                        class="btn-compact bg-accent-blue hover:bg-accent-blue-hover text-white font-semibold transition duration-150">
+                                        Mark Viewed
+                                    </button>
+                                ` : ''}
+                                <button onclick="showApproveModal('${request.id}')"
+                                    class="btn-compact bg-accent-green hover:bg-accent-green-hover text-white font-semibold transition duration-150">
+                                    Approve
+                                </button>
+                                <button onclick="showDenyModal('${request.id}')"
+                                    class="btn-compact bg-accent-red hover:bg-accent-red-hover text-white font-semibold transition duration-150">
+                                    Deny
+                                </button>
                             </div>
-                        ` : ''}
-
-                        ${request.user_notes ? `
-                            <div class="bg-tertiary p-3 rounded-lg">
-                                <p class="font-semibold text-text-primary mb-1">User Notes:</p>
-                                <p class="text-text-secondary italic">"${request.user_notes}"</p>
-                            </div>
-                        ` : ''}
+                        </div>
                     </div>
-
-                    <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                        <button onclick="markAsViewed('${request.id}')"
-                            class="flex-1 bg-accent-blue hover:bg-accent-blue-hover text-white font-semibold py-3 px-4 rounded-lg transition duration-150">
-                            Mark as Viewed
-                        </button>
-                        <button onclick="showApproveModal('${request.id}')"
-                            class="flex-1 bg-accent-green hover:bg-accent-green-hover text-white font-semibold py-3 px-4 rounded-lg transition duration-150">
-                            Approve
-                        </button>
-                        <button onclick="showDenyModal('${request.id}')"
-                            class="flex-1 bg-accent-red hover:bg-accent-red-hover text-white font-semibold py-3 px-4 rounded-lg transition duration-150">
-                            Deny
-                        </button>
-                    </div>
-                </div>
-            `;
+                `;
                 listElement.insertAdjacentHTML('beforeend', cardHtml);
             });
         }
@@ -299,18 +516,18 @@
             currentRequestId = requestId;
             document.getElementById('modal-title').textContent = 'Approve Request';
             document.getElementById('modal-content').innerHTML = `
-            <div class="space-y-4">
-                <p class="text-text-secondary">Are you sure you want to approve this request?</p>
-                <div>
-                    <label class="block text-sm font-medium text-text-muted mb-2">Estimated Completion Time:</label>
-                    <input type="datetime-local" id="completion-time" class="w-full bg-tertiary border border-border rounded-lg px-3 py-2 text-text-primary">
+                <div class="space-y-4">
+                    <p class="text-text-secondary">Are you sure you want to approve this request?</p>
+                    <div>
+                        <label class="block text-sm font-medium text-text-muted mb-2">Estimated Completion Time:</label>
+                        <input type="datetime-local" id="completion-time" class="w-full bg-tertiary border border-border rounded-lg px-3 py-2 text-text-primary text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-text-muted mb-2">Admin Notes (optional):</label>
+                        <textarea id="admin-notes" class="w-full bg-tertiary border border-border rounded-lg px-3 py-2 text-text-primary text-sm" rows="2"></textarea>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-text-muted mb-2">Admin Notes (optional):</label>
-                    <textarea id="admin-notes" class="w-full bg-tertiary border border-border rounded-lg px-3 py-2 text-text-primary" rows="3"></textarea>
-                </div>
-            </div>
-        `;
+            `;
 
             document.getElementById('modal-confirm-btn').onclick = () => approveRequest(requestId);
             document.getElementById('action-modal').classList.remove('hidden');
@@ -320,14 +537,14 @@
             currentRequestId = requestId;
             document.getElementById('modal-title').textContent = 'Deny Request';
             document.getElementById('modal-content').innerHTML = `
-            <div class="space-y-4">
-                <p class="text-text-secondary">Are you sure you want to deny this request?</p>
-                <div>
-                    <label class="block text-sm font-medium text-text-muted mb-2">Reason for denial:</label>
-                    <textarea id="denial-reason" class="w-full bg-tertiary border border-border rounded-lg px-3 py-2 text-text-primary" rows="3" placeholder="Provide a reason for denial..."></textarea>
+                <div class="space-y-4">
+                    <p class="text-text-secondary">Are you sure you want to deny this request?</p>
+                    <div>
+                        <label class="block text-sm font-medium text-text-muted mb-2">Reason for denial:</label>
+                        <textarea id="denial-reason" class="w-full bg-tertiary border border-border rounded-lg px-3 py-2 text-text-primary text-sm" rows="2" placeholder="Provide a reason for denial..."></textarea>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
 
             document.getElementById('modal-confirm-btn').onclick = () => denyRequest(requestId);
             document.getElementById('action-modal').classList.remove('hidden');
@@ -338,15 +555,21 @@
             try {
                 const response = await fetch(`/api/admin/room-requests/${requestId}/view`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
+                    headers: {'Content-Type': 'application/json'}
                 });
-                if (!response.ok) throw new Error('Failed to mark as viewed');
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || `HTTP ${response.status}: Failed to mark as viewed`);
+                }
+
                 loadRequests(); // Reload the list
+                showToast('Request marked as viewed!', 'success');
+
             } catch (error) {
                 console.error('Error marking as viewed:', error);
-                alert('Failed to mark request as viewed');
+                showToast(`Failed to mark as viewed: ${error.message}`, 'error');
             }
         }
 
@@ -363,12 +586,20 @@
                         admin_notes: adminNotes
                     })
                 });
-                if (!response.ok) throw new Error('Failed to approve request');
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || `HTTP ${response.status}: Failed to approve request`);
+                }
+
                 closeModal();
                 loadRequests();
+                showToast('Request approved successfully!', 'success');
+
             } catch (error) {
                 console.error('Error approving request:', error);
-                alert('Failed to approve request');
+                showToast(`Failed to approve request: ${error.message}`, 'error');
             }
         }
 
@@ -381,30 +612,77 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({reason: reason})
                 });
-                if (!response.ok) throw new Error('Failed to deny request');
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || `HTTP ${response.status}: Failed to deny request`);
+                }
+
                 closeModal();
                 loadRequests();
+                showToast('Request denied successfully!', 'success');
+
             } catch (error) {
                 console.error('Error denying request:', error);
-                alert('Failed to deny request');
+                showToast(`Failed to deny request: ${error.message}`, 'error');
             }
         }
 
+        // Utility functions
         function closeModal() {
             document.getElementById('action-modal').classList.add('hidden');
             currentRequestId = null;
         }
 
-        // Event listeners
-        document.addEventListener('DOMContentLoaded', function () {
-            const cancelBtn = document.getElementById('modal-cancel-btn');
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', closeModal);
-            }
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 p-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-600 text-white' :
+                type === 'error' ? 'bg-red-600 text-white' :
+                'bg-blue-600 text-white'
+            }`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="text-sm">${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(toast);
 
-            // Poll for new requests every 3 seconds
-            setInterval(loadRequests, 3000);
-            loadRequests(); // Initial load
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DEBUG: Page loaded, starting to load requests...');
+
+            // Load initial requests
+            loadRequests();
+
+            // Filter event listeners
+            document.getElementById('status-filter').addEventListener('change', applyFilters);
+            document.getElementById('user-filter').addEventListener('change', applyFilters);
+            document.getElementById('type-filter').addEventListener('change', applyFilters);
+
+            // Button event listeners
+            document.getElementById('clear-filters').addEventListener('click', function() {
+                document.getElementById('status-filter').value = 'pending';
+                document.getElementById('user-filter').value = 'all';
+                document.getElementById('type-filter').value = 'all';
+                applyFilters();
+            });
+
+            document.getElementById('refresh-requests').addEventListener('click', loadRequests);
+            document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
         });
     </script>
 {% endblock %}

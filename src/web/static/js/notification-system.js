@@ -7,8 +7,8 @@ class NotificationSystem {
     init() {
         this.bindEvents();
         this.loadNotificationCount();
-        // Poll for new notifications every 30 seconds
-        setInterval(() => this.loadNotificationCount(), 30000);
+        // Poll for new notifications every 1 second
+        setInterval(() => this.loadNotificationCount(), 1000);
     }
 
     bindEvents() {

@@ -46,7 +46,7 @@
                             </svg>
                             Request Room Adjustment
                         </h3>
-                        <form id="adjustment_request_form" action="/api/debug/simple-test" method="post"
+                          <form id="adjustment_request_form" action="/room/{{ room.id }}/request_adjustment" method="post"
                               class="space-y-4">
                             <div class="p-4 bg-tertiary rounded-lg space-y-3">
                                 <!-- Current Conditions Display -->
@@ -880,7 +880,7 @@
                 body: formData
             })
                 .then(response => {
-                    // First, check if the response is JSON
+                    // check if the response is JSON
                     const contentType = response.headers.get('content-type');
                     if (!contentType || !contentType.includes('application/json')) {
                         // If not JSON, get the text and see what it is

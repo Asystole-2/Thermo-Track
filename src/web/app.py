@@ -18,7 +18,7 @@ from flask import (
 from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
-from MySQLdb._exceptions import IntegrityError
+from MySQLdb._exceptions import IntegrityError, Error
 from utils.weather_gemini import WeatherAIAnalyzer
 
 try:
@@ -321,10 +321,37 @@ def login_required(f):
 
 
 def is_admin(user_id):
-    # Implement your admin check logic here
-    # For now, let's assume user_id 1 is admin
-    return user_id == 1
+    """Check if user has admin role"""
+    if not isinstance(user_id, int) or user_id is None:
+        print(f"DEBUG: Invalid user_id: {user_id}")
+        return False
 
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+        result = cursor.fetchone()
+
+        print(f"DEBUG: User {user_id} role query result: {result}")
+
+        if result:
+            role = result['role']  # Access by column name
+            print(f"DEBUG: User {user_id} has role: '{role}'")
+            is_admin_result = (role == 'admin')
+            print(f"DEBUG: Is admin? {is_admin_result}")
+            return is_admin_result
+
+        print(f"DEBUG: No user found with id {user_id}")
+        return False
+
+    except Exception as e:
+        print(f"Error checking admin status: {e}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return False
+    finally:
+        if cursor:
+            cursor.close()
 
 # Error Handlers
 @app.after_request
@@ -1131,6 +1158,8 @@ def get_room_notifications(room_id):
 @app.route("/admin/room-requests")
 @login_required
 def admin_room_requests():
+    print(f"DEBUG: Session data - user_id: {session.get('user_id')}, role: {session.get('role')}")
+
     if not is_admin(session["user_id"]):
         flash("Access denied. Admin privileges required.", "error")
         return redirect(url_for("dashboard"))
@@ -1169,15 +1198,23 @@ def get_admin_room_requests():
         return jsonify([]), 403
 
     cursor = mysql.connection.cursor()
+
+    # Show ALL requests, not just pending/viewed
     cursor.execute(
         """
         SELECT r.*, u.username, rm.name as room_name
         FROM room_condition_requests r
-        JOIN users u ON r.user_id = u.id
-        JOIN rooms rm ON r.room_id = rm.id
-        WHERE r.status IN ('pending', 'viewed')
-        ORDER BY r.created_at DESC
-    """
+                 JOIN users u ON r.user_id = u.id
+                 JOIN rooms rm ON r.room_id = rm.id
+        ORDER BY CASE
+                     WHEN r.status = 'pending' THEN 1
+                     WHEN r.status = 'viewed' THEN 2
+                     WHEN r.status = 'approved' THEN 3
+                     WHEN r.status = 'denied' THEN 4
+                     ELSE 5
+                     END,
+                 r.created_at DESC
+        """
     )
 
     requests = []
@@ -1192,131 +1229,172 @@ def get_admin_room_requests():
             'fan_level_request': row['fan_level_request'],
             'user_notes': row['user_notes'],
             'status': row['status'],
-            'estimated_completion_time': row['estimated_completion_time'].isoformat() if row['estimated_completion_time'] else None,
+            'estimated_completion_time': row['estimated_completion_time'].isoformat() if row[
+                'estimated_completion_time'] else None,
             'created_at': row['created_at'].isoformat(),
             'username': row['username'],
             'room_name': row['room_name']
         })
 
     cursor.close()
+
+    print(f"DEBUG: Returning {len(requests)} requests to admin panel")
     return jsonify(requests)
 
 
-@app.route("/api/admin/room-requests/<int:request_id>/view", methods=["POST"])
+@app.route('/api/admin/room-requests/<int:request_id>/view', methods=['POST'])
 @login_required
 def mark_request_viewed(request_id):
-    if not is_admin(session["user_id"]):
-        return jsonify({"error": "Unauthorized"}), 403
+    if not is_admin(session['user_id']):
+        return jsonify({'error': 'Unauthorized'}), 403
 
     cursor = mysql.connection.cursor()
-    cursor.execute(
-        """
-        UPDATE room_condition_requests 
-        SET status = 'viewed', updated_at = NOW() 
-        WHERE id = %s
-    """,
-        (request_id,),
-    )
+    try:
+        print(f"DEBUG: Marking request {request_id} as viewed")
 
-    # Create notification for user
-    cursor.execute(
-        "SELECT user_id FROM room_condition_requests WHERE id = %s", (request_id,)
-    )
-    result = cursor.fetchone()
-    if result:
-        user_id = result['user_id']
         cursor.execute("""
-            INSERT INTO user_notifications (user_id, request_id, title, message, type)
-            VALUES (%s, %s, 'Request Viewed', 'An admin is now reviewing your room adjustment request.', 'info')
-        """,
-            (user_id, request_id),
-        )
+                       UPDATE room_condition_requests
+                       SET status     = 'viewed',
+                           updated_at = NOW()
+                       WHERE id = %s
+                       """, (request_id,))
 
-    mysql.connection.commit()
-    cursor.close()
-    return jsonify({'success': True})
+        # Create notification for user
+        cursor.execute("SELECT user_id FROM room_condition_requests WHERE id = %s", (request_id,))
+        result = cursor.fetchone()
+
+        print(f"DEBUG: User ID result: {result}")
+
+        if result:
+            user_id = result['user_id']
+            cursor.execute("""
+                           INSERT INTO user_notifications (user_id, request_id, title, message, type)
+                           VALUES (%s, %s, 'Request Viewed', 'An admin is now reviewing your room adjustment request.',
+                                   'info')
+                           """, (user_id, request_id))
+
+            print(f"DEBUG: Created viewed notification for user {user_id}")
+
+        mysql.connection.commit()
+        print("DEBUG: Mark as viewed successful")
+        return jsonify({'success': True})
+
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"DEBUG: Error marking as viewed: {e}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
 
 
-@app.route("/api/admin/room-requests/<int:request_id>/approve", methods=["POST"])
+@app.route('/api/admin/room-requests/<int:request_id>/approve', methods=['POST'])
 @login_required
 def approve_room_request(request_id):
-    if not is_admin(session["user_id"]):
-        return jsonify({"error": "Unauthorized"}), 403
+    if not is_admin(session['user_id']):
+        return jsonify({'error': 'Unauthorized'}), 403
 
     data = request.json
     cursor = mysql.connection.cursor()
 
-    cursor.execute(
-        """
-        UPDATE room_condition_requests 
-        SET status = 'approved', 
-            estimated_completion_time = %s,
-            updated_at = NOW()
-        WHERE id = %s
-    """,
-        (data.get("estimated_completion_time"), request_id),
-    )
+    try:
+        print(f"DEBUG: Approving request {request_id}")
+        print(f"DEBUG: Data received: {data}")
 
-    # Get request details for notification
-    cursor.execute("""
-        SELECT user_id, request_type, room_id, target_temperature
-        FROM room_condition_requests WHERE id = %s
-    """, (request_id,))
-    req_data = cursor.fetchone()
+        cursor.execute("""
+                       UPDATE room_condition_requests
+                       SET status                    = 'approved',
+                           estimated_completion_time = %s,
+                           updated_at                = NOW()
+                       WHERE id = %s
+                       """, (data.get('estimated_completion_time'), request_id))
 
-    if req_data:
-        # Create success notification for user
-        completion_time = data.get('estimated_completion_time', 'soon')
-        message = f"Your {req_data['request_type'].replace('_', ' ')} request has been approved. "
-        message += f"Estimated completion: {completion_time}"
+        # Get request details for notification
+        cursor.execute("""
+                       SELECT r.user_id, r.request_type, r.room_id, r.target_temperature
+                       FROM room_condition_requests r
+                       WHERE id = %s
+                       """, (request_id,))
+        req_data = cursor.fetchone()
 
-        cursor.execute(
-            """
-            INSERT INTO user_notifications (user_id, request_id, title, message, type)
-            VALUES (%s, %s, 'Request Approved', %s, 'success')
-        """, (req_data['user_id'], request_id, message))
+        print(f"DEBUG: Request data: {req_data}")
 
-    mysql.connection.commit()
-    cursor.close()
-    return jsonify({'success': True})
+        if req_data:
+            # Create success notification for user
+            completion_time = data.get('estimated_completion_time', 'soon')
+            message = f"Your {req_data['request_type'].replace('_', ' ')} request has been approved. "
+            message += f"Estimated completion: {completion_time}"
+
+            cursor.execute("""
+                           INSERT INTO user_notifications (user_id, request_id, title, message, type)
+                           VALUES (%s, %s, 'Request Approved', %s, 'success')
+                           """, (req_data['user_id'], request_id, message))
+
+            print(f"DEBUG: Created notification for user {req_data['user_id']}")
+
+        mysql.connection.commit()
+        print("DEBUG: Approval successful")
+        return jsonify({'success': True})
+
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"DEBUG: Error approving request: {e}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
 
 
-@app.route("/api/admin/room-requests/<int:request_id>/deny", methods=["POST"])
+@app.route('/api/admin/room-requests/<int:request_id>/deny', methods=['POST'])
 @login_required
 def deny_room_request(request_id):
-    if not is_admin(session["user_id"]):
-        return jsonify({"error": "Unauthorized"}), 403
+    if not is_admin(session['user_id']):
+        return jsonify({'error': 'Unauthorized'}), 403
 
     data = request.json
     cursor = mysql.connection.cursor()
 
-    cursor.execute(
-        """
-        UPDATE room_condition_requests 
-        SET status = 'denied', updated_at = NOW()
-        WHERE id = %s
-    """,
-        (request_id,),
-    )
+    try:
+        print(f"DEBUG: Denying request {request_id}")
+        print(f"DEBUG: Data received: {data}")
 
-    # Get user ID for notification
-    cursor.execute(
-        "SELECT user_id FROM room_condition_requests WHERE id = %s", (request_id,)
-    )
-    result = cursor.fetchone()
-    if result:
-        user_id = result['user_id']
-        reason = data.get('reason', 'No reason provided')
         cursor.execute("""
-            INSERT INTO user_notifications (user_id, request_id, title, message, type)
-            VALUES (%s, %s, 'Request Denied', %s, 'error')
-        """,
-            (user_id, request_id, f"Your request was denied. Reason: {reason}"),
-        )
+                       UPDATE room_condition_requests
+                       SET status     = 'denied',
+                           updated_at = NOW()
+                       WHERE id = %s
+                       """, (request_id,))
 
-    mysql.connection.commit()
-    cursor.close()
-    return jsonify({'success': True})
+        # Get user ID for notification
+        cursor.execute("SELECT user_id FROM room_condition_requests WHERE id = %s", (request_id,))
+        result = cursor.fetchone()
+
+        print(f"DEBUG: User ID result: {result}")
+
+        if result:
+            user_id = result['user_id']
+            reason = data.get('reason', 'No reason provided')
+            cursor.execute("""
+                           INSERT INTO user_notifications (user_id, request_id, title, message, type)
+                           VALUES (%s, %s, 'Request Denied', %s, 'error')
+                           """, (user_id, request_id, f"Your request was denied. Reason: {reason}"))
+
+            print(f"DEBUG: Created denial notification for user {user_id}")
+
+        mysql.connection.commit()
+        print("DEBUG: Denial successful")
+        return jsonify({'success': True})
+
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"DEBUG: Error denying request: {e}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
 
 
 @app.route("/api/debug/room-request-test", methods=["POST"])
