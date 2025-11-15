@@ -61,7 +61,7 @@
     2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4
     17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'} ] %} {% for item in nav_items %} {% set
     allowed_for_user = item.endpoint in ['dashboard', 'setup', 'notifications']
-    %} {% set allowed_for_technician = item.endpoint in ['dashboard', 'setup',
+    %} {% set allowed_for_technician = item.endpoint in ['dashboard','admin_room_requests', 'setup',
     'notifications', 'reports', 'policies'] %} {% if role == 'admin' or (role ==
     'technician' and allowed_for_technician) or (role == 'user' and
     allowed_for_user) %}
@@ -114,13 +114,17 @@
         </button>
     </div>
 
-    <!-- Fixed Bottom Section -->
+    <!-- Bottom User Info -->
     <div class="px-4 py-3 border-t border-gray-700 flex-shrink-0">
         {% if session.get('username') %}
             <div class="mb-3">
                 <p id="user-greeting"
                    class="text-xs text-gray-400 font-medium whitespace-nowrap transition-opacity duration-300">
                     Greeting: <span class="text-sm font-bold text-white">{{ session.get('username') }}</span>
+                </p>
+                <p 
+                     class="text-xs text-gray-500 mb-3">
+                     Role: <span class="text-blue-400">{{ session['role']|title }}</span>
                 </p>
             </div>
 

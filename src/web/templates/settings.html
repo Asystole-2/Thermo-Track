@@ -1,67 +1,198 @@
-{% extends "layout.html" %}
+{% extends "layout.html" %} {% block body %}
+<div class="app-container">
+  {% include 'components/menu.html' %}
 
-{% block body %}
-    <div class="app-container">
-        {% include 'components/menu.html' %}
+  <main class="main-content">
+    <header class="page-header">
+      <div class="header-content">
+        <div>
+          <h1 class="text-4xl font-extrabold text-text-primary mb-2">
+            User & System Settings
+          </h1>
+          <p class="header-subtitle">
+            Configure user profile, API keys, and system preferences.
+          </p>
+        </div>
+        <!-- Right side: Notification bell -->
+        {% include 'components/notification_bell.html' %}
+      </div>
+    </header>
 
-        <main class="main-content">
-            <header class="page-header">
-                <div class="header-content">
-                    <div>
-                        <h1 class="text-4xl font-extrabold text-text-primary mb-2">User & System Settings</h1>
-                        <p class="header-subtitle">Configure user profile, API keys, and system preferences.</p>
-                    </div>
-                    <!-- Right side: Notification bell -->
-                    {% include 'components/notification_bell.html' %}
-                </div>
-            </header>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="mb-6">
-                        {% for category, message in messages %}
-                            <div class="flash {{ category }} rounded-lg text-sm" role="alert">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-
-            <section>
-                <h3 class="text-xl font-semibold mb-4 text-gray-300">Configuration Options</h3>
-                <div class="card">
-                    <div class="card-placeholder">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-yellow-400" fill="none"
-                             viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <h3 class="mt-2 text-xl font-medium text-gray-200">Feature In Progress</h3>
-                        <p class="mt-1 text-muted">User profile management, API keys, and system configuration are
-                            currently being developed.</p>
-                        <p class="mt-4 text-sm text-gray-500">Settings will apply across your {{ rooms|length }}
-                            connected rooms.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Voice Input Example -->
-            <section class="mt-8">
-                <h3 class="text-xl font-semibold mb-4 text-gray-300">System Configuration</h3>
-                <div class="card">
-                    <label for="systemName" class="block text-sm font-medium text-gray-300 mb-2">System Name</label>
-                    <input
-                            id="systemName"
-                            name="systemName"
-                            type="text"
-                            class="tt_voiceable form-input"
-                            placeholder="Say your system name..."
-                    />
-                </div>
-            </section>
-        </main>
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %}
+    <div class="mb-6">
+      {% for category, message in messages %}
+      <div class="flash {{ category }} rounded-lg text-sm" role="alert">
+        {{ message }}
+      </div>
+      {% endfor %}
     </div>
+    {% endif %} {% endwith %}
+
+    <section>
+      <h3 class="text-xl font-semibold mb-4 text-gray-300">
+        Configuration Options
+      </h3>
+      <div class="card">
+        <div class="card-placeholder">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="mx-auto h-12 w-12 text-yellow-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+          <h3 class="mt-2 text-xl font-medium text-gray-200">
+            Feature In Progress
+          </h3>
+          <p class="mt-1 text-muted">
+            User profile management, API keys, and system configuration are
+            currently being developed.
+          </p>
+          <p class="mt-4 text-sm text-gray-500">
+            Settings will apply across your {{ rooms|length }} connected rooms.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Voice Input Example -->
+    <section class="mt-8">
+      <h3 class="text-xl font-semibold mb-4 text-gray-300">
+        System Configuration
+      </h3>
+      <div class="card">
+        <label
+          for="systemName"
+          class="block text-sm font-medium text-gray-300 mb-2"
+          >System Name</label
+        >
+        <input
+          id="systemName"
+          name="systemName"
+          type="text"
+          class="tt_voiceable form-input"
+          placeholder="Say your system name..."
+        />
+      </div>
+    </section>
+
+    <!-- -------------------------------- -->
+    <!-- ADMIN/TECHNICIAN USER MANAGEMENT PANEL -->
+    <!-- -------------------------------- -->
+
+    {% if session.get('role') in ['admin', 'technician'] %}
+    <section class="mt-10">
+      <h3 class="text-xl font-semibold mb-4 text-gray-200">User Management</h3>
+
+      <div class="card p-6 space-y-6">
+        <!-- Add New User (Available for Technicians and Admins) -->
+        {% if session.get('role') in ['admin', 'technician'] %}
+        <form
+          action="{{ url_for('admin_create_user') }}"
+          method="post"
+          class="space-y-4"
+        >
+          <h3 class="text-lg font-semibold text-gray-300">Add New User</h3>
+
+          <input
+            type="text"
+            name="username"
+            class="form-input"
+            placeholder="Username"
+            required
+          />
+          <input
+            type="email"
+            name="email"
+            class="form-input"
+            placeholder="Email"
+            required
+          />
+          <input
+            type="password"
+            name="password"
+            class="form-input"
+            placeholder="Password"
+            required
+          />
+
+          <label class="form-label">Role</label>
+          <select name="role" class="form-input" required>
+            <option value="technician">Technician</option>
+            <option value="user">User</option>
+            <option value="viewer">Viewer</option>
+          </select>
+
+          <button class="btn btn-primary w-full">Create User</button>
+        </form>
+        {% endif %}
+
+        <!-- Existing Users (Viewable for Technicians and Admins) -->
+        <div>
+          <h3 class="text-lg font-semibold text-gray-300 mb-3">
+            Existing Users
+          </h3>
+
+          <table class="table w-full">
+            <thead>
+              <tr>
+                <th class="text-left">Username</th>
+                <th class="text-left">Email</th>
+                <th class="text-left">Role</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.role }}</td>
+                <td class="text-right">
+                  {% if u.role != 'admin' %}
+                  <!-- Technician is allowed to delete non-technician, non-admin users -->
+                  {% if u.role != 'technician' or session.get('role') == 'admin'
+                  %}
+                  <form
+                    action="{{ url_for('delete_user', user_id=u.id) }}"
+                    method="post"
+                    class="inline"
+                  >
+                    <button
+                      class="btn btn-danger btn-sm"
+                      onclick="return confirm('Delete user {{ u.username }}?')"
+                    >
+                      Delete
+                    </button>
+                  </form>
+                  {% else %}
+                  <span class="text-gray-600 text-sm">protected</span>
+                  {% endif %} {% else %}
+                  <span class="text-gray-600 text-sm">protected</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+  </main>
+</div>
 {% endblock %}
