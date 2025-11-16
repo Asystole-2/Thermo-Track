@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import secrets
 from decimal import Decimal
 from functools import wraps
 from datetime import datetime, date
@@ -20,6 +21,12 @@ from dotenv import load_dotenv, find_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from MySQLdb._exceptions import IntegrityError, Error
 from utils.weather_gemini import WeatherAIAnalyzer
+
+# Google OAuth (Authlib)
+try:
+    from authlib.integrations.flask_client import OAuth
+except ImportError:  # if authlib not installed, Google login will be disabled
+    OAuth = None
 
 try:
     from flask_session import Session as ServerSession
@@ -57,14 +64,49 @@ mysql = MySQL(app)
 if ServerSession is not None:
     ServerSession(app)
 
+# ----------------------------------------------------------------------
+# Google OAuth configuration
+# ----------------------------------------------------------------------
+oauth = None
+google = None
+
+if OAuth is None:
+    log.warning("Authlib is not installed; Google login is disabled.")
+else:
+    google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
+    google_client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
+
+    if google_client_id and google_client_secret:
+        oauth = OAuth(app)
+        app.config["GOOGLE_CLIENT_ID"] = google_client_id
+        app.config["GOOGLE_CLIENT_SECRET"] = google_client_secret
+
+        google = oauth.register(
+            name="google",
+            client_id=google_client_id,
+            client_secret=google_client_secret,
+            server_metadata_url=(
+                "https://accounts.google.com/.well-known/openid-configuration"
+            ),
+            client_kwargs={"scope": "openid email profile"},
+        )
+        log.info("Google OAuth client registered.")
+    else:
+        log.warning(
+            "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set; Google login disabled."
+        )
+
+# ----------------------------------------------------------------------
 # Constants & Validation
+# ----------------------------------------------------------------------
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 PWD_RE = re.compile(
     r"^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+\=\[\]{};:'\",.<>/?\\|`~]).{8,}$"
 )
 
-
+# ----------------------------------------------------------------------
 # Database Utilities
+# ----------------------------------------------------------------------
 def db_cursor():
     return mysql.connection.cursor()
 
@@ -79,7 +121,9 @@ def _jsonify_rows(rows):
     return rows
 
 
+# ----------------------------------------------------------------------
 # Temperature Conversion Utilities
+# ----------------------------------------------------------------------
 def _ensure_numeric(value):
     if isinstance(value, Decimal):
         return float(value)
@@ -119,7 +163,9 @@ def format_temperature(value, unit, decimals=1):
     return f"{value:.{decimals}f}{symbols.get(unit, '°C')}"
 
 
+# ----------------------------------------------------------------------
 # Data Access Functions
+# ----------------------------------------------------------------------
 def get_rooms_summary(user_id=None):
     c = db_cursor()
     params = []
@@ -237,6 +283,7 @@ def get_room_details(room_id, user_id=None):
     return room_data, devices_data
 
 # Room Management Functions
+# ----------------------------------------------------------------------
 def create_room(name, location=None, user_id=None, temperature_unit="celsius"):
     name = (name or "").strip()
     location = (location or "").strip() or None
@@ -307,7 +354,9 @@ def delete_room(room_id, user_id=None):
         cur.close()
 
 
+# ----------------------------------------------------------------------
 # Authentication & Authorization
+# ----------------------------------------------------------------------
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -334,9 +383,9 @@ def is_admin(user_id):
         print(f"DEBUG: User {user_id} role query result: {result}")
 
         if result:
-            role = result['role']  # Access by column name
+            role = result["role"]  # Access by column name
             print(f"DEBUG: User {user_id} has role: '{role}'")
-            is_admin_result = (role == 'admin')
+            is_admin_result = role == "admin"
             print(f"DEBUG: Is admin? {is_admin_result}")
             return is_admin_result
 
@@ -346,13 +395,16 @@ def is_admin(user_id):
     except Exception as e:
         print(f"Error checking admin status: {e}")
         import traceback
+
         print(f"Full traceback: {traceback.format_exc()}")
         return False
     finally:
         if cursor:
             cursor.close()
 
+# ----------------------------------------------------------------------
 # Error Handlers
+# ----------------------------------------------------------------------
 @app.after_request
 def after_request(response):
     # Ensure API routes return JSON even on errors
@@ -360,7 +412,6 @@ def after_request(response):
         request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         if response.status_code >= 400 and not response.is_json:
-            # Convert HTML error pages to JSON for API routes
             data = {
                 "success": False,
                 "error": f"Request failed with status {response.status_code}",
@@ -387,7 +438,9 @@ def internal_error(error):
     return error
 
 
-# Route Handlers
+# ----------------------------------------------------------------------
+# Route Handlers – Landing & Login
+# ----------------------------------------------------------------------
 @app.route("/")
 def index():
     if session.get("user_id"):
@@ -441,7 +494,6 @@ def login():
         try:
             ok = check_password_hash(pwd_hash, password)
             print("PASSWORD CHECK:", ok)
-
         except Exception:
             ok = pwd_hash == password
 
@@ -449,7 +501,6 @@ def login():
             flash("Incorrect username or password.", "error")
             return render_template("login.html")
 
-        # Store role in session (NEW)
         session["user_id"] = user_id
         session["username"] = row["username"]
         session["role"] = row["role"]
@@ -460,6 +511,98 @@ def login():
     return render_template("login.html")
 
 
+# ----------------------------------------------------------------------
+# Google Login Routes
+# ----------------------------------------------------------------------
+@app.route("/login/google")
+def login_google():
+    """Start Google OAuth login"""
+    if not google:
+        flash("Google login is not configured.", "error")
+        return redirect(url_for("login"))
+
+    redirect_uri = url_for("auth_google", _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@app.route("/auth/google")
+def auth_google():
+    """Google OAuth callback"""
+    if not google:
+        flash("Google login is not configured.", "error")
+        return redirect(url_for("login"))
+
+    try:
+        token = google.authorize_access_token()
+    except Exception as e:
+        log.exception("Google OAuth error: %s", e)
+        flash("Google login failed.", "error")
+        return redirect(url_for("login"))
+
+    # Get user info
+    userinfo = token.get("userinfo")
+    if not userinfo:
+        try:
+            resp = google.get("userinfo")
+            userinfo = resp.json()
+        except Exception as e:
+            log.exception("Failed to fetch Google userinfo: %s", e)
+            flash("Google login failed.", "error")
+            return redirect(url_for("login"))
+
+    email = (userinfo.get("email") or "").lower()
+    name = userinfo.get("name") or email.split("@")[0]
+
+    if not email:
+        flash("Google account has no email address.", "error")
+        return redirect(url_for("login"))
+
+    cur = db_cursor()
+    try:
+        # Try to find existing user by email
+        cur.execute(
+            "SELECT id, username, email, role FROM users WHERE LOWER(email)=%s LIMIT 1",
+            (email,),
+        )
+        row = cur.fetchone()
+
+        if row:
+            user_id = row["id"]
+            username = row["username"]
+            role = row.get("role", "user")
+        else:
+            # Create a new local user for this Google account
+            username = name.lower().replace(" ", "_")
+            dummy_password = generate_password_hash(secrets.token_hex(16))
+
+            cur.execute(
+                "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
+                (username, email, dummy_password),
+            )
+            mysql.connection.commit()
+            user_id = cur.lastrowid
+            role = "user"
+
+        session["user_id"] = user_id
+        session["username"] = username
+        session["role"] = role
+        session["google_email"] = email
+
+        flash("Logged in with Google.", "success")
+        return redirect(url_for("dashboard"))
+
+    except Exception as e:
+        mysql.connection.rollback()
+        log.exception("Error handling Google login: %s", e)
+        flash("Google login failed.", "error")
+        return redirect(url_for("login"))
+    finally:
+        cur.close()
+
+
+# ----------------------------------------------------------------------
+# Role helper
+# ----------------------------------------------------------------------
 def role_required(*roles):
     def wrapper(f):
         @wraps(f)
@@ -483,6 +626,9 @@ def logout():
     return redirect(url_for("index"))
 
 
+# ----------------------------------------------------------------------
+# Registration
+# ----------------------------------------------------------------------
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -567,7 +713,9 @@ def register():
     return render_template("register.html")
 
 
-# Main Application Routes
+# ----------------------------------------------------------------------
+# Main Application Routes (dashboard, rooms, etc.)
+# ----------------------------------------------------------------------
 @app.route("/dashboard")
 @login_required
 def dashboard():

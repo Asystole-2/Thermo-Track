@@ -15,6 +15,7 @@
       {% endif %}
     {% endwith %}
 
+    <!-- Normal login form -->
     <form id="loginForm" action="{{ url_for('login') }}" method="post" class="space-y-4" novalidate>
       <div>
         <input
@@ -44,7 +45,22 @@
       </button>
     </form>
 
-    <p class="text-sm text-center text-muted">
+    <!-- Divider -->
+    <div class="flex items-center gap-3 mt-3">
+      <div class="h-px bg-gray-700 w-full"></div>
+      <span class="text-gray-400 text-sm">OR</span>
+      <div class="h-px bg-gray-700 w-full"></div>
+    </div>
+
+    <!-- Google Login Button -->
+    <a href="{{ url_for('login_google') }}"
+       class="w-full flex items-center justify-center gap-3 bg-white text-gray-800 py-2.5 rounded-lg font-medium hover:bg-gray-100 transition border border-gray-300">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+           alt="Google Logo" class="w-5 h-5">
+      Sign in with Google
+    </a>
+
+    <p class="text-sm text-center text-muted mt-4">
       No Account?
       <a href="{{ url_for('register') }}" class="text-blue-400 hover:text-blue-300 font-medium transition duration-300">
         Register
