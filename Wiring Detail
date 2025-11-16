@@ -1,0 +1,41 @@
+Raspberry Pi 4B/400 → Components:
+---------------------------------
+GPIO 4 (Pin 7)      → DHT22 Data
+GPIO 17 (Pin 11)    → PIR Motion Sensor OUT
+GPIO 27 (Pin 13)    → Piezo Buzzer (+)
+GPIO 22 (Pin 15)    → LED (+ with 220Ω resistor)
+GPIO 14 (Pin 8)     → Fan Control (via transistor)
+3.3V (Pin 1/17)     → PIR VCC, DHT22 VCC
+5V (Pin 2/4)        → Fan VCC
+GND (Pin 6/9/14/20) → All GND connections
+
+Wiring Details:
+DHT22:
+
+VCC → 3.3V
+DATA → GPIO 4 (Pin 7)
+GND → Ground
+
+PIR Motion Sensor:
+
+VCC → 3.3V
+OUT → GPIO 17 (Pin 11)
+GND → Ground
+
+Piezo Buzzer:
+
+→ GPIO 27 (Pin 13)
+→ Ground
+
+LED:
+
+→ GPIO 22 (Pin 15) with 220Ω resistor
+→ Ground
+
+Fan Control:
+
+For DC Fan: Use a transistor (2N2222) to control
+Base → GPIO 14 (Pin 8) with 1kΩ resistor
+Collector → Fan negative
+Emitter → Ground
+Fan positive → 5V

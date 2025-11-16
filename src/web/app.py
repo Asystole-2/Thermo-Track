@@ -1979,4 +1979,5 @@ def get_user_rooms(user_id):
 
 # Application Entry Point
 if __name__ == "__main__":
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run(debug=False, use_reloader=False)
