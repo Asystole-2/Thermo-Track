@@ -18,147 +18,171 @@
 
 | Feature | Description |
 |---------|-------------|
-| 🔐 **Secure Authentication** | Hashed passwords with HTTPS encryption |
-| 🧠 **Smart HVAC Recommendations** | AI-driven suggestions based on occupancy and environmental data |
-| 📊 **Real-time Dashboard** | Live monitoring of temperature, humidity, and occupancy |
-| ⚡ **Energy Efficiency** | Promotes energy savings through intelligent recommendations |
-| 👨‍💼 **Admin Policies** | Customizable comfort settings and energy-saving rules |
-| 📱 **Universal Design** | Accessible and responsive for all users |
+| 🔐 **Secure Authentication** | Hashed passwords and secure session handling |
+| 🧠 **Smart HVAC Recommendations** | AI-driven suggestions (Gemini AI) |
+| 📊 **Real-time Dashboard** | Live temperature, humidity, and room activity |
+| 📡 **Live Sensor Data** | PubNub-powered data streaming |
+| ⚡ **Energy Efficiency** | System optimizes comfort & energy usage |
+| 🔔 **Notification System** | Smart alerts for unsafe conditions |
+| 🌍 **Weather‑Aware Adjustments** | Automatically adapts based on weather |
+| 🔑 **Google Login Support** | OAuth 2.0 secure authentication |
 
 ---
 
 ## 🛠️ Technology Stack
 
-### **Frontend & Styling**
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwindcss&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+### **Frontend**
+- HTML5  
+- Tailwind CSS  
+- JavaScript  
 
-### **Backend & Database**
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-000000?logo=flask&logoColor=white)
-![MariaDB](https://img.shields.io/badge/MariaDB-003545?logo=mariadb&logoColor=white)
+### **Backend**
+- Python  
+- Flask  
+- Flask‑MySQLdb  
 
-### **Hardware & Sensors**
-![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-A22846?logo=raspberrypi&logoColor=white)
-![DHT22 Sensor](https://img.shields.io/badge/DHT22_Sensor-00BFFF?logo=sensors&logoColor=white)
-![PIR Sensor](https://img.shields.io/badge/PIR_Sensor-FF4500?logo=sensors&logoColor=white)
+### **Database**
+- MariaDB / MySQL  
 
-### **Communication & Security**
-![PubNub](https://img.shields.io/badge/PubNub-E61C3F?logo=pubnub&logoColor=white)
-![bcrypt](https://img.shields.io/badge/bcrypt-00BFA6?logo=lock&logoColor=white)
-![HTTPS](https://img.shields.io/badge/HTTPS-00599C?logo=ssl&logoColor=white)
+### **Hardware**
+- Raspberry Pi  
+- DHT22 Sensor  
+- PIR Sensor  
+
+### **Other Services**
+- PubNub (live sensor communication)  
+- Google Gemini AI (HVAC suggestions)  
+- Google OAuth Login  
 
 ---
 
-## 🚀 Quick Start
+# 🚀 Setup Guide
 
-### **Web Application Setup**
-
+## 1️⃣ Clone Repository
 ```bash
-# Clone the repository
 git clone https://github.com/Asystole-2/Thermo-Track.git
-cd ThermoTrack/src/web
+cd Thermo-Track/src/web
+```
 
-# Create virtual environment
+---
+
+## 2️⃣ Create Virtual Environment
+```bash
 python -m venv venv
-
-# Activate virtual environment (Windows)
-venv\Scripts\activate
-
-# Install dependencies
-pip install flask flask-mysqldb python-dotenv flask-session
-
-# Run the application
-flask run
-
-# Clone the repository
-git clone https://github.com/Asystole-2/Thermo-Track.git
-cd Thermo-Track
-
-# Install Raspberry Pi GPIO
-sudo apt install -y python3-rpi.gpio
-
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -U pip
-pip install python-dotenv 'pubnub>=10.4.1'
-
-# Set up environment variables
-cp .env.example .env
-nano .env  # Add your PUBNUB keys
-
-# Set Python path
-export PYTHONPATH="$PWD/src"
+venv\Scripts\activate   # Windows
+source venv/bin/activate  # Mac/Linux
 ```
+
 ---
 
-## DHT22 Setup
+## 3️⃣ Install Dependencies
 ```bash
-
-DHT22 Pin → Raspberry Pi Pin
-─────────────────────────────
-VCC (Pin 1)   → 3.3V/5V Power (Pin 1/2)
-Data (Pin 2)  → GPIO 4 (Pin 7)
-Ground (Pin 4) → Ground (Pin 6)
-
-# Update package list
-sudo apt-get update
-
-# Install Python headers and GPIO dependencies
-sudo apt-get install python3-dev libgpiod-dev -y
-
-# Install required Python libraries
-pip3 install adafruit-circuitpython-dht Adafruit-Blinka pubnub
+pip install -r requirements.txt
 ```
+
+If your project does not include a `requirements.txt`, install manually:
+
+```bash
+pip install flask flask-mysqldb flask-session python-dotenv google-auth google-auth-oauthlib google-auth-httplib2 pubnub google-generativeai requests
+```
+
 ---
 
-### **🤖 AI Condition Suggester**
-```bash
-The AI-powered condition suggester analyzes real-time
-environmental data (temperature, humidity, occupancy)
-combined with local weather forecasts to provide
-intelligent HVAC recommendations.
-It uses Googles Gemini AI to generate
-context-aware suggestions for optimal
-comfort and energy efficiency.
+# 🔧 Environment Variables (`.env`)
 
-# Install AI and weather dependencies
-pip install google-generativeai requests python-dotenv
+Create a `.env` file inside `src/web/`:
 
-# Or install all dependencies at once:
-pip install google-generativeai requests python-dotenv
+```env
+# MySQL
+MYSQL_HOST=localhost
+MYSQL_USER=root
+MYSQL_PASSWORD=yourpassword
+MYSQL_DB=thermotrack
 
-# API Configuration
-# AI and Weather API Keys
-GEMINI_API_KEY=your_gemini_api_key_here
-OPENWEATHER_API_KEY=your_openweather_api_key_here
+# PubNub
+PUBNUB_PUBLISH_KEY=your_pub_key
+PUBNUB_SUBSCRIBE_KEY=your_sub_key
+PUBNUB_CHANNEL=ThermoTrack
 
-# Optional: Default location for weather data
+# AI
+GEMINI_API_KEY=your_gemini_key
+OPENWEATHER_API_KEY=your_weather_key
 DEFAULT_CITY=Dublin
 DEFAULT_COUNTRY=IE
 
-🔑 Obtaining API Keys
+# Google OAuth
+GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_client_secret
+OAUTH_REDIRECT_URI=http://localhost:5000/auth/google/callback
+```
 
--Google Gemini API
-Visit Google AI Studio
+---
 
-Sign in with your Google account
+# 🔑 Google OAuth Setup
 
-Click "Create API Key" in the sidebar
+### 1. Go to Google Cloud Console  
+https://console.cloud.google.com/
 
-Copy the generated key and add it to your .env file as GEMINI_API_KEY
+### 2. Enable APIs  
+- Google People API  
+- Google OAuth2.0  
 
--OpenWeather API
-Register at OpenWeatherMap
+### 3. Create OAuth Client  
+```
+Credentials → Create Credentials → OAuth Client ID
+```
 
-Verify your email address
+### 4. Set Authorized Redirect URI:
+```
+http://localhost:5000/auth/google/callback
+```
 
-Navigate to the "API Keys" tab in your dashboard
+### 5. Put the Client ID + Secret in `.env`
 
-Generate a new key (free tier includes 1,000 calls/day)
+---
 
-Copy the key and add it to your .env file as OPENWEATHER_API_KEY
+# 🤖 AI HVAC Condition Suggester
+
+ThermoTrack uses **Google Gemini AI** to provide intelligent HVAC suggestions.
+
+### Install AI dependencies:
+```bash
+pip install google-generativeai
+```
+
+---
+
+# 📡 Raspberry Pi Sensor Setup
+
+### Install GPIO support:
+```bash
+sudo apt install -y python3-rpi.gpio
+```
+
+### DHT22 Wiring
+
+| DHT22 Pin | Raspberry Pi Pin |
+|----------|------------------|
+| VCC | 3.3V |
+| DATA | GPIO 4 |
+| GND | Ground |
+
+### Install libraries:
+```bash
+sudo apt-get update
+sudo apt-get install python3-dev libgpiod-dev -y
+pip3 install adafruit-circuitpython-dht Adafruit-Blinka pubnub
+```
+
+---
+
+# ▶️ Run the Web Application
+
+```bash
+flask run
+```
+
+---
+
+# 📄 License
+MIT License © 2025 ThermoTrack
