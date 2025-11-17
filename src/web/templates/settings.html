@@ -141,55 +141,82 @@
         </form>
         {% endif %}
 
-        <!-- Existing Users (Viewable for Technicians and Admins) -->
-        <div>
-          <h3 class="text-lg font-semibold text-gray-300 mb-3">
-            Existing Users
-          </h3>
+ <!-- Existing Users (Viewable for Technicians and Admins) -->
+<div>
+    <h3 class="text-lg font-semibold text-gray-300 mb-3">
+        Existing Users
+    </h3>
 
-          <table class="table w-full">
-            <thead>
-              <tr>
+    <table class="table w-full">
+        <thead>
+            <tr>
                 <th class="text-left">Username</th>
                 <th class="text-left">Email</th>
-                <th class="text-left">Role</th>
+                <th class="text-left">Current Role</th>
+                {% if session.get('role') == 'technician' %}
+                <th class="text-left">Alter Role</th>
+                {% endif %}
                 <th class="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for u in users %}
-              <tr>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            {% if session.get('role') != 'technician' or u.role != 'technician' %}
+            <tr>
                 <td>{{ u.username }}</td>
                 <td>{{ u.email }}</td>
-                <td>{{ u.role }}</td>
-                <td class="text-right">
-                  {% if u.role != 'admin' %}
-                  <!-- Technician is allowed to delete non-technician, non-admin users -->
-                  {% if u.role != 'technician' or session.get('role') == 'admin'
-                  %}
-                  <form
-                    action="{{ url_for('delete_user', user_id=u.id) }}"
-                    method="post"
-                    class="inline"
-                  >
-                    <button
-                      class="btn btn-danger btn-sm"
-                      onclick="return confirm('Delete user {{ u.username }}?')"
-                    >
-                      Delete
-                    </button>
-                  </form>
-                  {% else %}
-                  <span class="text-gray-600 text-sm">protected</span>
-                  {% endif %} {% else %}
-                  <span class="text-gray-600 text-sm">protected</span>
-                  {% endif %}
+                <td>
+                    <span class="px-2 py-1 rounded text-xs font-medium
+                        {% if u.role == 'admin' %}bg-purple-600 text-white
+                        {% elif u.role == 'technician' %}bg-blue-600 text-white
+                        {% elif u.role == 'user' %}bg-green-600 text-white
+                        {% else %}bg-gray-600 text-white{% endif %}">
+                        {{ u.role }}
+                    </span>
                 </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+
+                {% if session.get('role') == 'technician' %}
+                <td>
+                    <form action="{{ url_for('update_user_role', user_id=u.id) }}" method="post" class="inline">
+                        <select name="role" class="form-input text-sm py-1" onchange="this.form.submit()">
+                            <option value="admin" {% if u.role=='admin' %}selected{% endif %}>Admin</option>
+                            <option value="technician" {% if u.role=='technician' %}selected{% endif %}>Technician</option>
+                            <option value="user" {% if u.role=='user' %}selected{% endif %}>User</option>
+                            <option value="viewer" {% if u.role=='viewer' %}selected{% endif %}>Viewer</option>
+                        </select>
+                    </form>
+                </td>
+                {% endif %}
+
+                <td class="text-right">
+                    {% if u.role != 'admin' %}
+                    <!-- Technician is allowed to delete non-technician, non-admin users -->
+                    {% if u.role != 'technician' or session.get('role') == 'admin' %}
+                    <form
+                        action="{{ url_for('delete_user', user_id=u.id) }}"
+                        method="post"
+                        class="inline"
+                    >
+                        <button
+                            class="btn btn-danger btn-sm"
+                            onclick="return confirm('Delete user {{ u.username }}?')"
+                        >
+                            Delete
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="text-gray-600 text-sm">protected</span>
+                    {% endif %}
+                    {% else %}
+                    <span class="text-gray-600 text-sm">protected</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
       </div>
     </section>
     {% endif %}

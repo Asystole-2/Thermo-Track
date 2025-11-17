@@ -1948,15 +1948,22 @@ def settings():
 
     if session.get("role") in ["admin", "technician"]:
         cur = db_cursor()
-        cur.execute("SELECT id, username, email, role FROM users ORDER BY id ASC")
+
+        # Different queries based on role
+        if session.get("role") == "technician":
+            # Technicians see ALL users including other technicians and admins
+            cur.execute("SELECT id, username, email, role FROM users ORDER BY id ASC")
+        else:
+            # Admins see all users EXCEPT technicians
+            cur.execute("SELECT id, username, email, role FROM users WHERE role != 'technician' ORDER BY id ASC")
+
         users = cur.fetchall()
         cur.close()
 
-    # rooms is already being loaded in your app
     return render_template(
         "settings.html",
         users=users,
-        rooms=get_user_rooms(session["user_id"]),  # your existing function
+        rooms=get_user_rooms(session["user_id"]),
         active_page="settings",
     )
 
@@ -1976,6 +1983,62 @@ def get_user_rooms(user_id):
     cur.close()
     return rooms
 
+
+@app.route("/update-user-role/<int:user_id>", methods=["POST"])
+@role_required("admin", "technician")
+def update_user_role(user_id):
+    """Update user role - technicians can modify all roles including admins"""
+    new_role = request.form.get("role")
+    current_user_role = session.get("role")
+    current_user_id = session.get("user_id")
+
+    if not new_role or new_role not in ["admin", "technician", "user", "viewer"]:
+        flash("Invalid role specified.", "error")
+        return redirect(url_for("settings"))
+
+    cur = db_cursor()
+    try:
+        # Get the target user's current role
+        cur.execute("SELECT id, username, role FROM users WHERE id = %s", (user_id,))
+        target_user = cur.fetchone()
+
+        if not target_user:
+            flash("User not found.", "error")
+            return redirect(url_for("settings"))
+
+        target_user_role = target_user["role"]
+        target_username = target_user["username"]
+
+        # Prevent self-demotion
+        if user_id == current_user_id and new_role != "technician":
+            flash("You cannot change your own role.", "error")
+            return redirect(url_for("settings"))
+
+        # Technicians have full power to change any role
+        if current_user_role == "technician":
+            # Technicians can change any role including admins
+            cur.execute("UPDATE users SET role = %s WHERE id = %s", (new_role, user_id))
+            mysql.connection.commit()
+            flash(f"Successfully updated {target_username}'s role from {target_user_role} to {new_role}.", "success")
+
+        # Admins can change roles but can't see technicians in the table
+        elif current_user_role == "admin":
+            # Admins can change any role except their own
+            if user_id == current_user_id:
+                flash("You cannot change your own role.", "error")
+                return redirect(url_for("settings"))
+
+            cur.execute("UPDATE users SET role = %s WHERE id = %s", (new_role, user_id))
+            mysql.connection.commit()
+            flash(f"Successfully updated {target_username}'s role to {new_role}.", "success")
+
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f"Failed to update user role: {str(e)}", "error")
+    finally:
+        cur.close()
+
+    return redirect(url_for("settings"))
 
 # Application Entry Point
 if __name__ == "__main__":
