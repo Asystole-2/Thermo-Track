@@ -11,15 +11,21 @@
                     <div>
                         <h1 class="text-4xl font-extrabold text-text-primary mb-2">Facilities Dashboard</h1>
                         <p class="header-subtitle">
-                            Overview of campus-wide HVAC performance.
-                            <span class="ml-2 inline-block px-2 py-0.5 rounded bg-blue-900/40 text-blue-200 text-xs align-middle">
-                               Your readings only
-                           </span>
+                            {% if session.role in ['admin', 'technician'] %}
+                                Complete system-wide overview of all rooms and sensor data.
+                            {% else %}
+                                Overview of your assigned rooms and devices.
+                                <span class="ml-2 inline-block px-2 py-0.5 rounded bg-blue-900/40 text-blue-200 text-xs align-middle">
+                                   Your readings only
+                               </span>
+                            {% endif %}
                         </p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <a href="/api/rooms" class="btn p-2 hover:bg-gray-700 text-sm">Rooms JSON</a>
-                        <a href="/api/readings" class="btn p-2 hover:bg-gray-700 text-sm">Readings JSON</a>
+                        {% if session.get('role') in ['admin', 'technician'] %}
+                            <a href="/api/rooms" class="btn p-2 hover:bg-gray-700 text-sm">Rooms JSON</a>
+                            <a href="/api/readings" class="btn p-2 hover:bg-gray-700 text-sm">Readings JSON</a>
+                        {% endif %}
                         <!-- Right side: Notification bell -->
                         {% include 'components/notification_bell.html' %}
                     </div>
@@ -35,7 +41,7 @@
                                 <input
                                         type="text"
                                         id="searchInput"
-                                        placeholder="Search rooms, devices, locations, or sensor values..."
+                                        placeholder="{% if session.role in ['admin', 'technician'] %}Search all rooms, devices, locations, sensor values, or owners...{% else %}Search your rooms, devices, locations, or sensor values...{% endif %}"
                                         class="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
                                 >
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -89,116 +95,143 @@
                 </div>
             </section>
 
-<!-- ===================== ROOMS ===================== -->
-{% if rooms and rooms|length > 0 %}
-    <section class="mt-4" id="roomsSection">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-semibold text-text-secondary">Rooms</h3>
-            <span class="text-xs text-text-muted room-count">
+            <!-- ===================== ROOMS ===================== -->
+            {% if rooms and rooms|length > 0 %}
+                <section class="mt-4" id="roomsSection">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold text-text-secondary">
+                            {% if session.role in ['admin', 'technician'] %}
+                                All System Rooms
+                            {% else %}
+                                Your Rooms
+                            {% endif %}
+                        </h3>
+                        <span class="text-xs text-text-muted room-count">
                 {{ rooms|length }} room{% if rooms|length != 1 %}s{% endif %}
+                            {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
             </span>
-        </div>
+                    </div>
 
-        <div class="grid-cards" id="roomsGrid">
-            {% for r in rooms %}
-                <a href="{{ url_for('room', room_id=r.id) }}"
-                   class="card hover:ring-2 hover:ring-accent-blue/50 transition duration-150 ease-in-out room-card bg-secondary"
-                   data-room-name="{{ r.room_name.lower() }}"
-                   data-location="{{ (r.location or '').lower() }}"
-                   data-devices="{{ r.devices_count }}"
-                   data-temp="{{ r.avg_temp or '' }}"
-                   data-humidity="{{ r.avg_humidity or '' }}"
-                >
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <h4 class="text-xl font-bold text-text-primary mb-1 room-name">
-                                {{ r.room_name }}
-                            </h4>
-                            <p class="text-sm text-text-muted flex items-center gap-1 room-location">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
-                                {{ r.location or 'Unspecified location' }}
-                            </p>
-                        </div>
+                    <div class="grid-cards" id="roomsGrid">
+                        {% for r in rooms %}
+                            <a href="{{ url_for('room', room_id=r.id) }}"
+                               class="card hover:ring-2 hover:ring-accent-blue/50 transition duration-150 ease-in-out room-card bg-secondary"
+                               data-room-name="{{ r.room_name.lower() }}"
+                               data-location="{{ (r.location or '').lower() }}"
+                               data-devices="{{ r.devices_count }}"
+                               data-temp="{{ r.avg_temp or '' }}"
+                               data-humidity="{{ r.avg_humidity or '' }}"
+                               {% if session.role in ['admin', 'technician'] %}data-owner="{{ (r.owner_username or '').lower() }}"{% endif %}
+                            >
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h4 class="text-xl font-bold text-text-primary mb-1 room-name">
+                                            {{ r.room_name }}
+                                        </h4>
+                                        <p class="text-sm text-text-muted flex items-center gap-1 room-location">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
+                                            {{ r.location or 'Unspecified location' }}
+                                        </p>
+                                        {% if session.role in ['admin', 'technician'] and r.owner_username %}
+                                            <p class="text-xs text-text-muted flex items-center gap-1 mt-1 room-owner">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                     viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                          stroke-width="2"
+                                                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                </svg>
+                                                Owner: {{ r.owner_username }}
+                                            </p>
+                                        {% endif %}
+                                    </div>
 
-                        {% set status_label = "Normal" %}
-                        {% set status_class = "bg-accent-green/20 text-accent-green" %}
-                        {% if r.avg_temp and (r.avg_temp > 24 or r.avg_temp < 18) %}
-                            {% set status_label = "Warning" %}
-                            {% set status_class = "bg-accent-yellow/20 text-accent-yellow" %}
-                        {% endif %}
-                        {% if r.avg_temp and (r.avg_temp > 26 or r.avg_temp < 16) %}
-                            {% set status_label = "Critical" %}
-                            {% set status_class = "bg-accent-red/20 text-accent-red" %}
-                        {% endif %}
+                                    {% set status_label = "Normal" %}
+                                    {% set status_class = "bg-accent-green/20 text-accent-green" %}
+                                    {% if r.avg_temp and (r.avg_temp > 24 or r.avg_temp < 18) %}
+                                        {% set status_label = "Warning" %}
+                                        {% set status_class = "bg-accent-yellow/20 text-accent-yellow" %}
+                                    {% endif %}
+                                    {% if r.avg_temp and (r.avg_temp > 26 or r.avg_temp < 16) %}
+                                        {% set status_label = "Critical" %}
+                                        {% set status_class = "bg-accent-red/20 text-accent-red" %}
+                                    {% endif %}
 
-                        <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ status_class }}">
+                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ status_class }}">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                             </svg>
                             {{ status_label }}
                         </span>
-                    </div>
+                                </div>
 
-                    <div class="mt-4 grid grid-cols-3 gap-4 border-t border-border pt-3">
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M17 20h5v-3m-1.5-1.5l-4-4m4 4H18m2.5 0v5"></path>
-                            </svg>
-                            <div>
-                                <div class="text-xs text-text-muted">Temp</div>
-                                <div class="text-lg font-semibold text-text-primary room-temp">
-                                    {% if r.avg_temp is not none %}{{ r.avg_temp }}°C{% else %}—{% endif %}
+                                <div class="mt-4 grid grid-cols-3 gap-4 border-t border-border pt-3">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M17 20h5v-3m-1.5-1.5l-4-4m4 4H18m2.5 0v5"></path>
+                                        </svg>
+                                        <div>
+                                            <div class="text-xs text-text-muted">Temp</div>
+                                            <div class="text-lg font-semibold text-text-primary room-temp">
+                                                {% if r.avg_temp is not none %}{{ r.avg_temp }}°C{% else %}—{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M12 6.5v12m-6-6h12"></path>
+                                        </svg>
+                                        <div>
+                                            <div class="text-xs text-text-muted">Humidity</div>
+                                            <div class="text-lg font-semibold text-text-primary room-humidity">
+                                                {% if r.avg_humidity is not none %}{{ r.avg_humidity }}%{% else %}
+                                                    —{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M12 4.5V1m0 3v20m0-12h12m-12 0H1"></path>
+                                        </svg>
+                                        <div>
+                                            <div class="text-xs text-text-muted">Devices</div>
+                                            <div class="text-lg font-semibold text-text-primary room-devices">
+                                                {{ r.devices_count or 0 }}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M12 6.5v12m-6-6h12"></path>
-                            </svg>
-                            <div>
-                                <div class="text-xs text-text-muted">Humidity</div>
-                                <div class="text-lg font-semibold text-text-primary room-humidity">
-                                    {% if r.avg_humidity is not none %}{{ r.avg_humidity }}%{% else %}—{% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M12 4.5V1m0 3v20m0-12h12m-12 0H1"></path>
-                            </svg>
-                            <div>
-                                <div class="text-xs text-text-muted">Devices</div>
-                                <div class="text-lg font-semibold text-text-primary room-devices">
-                                    {{ r.devices_count or 0 }}
-                                </div>
-                            </div>
-                        </div>
+                            </a>
+                        {% endfor %}
                     </div>
-                </a>
-            {% endfor %}
-        </div>
-    </section>
-{% endif %}
+                </section>
+            {% endif %}
 
             <!-- ===================== RECENT READINGS ===================== -->
             {% if rows and rows|length > 0 %}
                 <section class="mt-8" id="readingsSection">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-gray-300">Recent Readings</h3>
+                        <h3 class="text-xl font-semibold text-gray-300">
+                            {% if session.role in ['admin', 'technician'] %}
+                                All Recent Sensor Readings
+                            {% else %}
+                                Your Recent Readings
+                            {% endif %}
+                        </h3>
                         <span class="text-xs text-gray-400 readings-count">
                     {{ rows|length }} reading{% if rows|length != 1 %}s{% endif %}
+                            {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
                 </span>
                     </div>
 
@@ -209,6 +242,10 @@
                                 <th class="p-2 text-left">Device</th>
                                 <th class="p-2 text-left">UID</th>
                                 <th class="p-2 text-left">Type</th>
+                                {% if session.role in ['admin', 'technician'] %}
+                                    <th class="p-2 text-left">Room</th>
+                                    <th class="p-2 text-left">Owner</th>
+                                {% endif %}
                                 <th class="p-2 text-left">Temp (°C)</th>
                                 <th class="p-2 text-left">Humidity (%)</th>
                                 <th class="p-2 text-left">Motion</th>
@@ -224,12 +261,25 @@
                                     data-temp="{{ r.temperature or '' }}"
                                     data-humidity="{{ r.humidity or '' }}"
                                     data-motion="{{ r.motion_detected or '' }}"
+                                        {% if session.role in ['admin', 'technician'] %}
+                                    data-room-name="{{ (r.room_name or '').lower() }}"
+                                    data-owner="{{ (r.room_owner or '').lower() }}"
+                                        {% endif %}
                                 >
                                     <td class="p-2 reading-device">{{ r.device_name or 'N/A' }}</td>
                                     <td class="p-2 text-gray-400 reading-uid">{{ r.device_uid or '—' }}</td>
                                     <td class="p-2 reading-type">
                                         {{ r.device_type if r.device_type is defined else (r.type or '—') }}
                                     </td>
+                                    {% if session.role in ['admin', 'technician'] %}
+                                        <td class="p-2 reading-room">
+                                            <a href="{{ url_for('room', room_id=r.room_id) }}"
+                                               class="text-blue-400 hover:text-blue-300">
+                                                {{ r.room_name or '—' }}
+                                            </a>
+                                        </td>
+                                        <td class="p-2 reading-owner">{{ r.room_owner or '—' }}</td>
+                                    {% endif %}
                                     <td class="p-2 reading-temp">{{ r.temperature if r.temperature is not none else '—' }}</td>
                                     <td class="p-2 reading-humidity">{{ r.humidity if r.humidity is not none else '—' }}</td>
                                     <td class="p-2 reading-motion">
@@ -275,130 +325,359 @@
                         <div class="card">
                             <h4 class="text-lg font-bold text-gray-300 mb-2">No Data Found</h4>
                             <p class="text-sm text-muted mb-4">
-                                To preview the dashboard, insert a user, room(s), device(s), and <code>readings</code>
-                                with that
-                                user's <code>user_id</code>. Then refresh this page.
+                                {% if session.role in ['admin', 'technician'] %}
+                                    No rooms or sensor readings found in the system.
+                                {% else %}
+                                    No rooms have been added to your dashboard yet.
+                                {% endif %}
                             </p>
+                            {% if session.role not in ['admin', 'technician'] %}
+                                <a href="{{ url_for('setup') }}" class="btn btn-primary">
+                                    Go to Setup to Add Rooms
+                                </a>
+                            {% endif %}
                         </div>
                     </div>
                 </section>
             {% endif %}
         </main>
     </div>
+
+    <!-- Enhanced Search Script with Admin/Technician Support -->
     <script>
         console.log('Debug: Page loaded');
+        console.log('User role:', '{{ session.role }}');
         console.log('Filter buttons found:', document.querySelectorAll('.filter-btn').length);
         console.log('Search input found:', document.getElementById('searchInput') !== null);
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
-                console.log('Button clicked - filter:', this.dataset.filter);
-                console.log('Button classes:', this.className);
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('searchInput');
+            const clearSearch = document.getElementById('clearSearch');
+            const searchResults = document.getElementById('searchResults');
+            const resultsCount = document.getElementById('resultsCount');
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const roomsSection = document.getElementById('roomsSection');
+            const readingsSection = document.getElementById('readingsSection');
+            const noResults = document.getElementById('noResults');
+
+            let currentFilter = 'rooms';
+
+            // Check if user is admin/technician
+            const isAdminOrTechnician = '{{ session.role }}' === 'admin' || '{{ session.role }}' === 'technician';
+
+            function updateVisibility() {
+                const searchTerm = searchInput.value.toLowerCase();
+                let totalVisible = 0;
+                let hasVisibleRooms = false;
+                let hasVisibleReadings = false;
+
+                // Filter rooms
+                if (roomsSection) {
+                    const roomCards = roomsSection.querySelectorAll('.room-card');
+                    let visibleRooms = 0;
+
+                    roomCards.forEach(card => {
+                        const roomName = card.dataset.roomName || '';
+                        const location = card.dataset.location || '';
+                        const devices = card.dataset.devices || '';
+                        const temp = card.dataset.temp || '';
+                        const humidity = card.dataset.humidity || '';
+                        const owner = card.dataset.owner || '';
+
+                        const matchesSearch = !searchTerm ||
+                            roomName.includes(searchTerm) ||
+                            location.includes(searchTerm) ||
+                            devices.includes(searchTerm) ||
+                            temp.includes(searchTerm) ||
+                            humidity.includes(searchTerm) ||
+                            (isAdminOrTechnician && owner.includes(searchTerm));
+
+                        if (matchesSearch && (currentFilter === 'rooms' || currentFilter === 'all')) {
+                            card.style.display = 'block';
+                            visibleRooms++;
+                            totalVisible++;
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+
+                    hasVisibleRooms = visibleRooms > 0;
+                    roomsSection.style.display = hasVisibleRooms ? 'block' : 'none';
+                }
+
+                // Filter readings
+                if (readingsSection) {
+                    const readingRows = readingsSection.querySelectorAll('.reading-row');
+                    let visibleReadings = 0;
+
+                    readingRows.forEach(row => {
+                        const deviceName = row.dataset.deviceName || '';
+                        const deviceUid = row.dataset.deviceUid || '';
+                        const deviceType = row.dataset.deviceType || '';
+                        const temp = row.dataset.temp || '';
+                        const humidity = row.dataset.humidity || '';
+                        const motion = row.dataset.motion || '';
+                        const roomName = row.dataset.roomName || '';
+                        const owner = row.dataset.owner || '';
+
+                        const matchesSearch = !searchTerm ||
+                            deviceName.includes(searchTerm) ||
+                            deviceUid.includes(searchTerm) ||
+                            deviceType.includes(searchTerm) ||
+                            temp.includes(searchTerm) ||
+                            humidity.includes(searchTerm) ||
+                            motion.includes(searchTerm) ||
+                            (isAdminOrTechnician && roomName.includes(searchTerm)) ||
+                            (isAdminOrTechnician && owner.includes(searchTerm));
+
+                        if (matchesSearch && (currentFilter === 'readings' || currentFilter === 'all')) {
+                            row.style.display = '';
+                            visibleReadings++;
+                            totalVisible++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    hasVisibleReadings = visibleReadings > 0;
+                    readingsSection.style.display = hasVisibleReadings ? 'block' : 'none';
+                }
+
+                // Show/hide no results message
+                if (totalVisible === 0 && searchTerm) {
+                    noResults.classList.remove('hidden');
+                    if (roomsSection) roomsSection.style.display = 'none';
+                    if (readingsSection) readingsSection.style.display = 'none';
+                } else {
+                    noResults.classList.add('hidden');
+                }
+
+                // Update search results count
+                if (searchTerm) {
+                    searchResults.classList.remove('hidden');
+                    resultsCount.textContent = totalVisible;
+                } else {
+                    searchResults.classList.add('hidden');
+                }
+
+                // Show/hide clear button
+                if (searchTerm) {
+                    clearSearch.classList.remove('hidden');
+                } else {
+                    clearSearch.classList.add('hidden');
+                }
+            }
+
+            // Search input event
+            if (searchInput) {
+                searchInput.addEventListener('input', updateVisibility);
+            }
+
+            // Clear search event
+            if (clearSearch) {
+                clearSearch.addEventListener('click', function () {
+                    searchInput.value = '';
+                    updateVisibility();
+                    searchInput.focus();
+                });
+            }
+
+            // Filter button events
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    currentFilter = this.dataset.filter;
+
+                    // Update button states
+                    filterButtons.forEach(b => {
+                        if (b === this) {
+                            b.classList.remove('inactive', 'bg-gray-600', 'text-gray-300');
+                            b.classList.add('active', 'bg-blue-600', 'text-white');
+                        } else {
+                            b.classList.remove('active', 'bg-blue-600', 'text-white');
+                            b.classList.add('inactive', 'bg-gray-600', 'text-gray-300');
+                        }
+                    });
+
+                    updateVisibility();
+                });
             });
+
+            // Initial visibility update
+            updateVisibility();
+
+            console.log('Search and filter system initialized');
+            console.log('Admin/Technician mode:', isAdminOrTechnician);
         });
     </script>
+
     <style>
-    /* CSS Variables for Theme Support */
-    :root {
-        /* Light Mode Colors */
-        --bg-primary: #ffffff;
-        --bg-secondary: #f8fafc;
-        --bg-tertiary: #e2e8f0;
-        --bg-tertiary-hover: #cbd5e0;
-        --text-primary: #1a202c;
-        --text-secondary: #4a5568;
-        --text-muted: #718096;
-        --accent-blue: #3b82f6;
-        --accent-blue-hover: #2563eb;
-        --accent-green: #10b981;
-        --accent-green-hover: #059669;
-        --accent-red: #ef4444;
-        --accent-red-hover: #dc2626;
-        --accent-yellow: #f59e0b;
-        --accent-yellow-hover: #d97706;
-        --border-color: #cbd5e0;
-        --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .dark {
-        /* Dark Mode Colors */
-        --bg-primary: #0d1117;
-        --bg-secondary: #1f2937;
-        --bg-tertiary: #374151;
-        --bg-tertiary-hover: #4b5563;
-        --text-primary: #ffffff;
-        --text-secondary: #d1d5db;
-        --text-muted: #9ca3af;
-        --accent-blue: #3b82f6;
-        --accent-blue-hover: #2563eb;
-        --accent-green: #10b981;
-        --accent-green-hover: #059669;
-        --accent-red: #ef4444;
-        --accent-red-hover: #dc2626;
-        --accent-yellow: #f59e0b;
-        --accent-yellow-hover: #d97706;
-        --border-color: #374151;
-        --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Apply CSS Variables to Utility Classes */
-    .bg-primary { background-color: var(--bg-primary); }
-    .bg-secondary { background-color: var(--bg-secondary); }
-    .bg-tertiary { background-color: var(--bg-tertiary); }
-    .bg-tertiary-hover:hover { background-color: var(--bg-tertiary-hover); }
-
-    .text-text-primary { color: var(--text-primary); }
-    .text-text-secondary { color: var(--text-secondary); }
-    .text-text-muted { color: var(--text-muted); }
-
-    .border-border { border-color: var(--border-color); }
-
-    .bg-accent-blue { background-color: var(--accent-blue); }
-    .bg-accent-blue-hover:hover { background-color: var(--accent-blue-hover); }
-    .bg-accent-green { background-color: var(--accent-green); }
-    .bg-accent-green-hover:hover { background-color: var(--accent-green-hover); }
-    .bg-accent-red { background-color: var(--accent-red); }
-    .bg-accent-red-hover:hover { background-color: var(--accent-red-hover); }
-    .bg-accent-yellow { background-color: var(--accent-yellow); }
-    .bg-accent-yellow-hover:hover { background-color: var(--accent-yellow-hover); }
-
-    .text-accent-blue { color: var(--accent-blue); }
-    .text-accent-blue-hover:hover { color: var(--accent-blue-hover); }
-    .text-accent-green { color: var(--accent-green); }
-    .text-accent-green-hover:hover { color: var(--accent-green-hover); }
-    .text-accent-red { color: var(--accent-red); }
-    .text-accent-red-hover:hover { color: var(--accent-red-hover); }
-    .text-accent-yellow { color: var(--accent-yellow); }
-    .text-accent-yellow-hover:hover { color: var(--accent-yellow-hover); }
-
-    /* Card specific styles */
-    .card {
-        background-color: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        padding: 1rem;
-        transition: all 0.2s ease;
-        box-shadow: var(--card-shadow);
-    }
-
-    .card:hover {
-        box-shadow: var(--shadow);
-        transform: translateY(-1px);
-    }
-
-    .grid-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1rem;
-    }
-
-    @media (max-width: 768px) {
-        .grid-cards {
-            grid-template-columns: 1fr;
+        /* CSS Variables for Theme Support */
+        :root {
+            /* Light Mode Colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #e2e8f0;
+            --bg-tertiary-hover: #cbd5e0;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --accent-red: #ef4444;
+            --accent-red-hover: #dc2626;
+            --accent-yellow: #f59e0b;
+            --accent-yellow-hover: #d97706;
+            --border-color: #cbd5e0;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
-    }
-</style>
-{% endblock %}
 
+        .dark {
+            /* Dark Mode Colors */
+            --bg-primary: #0d1117;
+            --bg-secondary: #1f2937;
+            --bg-tertiary: #374151;
+            --bg-tertiary-hover: #4b5563;
+            --text-primary: #ffffff;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --accent-red: #ef4444;
+            --accent-red-hover: #dc2626;
+            --accent-yellow: #f59e0b;
+            --accent-yellow-hover: #d97706;
+            --border-color: #374151;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Apply CSS Variables to Utility Classes */
+        .bg-primary {
+            background-color: var(--bg-primary);
+        }
+
+        .bg-secondary {
+            background-color: var(--bg-secondary);
+        }
+
+        .bg-tertiary {
+            background-color: var(--bg-tertiary);
+        }
+
+        .bg-tertiary-hover:hover {
+            background-color: var(--bg-tertiary-hover);
+        }
+
+        .text-text-primary {
+            color: var(--text-primary);
+        }
+
+        .text-text-secondary {
+            color: var(--text-secondary);
+        }
+
+        .text-text-muted {
+            color: var(--text-muted);
+        }
+
+        .border-border {
+            border-color: var(--border-color);
+        }
+
+        .bg-accent-blue {
+            background-color: var(--accent-blue);
+        }
+
+        .bg-accent-blue-hover:hover {
+            background-color: var(--accent-blue-hover);
+        }
+
+        .bg-accent-green {
+            background-color: var(--accent-green);
+        }
+
+        .bg-accent-green-hover:hover {
+            background-color: var(--accent-green-hover);
+        }
+
+        .bg-accent-red {
+            background-color: var(--accent-red);
+        }
+
+        .bg-accent-red-hover:hover {
+            background-color: var(--accent-red-hover);
+        }
+
+        .bg-accent-yellow {
+            background-color: var(--accent-yellow);
+        }
+
+        .bg-accent-yellow-hover:hover {
+            background-color: var(--accent-yellow-hover);
+        }
+
+        .text-accent-blue {
+            color: var(--accent-blue);
+        }
+
+        .text-accent-blue-hover:hover {
+            color: var(--accent-blue-hover);
+        }
+
+        .text-accent-green {
+            color: var(--accent-green);
+        }
+
+        .text-accent-green-hover:hover {
+            color: var(--accent-green-hover);
+        }
+
+        .text-accent-red {
+            color: var(--accent-red);
+        }
+
+        .text-accent-red-hover:hover {
+            color: var(--accent-red-hover);
+        }
+
+        .text-accent-yellow {
+            color: var(--accent-yellow);
+        }
+
+        .text-accent-yellow-hover:hover {
+            color: var(--accent-yellow-hover);
+        }
+
+        /* Card specific styles */
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            transition: all 0.2s ease;
+            box-shadow: var(--card-shadow);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow);
+            transform: translateY(-1px);
+        }
+
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock %}

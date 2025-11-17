@@ -541,3 +541,31 @@ body {
         max-width: 20rem;
     }
 }
+.role-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-admin {
+    background-color: #8b5cf6;
+    color: white;
+}
+
+.role-technician {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.role-user {
+    background-color: #10b981;
+    color: white;
+}
+
+.role-viewer {
+    background-color: #6b7280;
+    color: white;
+}

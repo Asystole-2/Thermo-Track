@@ -32,14 +32,60 @@
                     {% include 'components/notification_bell.html' %}
                 </div>
             </header>
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-4">
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">
 
-                <div class="xl:col-span-2 space-y-6">
+                <div class="xl:col-span-2 space-y-4">
 
+                    <!-- AI RECOMMENDATION (Visible to all roles - MOVED TO TOP) -->
+                    <div class="card p-4 border-l-4 border-purple-500 bg-secondary">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
+                                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                </svg>
+                                AI Recommendation
+                            </h3>
+                            <div class="text-2xl font-bold text-purple-400">
+                                {{ format_temperature(recommendations.target_temperature, room.temperature_unit) }}
+                            </div>
+                        </div>
+
+                        <p class="text-text-muted text-sm mb-3">
+                            {% if room.temperature_unit != 'celsius' %}
+                                <span class="text-accent-yellow text-xs">📊 Analysis based on {{ format_temperature(room.avg_temp, 'celsius') }} converted to {{ room.temperature_unit }}</span>
+                                <br>
+                            {% endif %}
+                            {{ recommendations.ai_recommendation | truncate(120, True, '...') }}
+                        </p>
+
+                        {% if session.get('role') in ['admin', 'technician'] %}
+                        <form action="{{ url_for('room_apply_ai', room_id=room.id) }}" method="post">
+                            <!-- Store the Celsius value for database operations -->
+                            <input type="hidden" name="new_setpoint"
+                                   value="{{ recommendations.target_temperature_celsius }}">
+                            <button type="submit"
+                                    class="btn bg-purple-600 hover:bg-purple-700 text-white w-full flex items-center justify-center gap-2 text-sm py-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                Apply {{ format_temperature(recommendations.target_temperature, room.temperature_unit) }}
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        {% if recommendations.get('is_fallback') %}
+                            <p class="mt-2 text-xs text-accent-yellow">⚠️ Fallback analysis used.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- USER-ONLY SECTIONS (Regular Users) -->
+                    {% if session.get('role') in ['user', 'viewer'] %}
                     <!-- USER REQUEST FORM -->
-                    <div class="card p-6 border-l-4 border-accent-yellow bg-secondary">
-                        <h3 class="text-xl font-semibold text-text-primary mb-4 flex items-center gap-2">
-                            <svg class="w-6 h-6 text-accent-yellow" fill="none" stroke="currentColor"
+                    <div class="card p-4 border-l-4 border-accent-yellow bg-secondary">
+                        <h3 class="text-lg font-semibold text-text-primary mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-accent-yellow" fill="none" stroke="currentColor"
                                  viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
@@ -47,298 +93,271 @@
                             Request Room Adjustment
                         </h3>
                           <form id="adjustment_request_form" action="/room/{{ room.id }}/request_adjustment" method="post"
-                              class="space-y-4">
-                            <div class="p-4 bg-tertiary rounded-lg space-y-3">
+                              class="space-y-3">
+                            <div class="p-3 bg-tertiary rounded-lg space-y-2">
                                 <!-- Current Conditions Display -->
-                                <div class="grid grid-cols-2 gap-4 mb-4 p-3 bg-secondary rounded-lg">
+                                <div class="grid grid-cols-2 gap-3 mb-3 p-2 bg-secondary rounded-lg">
                                     <div class="text-center">
-                                        <span class="text-sm text-text-muted block">Current Temp</span>
-                                        <span class="text-lg font-bold text-text-primary">{{ format_temperature(room.avg_temp, room.temperature_unit) }}</span>
+                                        <span class="text-xs text-text-muted block">Current Temp</span>
+                                        <span class="text-md font-bold text-text-primary">{{ format_temperature(room.avg_temp, room.temperature_unit) }}</span>
                                     </div>
                                     <div class="text-center">
-                                        <span class="text-sm text-text-muted block">Humidity</span>
-                                        <span class="text-lg font-bold text-text-primary">{{ room.avg_humidity or '—' }}%</span>
+                                        <span class="text-xs text-text-muted block">Humidity</span>
+                                        <span class="text-md font-bold text-text-primary">{{ room.avg_humidity or '—' }}%</span>
                                     </div>
                                 </div>
 
                                 <!-- Adjustment Type Selector -->
                                 <div>
                                     <label for="request_type"
-                                           class="block text-sm font-medium text-text-secondary mb-1">Type
-                                        of Adjustment:</label>
+                                           class="block text-xs font-medium text-text-secondary mb-1">Type of Adjustment:</label>
                                     <select id="request_type" name="request_type"
-                                            class="form-input text-sm py-2 bg-secondary border-border w-full"
+                                            class="form-input text-xs py-1 bg-secondary border-border w-full tt_voiceable"
+                                            data-voice-mode="replace"
                                             onchange="toggleRequestFields()">
                                         <option value="temperature_change" selected>Temperature Change</option>
-                                        <option value="fan_adjustment">Airflow/Fan Adjustment (Stuffy/Humid)</option>
+                                        <option value="fan_adjustment">Airflow/Fan Adjustment</option>
                                     </select>
                                 </div>
 
                                 <!-- Temperature Change Field -->
                                 <div id="temp_change_field">
-                                    <label for="target_temp" class="block text-sm font-medium text-text-secondary mb-1">Desired
-                                        Temperature:</label>
+                                    <label for="target_temp" class="block text-xs font-medium text-text-secondary mb-1">Desired Temperature:</label>
                                     <div class="relative">
                                         <input
                                                 type="number"
                                                 id="target_temp"
                                                 name="target_temp"
-                                                class="form-input text-lg font-semibold bg-primary pr-12 w-full text-text-primary"
-                                                placeholder="{{ format_temperature(room.current_setpoint | round(1), room.temperature_unit) }}"
+                                                class="form-input text-md font-semibold bg-primary pr-12 w-full text-text-primary tt_voiceable"
+                                                data-voice-mode="replace"
+                                                value="{{ format_temperature(recommendations.target_temperature, room.temperature_unit) | replace('°C', '') | replace('°F', '') | replace('K', '') | trim }}"
                                                 min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"
                                                 max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"
                                                 step="0.1"
                                                 required
                                         >
-                                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted text-sm">
+                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-xs">
                                         {{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}
                                     </span>
                                     </div>
-                                    <div class="flex justify-between text-xs text-text-muted mt-1">
-                                        <span>Min:
-                                            {{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>
-                                        <span>Max:
-                                            {{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>
+                                    <!-- AI Recommendation Indicator -->
+                                    <div class="flex items-center gap-1 mt-1 text-xs text-accent-green">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span>Pre-filled with AI recommended temperature</span>
+                                    </div>
+                                    <div class="pt-1">
+                                        <input
+                                                type="range"
+                                                id="target_temp_slider"
+                                                class="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer range-lg range-blue slider-track"
+                                                min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"
+                                                max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"
+                                                step="0.5"
+                                                value="{{ format_temperature(recommendations.target_temperature, room.temperature_unit) | replace('°C', '') | replace('°F', '') | replace('K', '') | trim }}"
+                                                oninput="document.getElementById('target_temp').value = this.value"
+                                        >
+                                        <div class="flex justify-between text-xs text-text-muted mt-1">
+                                            <span>{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>
+                                            <span>{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <!-- Fan Adjustment Field -->
                                 <div id="fan_adjustment_field" class="hidden">
-                                    <label for="fan_level" class="block text-sm font-medium text-text-secondary mb-1">Airflow
-                                        Request:</label>
+                                    <label for="fan_level" class="block text-xs font-medium text-text-secondary mb-1">Airflow Request:</label>
                                     <select id="fan_level" name="fan_level"
-                                            class="form-input text-sm py-2 bg-secondary border-border w-full">
-                                        <option value="more_air">Blowing More Air (Too Stuffy/Humid)</option>
-                                        <option value="less_air">Blowing Less Air (Too Drafty/Dry)</option>
+                                            class="form-input text-xs py-1 bg-secondary border-border w-full tt_voiceable"
+                                            data-voice-mode="replace">
+                                        <option value="more_air">More Air (Too Stuffy/Humid)</option>
+                                        <option value="less_air">Less Air (Too Drafty/Dry)</option>
                                     </select>
-                                    <p class="text-xs text-text-muted mt-1">Request increased or decreased airflow based
-                                        on your comfort</p>
+                                    <p class="text-xs text-text-muted mt-1">Request increased or decreased airflow</p>
                                 </div>
 
                                 <!-- User Comments -->
                                 <div>
-                                    <label for="user_notes" class="block text-sm font-medium text-text-secondary mb-1">Additional
-                                        Notes (Optional):</label>
+                                    <label for="user_notes" class="block text-xs font-medium text-text-secondary mb-1">Additional Notes (Optional):</label>
                                     <textarea id="user_notes" name="user_notes" rows="2"
-                                              class="form-input bg-primary w-full text-sm text-text-primary"
-                                              placeholder="Describe any comfort issues or specific requirements..."></textarea>
+                                              class="form-input bg-primary w-full text-xs text-text-primary tt_voiceable"
+                                              data-voice-mode="replace"
+                                              placeholder="Describe comfort issues..."></textarea>
                                 </div>
                             </div>
 
                             <button type="submit"
-                                    class="btn bg-accent-yellow hover:bg-accent-yellow-hover text-white w-full flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="btn bg-accent-yellow hover:bg-accent-yellow-hover text-white w-full flex items-center justify-center gap-2 text-sm py-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                 </svg>
-                                Submit Adjustment Request
+                                Submit Request
                             </button>
                         </form>
                     </div>
 
                     <!-- User Notification Status -->
-                    <div class="card p-6 border-l-4 border-accent-blue bg-secondary">
-                        <h3 class="text-xl font-semibold text-text-primary mb-4 flex items-center gap-2">
-                            <svg class="w-6 h-6 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="card p-4 border-l-4 border-accent-blue bg-secondary">
+                        <h3 class="text-lg font-semibold text-text-primary mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                             </svg>
                             Request Status
                         </h3>
-                        <div id="user_notification_status" class="space-y-3">
-                            <div class="p-3 bg-tertiary rounded-lg text-text-muted text-sm">
+                        <div id="user_notification_status" class="space-y-2">
+                            <div class="p-2 bg-tertiary rounded-lg text-text-muted text-xs">
                                 <p class="font-semibold text-text-primary">Loading request status...</p>
-                                <p class="text-xs mt-1">Checking for active requests and notifications.</p>
+                                <p class="text-xs mt-1">Checking for active requests.</p>
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
+                    <!-- ADMIN/TECHNICIAN-ONLY SECTIONS (Direct Control) -->
+                    {% if session.get('role') in ['admin', 'technician'] %}
                     <!-- Temperature Control -->
-                    <div class="card p-6 bg-secondary">
-                        <h3 class="text-xl font-semibold text-text-primary mb-4 flex items-center justify-between">
+                    <div class="card p-4 bg-secondary">
+                        <h3 class="text-lg font-semibold text-text-primary mb-3 flex items-center justify-between">
                             System Setpoint Control
-                            <span class="text-sm font-normal text-text-muted">
-            Current Avg: {{ format_temperature(room.avg_temp, room.temperature_unit) }}
-        </span>
+                            <span class="text-xs font-normal text-text-muted">
+                                Current: {{ format_temperature(room.avg_temp, room.temperature_unit) }}
+                            </span>
                         </h3>
 
                         <!-- Unit Dropdown -->
-                        <div class="mb-6 p-4 bg-tertiary rounded-lg">
-                            <label class="block text-sm font-medium text-text-secondary mb-2">Temperature Unit:</label>
+                        <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                            <label class="block text-xs font-medium text-text-secondary mb-1">Temperature Unit:</label>
                             <form action="{{ url_for('set_temperature_unit', room_id=room.id) }}" method="post"
                                   class="flex gap-2 items-center">
                                 <select name="temperature_unit" onchange="this.form.submit()"
-                                        class="form-input text-sm py-2 bg-secondary border-border">
-                                    <option value="celsius" {% if room.temperature_unit==
-                                'celsius' %}selected{% endif %}>°C Celsius
-                                    </option>
-                                    <option value="fahrenheit" {% if room.temperature_unit==
-                                'fahrenheit' %}selected{% endif %}>°F Fahrenheit
-                                    </option>
-                                    <option value="kelvin" {% if room.temperature_unit==
-                                'kelvin' %}selected{% endif %}>K Kelvin
-                                    </option>
+                                        class="form-input text-xs py-1 bg-secondary border-border tt_voiceable"
+                                        data-voice-mode="replace">
+                                    <option value="celsius" {% if room.temperature_unit=='celsius' %}selected{% endif %}>°C Celsius</option>
+                                    <option value="fahrenheit" {% if room.temperature_unit=='fahrenheit' %}selected{% endif %}>°F Fahrenheit</option>
+                                    <option value="kelvin" {% if room.temperature_unit=='kelvin' %}selected{% endif %}>K Kelvin</option>
                                 </select>
-                                <button type="submit" class="btn btn-blue py-2 px-3 text-sm">Apply</button>
+                                <button type="submit" class="btn btn-blue py-1 px-2 text-xs">Apply</button>
                             </form>
                         </div>
 
-                        <form action="/room/{{ room.id }}/setpoint" method="post" class="space-y-4">
-                            <div class="flex items-center gap-4">
-                                <label for="temp_setpoint" class="text-text-secondary w-1/4">Setpoint:</label>
+                        <form action="/room/{{ room.id }}/setpoint" method="post" class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <label for="temp_setpoint" class="text-text-secondary text-sm w-1/4">Setpoint:</label>
                                 <div class="relative w-3/4">
                                     <input
                                             type="number"
                                             id="temp_setpoint_input"
                                             name="temp_setpoint"
-                                            class="form-input tt_voiceable text-2xl font-bold bg-primary pr-12 text-text-primary"
+                                            class="form-input tt_voiceable text-xl font-bold bg-primary pr-10 text-text-primary"
+                                            data-voice-mode="replace"
                                             value="{{ convert_temperature(room.current_setpoint, 'celsius', room.temperature_unit) | round(1) }}"
                                             min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"
-                                            max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) | round(1) }}"
+                                            max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"
                                             step="0.1"
-                                            data-voice-mode="replace"
                                             required
                                     >
-                                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted text-lg">
-                    {{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}
-                </span>
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
+                                        {{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}
+                                    </span>
                                 </div>
                             </div>
 
-                            <div class="pt-2">
+                            <div class="pt-1">
                                 <input
                                         type="range"
                                         id="temp_setpoint_slider"
-                                        class="w-full h-2 bg-tertiary rounded-lg appearance-none cursor-pointer range-lg range-blue"
+                                        class="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer range-lg range-blue slider-track"
                                         min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"
                                         max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"
                                         step="0.5"
                                         value="{{ convert_temperature(room.current_setpoint, 'celsius', room.temperature_unit) | round(1) }}"
                                         oninput="document.getElementById('temp_setpoint_input').value = this.value"
                                 >
-                                <div class="flex justify-between text-sm text-text-muted mt-2">
-                                    <span>{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }} (Min)</span>
-                                    <span>{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }} (Max)</span>
+                                <div class="flex justify-between text-xs text-text-muted mt-1">
+                                    <span>{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>
+                                    <span>{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>
                                 </div>
                             </div>
 
                             <button type="submit"
-                                    class="btn btn-blue w-full mt-4 flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="btn btn-blue w-full mt-3 flex items-center justify-center gap-2 text-sm py-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M5 13l4 4L19 7"></path>
                                 </svg>
-                                Apply New Setpoint
+                                Apply Setpoint
                             </button>
                         </form>
                     </div>
+                    {% endif %}
 
-                    <!-- AI Recommendation -->
-                    <div class="card p-6 border-l-4 border-purple-500 bg-secondary">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-semibold text-text-primary flex items-center gap-2">
-                                <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                                </svg>
-                                AI Recommendation
-                            </h3>
-                            <div class="text-3xl font-bold text-purple-400">
-                                {{ format_temperature(recommendations.target_temperature, room.temperature_unit) }}
-                            </div>
-                        </div>
-
-                        <p class="text-text-muted text-sm mb-4">
-                            {% if room.temperature_unit != 'celsius' %}
-                                <span class="text-accent-yellow text-xs">📊 Analysis based on {{ format_temperature(room.avg_temp, 'celsius') }} converted to {{ room.temperature_unit }}</span>
-                                <br>
-                            {% endif %}
-                            {{ recommendations.ai_recommendation | truncate(150, True, '...') }}
-                            <a href="#ai-details" class="text-accent-blue hover:underline">Read more</a>
-                        </p>
-
-                        <form action="{{ url_for('room_apply_ai', room_id=room.id) }}" method="post">
-                            <!-- Store the Celsius value for database operations -->
-                            <input type="hidden" name="new_setpoint"
-                                   value="{{ recommendations.target_temperature_celsius }}">
-                            <button type="submit"
-                                    class="btn bg-purple-600 hover:bg-purple-700 text-white w-full flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                                Apply {{ format_temperature(recommendations.target_temperature, room.temperature_unit) }}
-                                Now
-                            </button>
-                        </form>
-
-                        {% if recommendations.get('is_fallback') %}
-                            <p class="mt-3 text-xs text-accent-yellow">⚠️ Fallback analysis used.</p>
-                        {% endif %}
-                    </div>
-
-                    <!-- Hardware Details -->
-                    <div class="card p-6 bg-secondary">
-                        <h3 class="text-xl font-semibold text-text-primary mb-4">
+                    <!-- ADMIN/TECHNICIAN-ONLY: HARDWARE DETAILS & LOGS -->
+                    {% if session.get('role') in ['admin', 'technician'] %}
+                    <!-- HARDWARE DETAILS -->
+                    <div class="card p-4 bg-secondary">
+                        <h3 class="text-lg font-semibold text-text-primary mb-3">
                             Hardware Details ({{ devices|length }} Devices)
                         </h3>
-                        <div class="space-y-3 max-h-96 overflow-y-auto">
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
                             {% for d in devices %}
-                                <div class="bg-tertiary p-3 rounded-lg flex justify-between items-center border-l-4
-                    {% if d.status == 'active' %}border-accent-green
-                    {% else %}border-accent-red{% endif %}">
-
+                                <div class="bg-tertiary p-2 rounded-lg flex justify-between items-center border-l-4
+                                    {% if d.status == 'active' %}border-accent-green
+                                    {% else %}border-accent-red{% endif %}">
                                     <div>
-                                        <p class="text-lg font-semibold text-text-primary">{{ d.device_name }}</p>
-                                        <p class="text-sm text-text-muted">UID: {{ d.device_uid or '—' }} | Type: {{ d.type or
-                                    'Sensor' }}</p>
+                                        <p class="text-md font-semibold text-text-primary">{{ d.device_name }}</p>
+                                        <p class="text-xs text-text-muted">UID: {{ d.device_uid or '—' }} | Type: {{ d.type or 'Sensor' }}</p>
                                     </div>
-
                                     <div class="text-right">
-                                        <p class="text-sm font-medium text-text-secondary"> {{ format_temperature(d.temperature,
-                                    room.temperature_unit) if d.temperature is not none else '—' }}</p>
+                                        <p class="text-sm font-medium text-text-secondary">
+                                            {{ format_temperature(d.temperature, room.temperature_unit) if d.temperature is not none else '—' }}
+                                        </p>
                                         <p class="text-xs text-text-muted">
-                                            Last: {{ d.recorded_at|default('N/A')|string|truncate(16, True, '') }}</p>
+                                            Last: {{ d.recorded_at|default('N/A')|string|truncate(12, True, '') }}
+                                        </p>
                                     </div>
                                 </div>
                             {% else %}
-                                <p class="text-center text-text-muted">No devices registered for this room.</p>
+                                <p class="text-center text-text-muted text-sm">No devices registered.</p>
                             {% endfor %}
                         </div>
                     </div>
 
                     <!-- Room Logs -->
-                    <div class="card p-6 bg-secondary">
-                        <h3 class="text-xl font-semibold text-text-primary mb-4">Room Logs (Last 10)</h3>
-                        <div class="space-y-2 text-sm max-h-80 overflow-y-auto">
+                    <div class="card p-4 bg-secondary">
+                        <h3 class="text-lg font-semibold text-text-primary mb-3">Room Logs (Last 10)</h3>
+                        <div class="space-y-1 text-xs max-h-48 overflow-y-auto">
                             {% for d in devices[:10] %}
                                 <div class="text-text-muted border-b border-border pb-1">
-                                    <span class="text-xs text-text-muted mr-2">{{ d.recorded_at|default('N/A')|string|truncate(16, True, '') }}</span>
+                                    <span class="text-xs text-text-muted mr-2">{{ d.recorded_at|default('N/A')|string|truncate(12, True, '') }}</span>
                                     <span class="text-accent-green mr-1">T:</span>
                                     <span class="text-text-secondary">
-                {{ format_temperature(d.temperature, room.temperature_unit) if d.temperature is not none else '—' }}
-            </span>
+                                        {{ format_temperature(d.temperature, room.temperature_unit) if d.temperature is not none else '—' }}
+                                    </span>
                                     |
                                     <span class="text-accent-blue ml-1 mr-1">H:</span>
                                     <span class="text-text-secondary">{{ d.humidity or '—' }}%</span>
                                     {% if d.motion_detected == 1 %}
-                                        <span class="text-accent-red ml-2">Motion!</span>{% endif %}
+                                        <span class="text-accent-red ml-2">Motion!</span>
+                                    {% endif %}
                                 </div>
                             {% endfor %}
                             {% if not devices %}
-                                <p class="text-center text-text-muted">No recent logs or readings found.</p>
+                                <p class="text-center text-text-muted text-sm">No recent logs found.</p>
                             {% endif %}
                         </div>
                     </div>
+                    {% endif %}
 
                 </div>
 
-                <!-- Right Column -->
-                <div class="xl:col-span-1 space-y-6">
-                    <!-- AI Detailed Analysis -->
-                    <div class="card p-6 bg-secondary" id="ai-details">
-                        <h3 class="text-xl font-semibold text-text-primary mb-6 flex items-center gap-2">
+                <!-- Right Column - Detailed AI Analysis (Visible to all) -->
+                <div class="xl:col-span-1 space-y-4">
+                    <!-- AI Detailed Analysis - Made Bigger -->
+                    <div class="card p-5 bg-secondary" id="ai-details">
+                        <h3 class="text-xl font-semibold text-text-primary mb-5 flex items-center gap-2">
                             <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
@@ -347,16 +366,16 @@
                         </h3>
 
                         <!-- Current Conditions Summary -->
-                        <div class="mb-6 p-4 bg-gray-700 rounded-lg border-l-4 border-grey-500">
-                            <h4 class="text-white font-semibold mb-3 text-lg">Current Conditions Summary</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div class="mb-5 p-4 bg-gray-700 rounded-lg border-l-4 border-grey-500">
+                            <h4 class="text-white font-semibold mb-3 text-lg">Current Conditions</h4>
+                            <div class="grid grid-cols-1 gap-3 text-sm">
                                 <div class="space-y-2">
                                     <div class="flex justify-between">
-                                        <span class="text-text-muted">Indoor Temperature:</span>
+                                        <span class="text-text-muted">Indoor Temp:</span>
                                         <span class="text-text-primary font-medium">{{ format_temperature(room.avg_temp, room.temperature_unit) }}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-text-muted">Outdoor Temperature:</span>
+                                        <span class="text-text-muted">Outdoor Temp:</span>
                                         <span class="text-text-primary font-medium">
                         {% if weather_data and weather_data.temperature is defined %}
                             {{ format_temperature(weather_data.temperature, room.temperature_unit) }}
@@ -366,21 +385,15 @@
                     </span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-text-muted">Humidity Level:</span>
+                                        <span class="text-text-muted">Humidity:</span>
                                         <span class="text-text-primary font-medium">{{ room.avg_humidity or '—' }}%</span>
                                     </div>
-                                </div>
-                                <div class="space-y-2">
                                     <div class="flex justify-between">
                                         <span class="text-text-muted">Room Occupancy:</span>
                                         <span class="text-text-primary font-medium">
                         {% set occupancy_count = devices | selectattr('motion_detected', 'equalto', 1) | list | length %}
-                        {{ occupancy_count }} device{{ 's' if occupancy_count != 1 else '' }} detecting motion
+                        {{ occupancy_count }} device{{ 's' if occupancy_count != 1 else '' }} active
                     </span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-text-muted">Active Devices:</span>
-                                        <span class="text-text-primary font-medium">{{ room.devices_count or 0 }} / {{ devices|length }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -388,6 +401,33 @@
 
                         <!-- AI Recommendation Breakdown -->
                         <div class="space-y-4">
+
+                           <!-- Optimal Settings -->
+                            <div class="p-4 bg-tertiary rounded-lg border-l-4 border-purple-500">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                    </svg>
+                                    <h4 class="text-text-primary font-semibold text-md">Optimal Settings</h4>
+                                </div>
+                                <div class="bg-secondary p-4 rounded-lg mt-2">
+                                    <div class="text-center">
+                                        <div class="text-3xl font-bold text-purple-400 mb-2">
+                                            {{ format_temperature(recommendations.target_temperature, room.temperature_unit) }}
+                                        </div>
+                                        <div class="text-sm text-text-muted">Recommended Temperature</div>
+                                    </div>
+                                    <p class="text-text-secondary text-sm mt-3 text-center">
+                                        {% if weather_data and weather_data.temperature is defined %}
+                                            This setting provides optimal comfort while considering the {{ format_temperature(weather_data.temperature, room.temperature_unit) }} outdoor temperature and {{ weather_data.condition.lower() if weather_data.condition else 'current' }} conditions, balancing energy efficiency with occupant comfort.
+                                        {% else %}
+                                            This setting provides a comfortable environment while optimizing for energy efficiency based on current indoor conditions and occupancy patterns.
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
                             <!-- Comfort Analysis -->
                             <div class="p-4 bg-gray-700 rounded-lg border-l-4 border-green-500">
                                 <div class="flex items-center gap-2 mb-2">
@@ -396,35 +436,17 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                               d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
                                     </svg>
-                                    <h4 class="text-text-primary font-semibold">Comfort Analysis</h4>
+                                    <h4 class="text-text-primary font-semibold text-md">Comfort Analysis</h4>
                                 </div>
                                 <p class="text-text-secondary text-sm leading-relaxed">
                                     {% if weather_data and weather_data.temperature is defined %}
-                                        Given the occupied status, a comfortable temperature is prioritized.
-                                        The current indoor temperature of {{ format_temperature(room.avg_temp,
-                                room.temperature_unit) }}
-                                        provides a {{ 'comfortable' if 20 <= room.avg_temp <= 24 else 'slightly ' + ('cool' if
-                                room.avg_temp < 20 else 'warm') }} environment.
-                                        With outside conditions at {{ format_temperature(weather_data.temperature,
-                                room.temperature_unit) }}
-                                        and {{ weather_data.condition.lower() if weather_data.condition else 'current weather
-                                conditions' }},
-                                        a setpoint of
-                                        <strong class="text-accent-green">{{ format_temperature(recommendations.target_temperature, room.temperature_unit) }}</strong>
-                                        offers optimal comfort while considering the {{ 'warmer' if weather_data.temperature >
-                                room.avg_temp else 'cooler' }} outdoor environment.
+                                        Current indoor temperature provides a {{ 'comfortable' if 20 <= room.avg_temp <= 24 else 'slightly ' + ('cool' if room.avg_temp < 20 else 'warm') }} environment. Optimal comfort achieved at {{ format_temperature(recommendations.target_temperature, room.temperature_unit) }} considering {{ format_temperature(weather_data.temperature, room.temperature_unit) }} outdoor conditions.
                                     {% else %}
-                                        Given the occupied status, comfort is prioritized. The current indoor
-                                        temperature of
-                                        {{ format_temperature(room.avg_temp, room.temperature_unit) }} provides a
-                                        {{ 'comfortable' if 20 <= room.avg_temp <= 24 else 'slightly ' + ('cool' if
-                                room.avg_temp < 20 else 'warm') }} environment.
-                                        A setpoint of
-                                        <strong class="text-accent-green">{{ format_temperature(recommendations.target_temperature, room.temperature_unit) }}</strong>
-                                        is recommended for optimal occupant comfort.
+                                        Comfort-optimized temperature recommendation based on current indoor conditions and occupancy patterns for optimal thermal comfort.
                                     {% endif %}
                                 </p>
                             </div>
+
 
                             <!-- Energy Efficiency -->
                             <div class="p-4 bg-gray-700 rounded-lg border-l-4 border-yellow-500">
@@ -434,30 +456,24 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                               d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                     </svg>
-                                    <h4 class="text-text-primary font-semibold">Energy Efficiency</h4>
+                                    <h4 class="text-text-primary font-semibold text-md">Energy Efficiency</h4>
                                 </div>
                                 <p class="text-text-secondary text-sm leading-relaxed">
                                     {% if weather_data and weather_data.temperature is defined %}
                                         {% if weather_data.temperature > room.avg_temp %}
-                                            With warmer outdoor temperatures, maintaining
-                                            {{ format_temperature(recommendations.target_temperature, room.temperature_unit) }}
-                                            reduces cooling demand and energy consumption.
+                                            Recommended setting reduces cooling demand by 15-25% with current warmer outdoor temperatures, optimizing HVAC system performance.
                                         {% else %}
-                                            With cooler outdoor temperatures, the recommended setting minimizes heating
-                                            requirements
-                                            while maintaining comfort, optimizing energy usage.
+                                            Optimized for minimal heating requirements with current conditions, reducing energy consumption while maintaining comfort levels.
                                         {% endif %}
                                     {% else %}
-                                        The recommended temperature setting balances comfort with energy efficiency,
-                                        reducing HVAC system strain and optimizing power consumption.
+                                        Balanced setting for optimal energy consumption and system efficiency, reducing operational costs while maintaining occupant comfort.
                                     {% endif %}
                                 </p>
-                                <div class="mt-2 flex items-center gap-2 text-xs text-accent-yellow">
+                                <div class="mt-2 flex items-center gap-2 text-sm text-accent-yellow">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <span>Estimated energy savings: 15-25% compared to extreme temperature settings</span>
+                                    <span>Estimated savings: 15-25% vs extreme settings</span>
                                 </div>
                             </div>
 
@@ -469,70 +485,15 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                               d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
                                     </svg>
-                                    <h4 class="text-text-primary font-semibold">Environmental Factors</h4>
+                                    <h4 class="text-text-primary font-semibold text-md">Environmental Factors</h4>
                                 </div>
                                 <p class="text-text-secondary text-sm leading-relaxed">
                                     {% if weather_data and weather_data.condition %}
-                                        {% if 'rain' in weather_data.condition.lower() or 'storm' in
-                                weather_data.condition.lower() %}
-                                            Current rainy conditions suggest maintaining closed windows and relying on
-                                            HVAC systems
-                                            for optimal humidity control and comfort.
-                                        {% elif 'clear' in weather_data.condition.lower() or 'sunny' in
-                                weather_data.condition.lower() %}
-                                            Clear outdoor conditions may allow for natural ventilation during cooler
-                                            periods
-                                            to reduce mechanical system usage.
-                                        {% elif 'cloud' in weather_data.condition.lower() %}
-                                            Cloudy conditions provide stable outdoor temperatures, making this an
-                                            efficient
-                                            time for the recommended HVAC settings.
-                                        {% else %}
-                                            Current weather conditions support the recommended temperature setting for
-                                            both comfort and system efficiency.
-                                        {% endif %}
+                                        Current {{ weather_data.condition.lower() }} conditions support efficient HVAC operation at recommended settings. Humidity levels are within optimal range for both comfort and system efficiency.
                                     {% else %}
-                                        Current humidity levels are within acceptable range. Consider natural
-                                        ventilation
-                                        during appropriate outdoor conditions to reduce mechanical system usage.
+                                        Current humidity levels within acceptable range for optimal comfort and efficiency. Consider natural ventilation during appropriate outdoor conditions to enhance system performance.
                                     {% endif %}
                                 </p>
-                            </div>
-
-                            <!-- Optimal Settings -->
-                            <div class="p-4 bg-tertiary rounded-lg border-l-4 border-purple-500">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor"
-                                         viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                                    </svg>
-                                    <h4 class="text-text-primary font-semibold">Optimal Settings Recommendation</h4>
-                                </div>
-                                <div class="bg-secondary p-3 rounded-lg mt-2">
-                                    <div class="text-center">
-                                        <div class="text-2xl font-bold text-purple-400 mb-1">
-                                            {{ format_temperature(recommendations.target_temperature, room.temperature_unit) }}
-                                        </div>
-                                        <div class="text-sm text-text-muted">Target Temperature</div>
-                                    </div>
-                                    <p class="text-text-secondary text-sm mt-3 text-center">
-                                        {% if weather_data and weather_data.temperature is defined %}
-                                            This setting provides optimal comfort while considering the
-                                            {{ format_temperature(weather_data.temperature, room.temperature_unit) }}
-                                            outdoor
-                                            temperature
-                                            and
-                                            {{ weather_data.condition.lower() if weather_data.condition else 'current' }}
-                                            conditions,
-                                            balancing energy efficiency with occupant comfort.
-                                        {% else %}
-                                            This setting provides a comfortable environment while optimizing for energy
-                                            efficiency
-                                            based on current indoor conditions and occupancy patterns.
-                                        {% endif %}
-                                    </p>
-                                </div>
                             </div>
                         </div>
 
@@ -552,7 +513,7 @@
                 {% if weather_data and weather_data.temperature is defined %}
                     Weather data sourced from OpenWeatherMap API
                 {% else %}
-                    Weather data temporarily unavailable - using indoor sensor data only
+                    Using indoor sensor data only - weather data temporarily unavailable
                 {% endif %}
             </span>
                             </div>
@@ -706,12 +667,12 @@
             color: var(--accent-yellow-hover);
         }
 
-        /* Card Styles */
+        /* Card Styles - Smaller */
         .card {
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 0.5rem;
-            padding: 1.5rem;
+            padding: 1rem;
             box-shadow: var(--card-shadow);
             transition: all 0.2s ease;
         }
@@ -720,14 +681,15 @@
             box-shadow: var(--shadow);
         }
 
-        /* Form Input Styles */
+        /* Form Input Styles - Smaller */
         .form-input {
             background-color: var(--bg-primary);
             border: 1px solid var(--border-color);
             border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
+            padding: 0.375rem 0.5rem;
             color: var(--text-primary);
             transition: all 0.2s ease;
+            font-size: 0.875rem;
         }
 
         .form-input:focus {
@@ -737,14 +699,15 @@
             border-color: var(--accent-blue);
         }
 
-        /* Button Styles */
+        /* Button Styles - Smaller */
         .btn {
             background-color: var(--accent-blue);
             color: white;
-            padding: 0.5rem 1rem;
+            padding: 0.375rem 0.75rem;
             border-radius: 0.375rem;
             font-weight: 600;
             transition: all 0.2s ease;
+            font-size: 0.875rem;
         }
 
         .btn:hover {
@@ -757,6 +720,61 @@
 
         .btn-blue:hover {
             background-color: var(--accent-blue-hover);
+        }
+
+        /* Slider Track Visibility */
+        .slider-track {
+            background: #d1d5db !important; /* Light gray for light mode */
+        }
+
+        .dark .slider-track {
+            background: #4b5563 !important; /* Dark gray for dark mode */
+        }
+
+        /* Range input styling for better visibility */
+        input[type="range"] {
+            background: transparent;
+        }
+
+        input[type="range"]::-webkit-slider-track {
+            background: #d1d5db;
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .dark input[type="range"]::-webkit-slider-track {
+            background: #4b5563;
+        }
+
+        input[type="range"]::-moz-range-track {
+            background: #d1d5db;
+            height: 8px;
+            border-radius: 4px;
+            border: none;
+        }
+
+        .dark input[type="range"]::-moz-range-track {
+            background: #4b5563;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            background: #3b82f6;
+            border: 2px solid #ffffff;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            background: #3b82f6;
+            border: 2px solid #ffffff;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
         }
     </style>
 
@@ -783,6 +801,36 @@
             }
         }
 
+        // Auto-fill temperature when AI recommendation is applied
+        function autoFillAITemperature() {
+            const aiApplyButton = document.querySelector('form[action*="room_apply_ai"] button[type="submit"]');
+            const targetTempInput = document.getElementById('target_temp');
+
+            if (aiApplyButton && targetTempInput) {
+                aiApplyButton.addEventListener('click', function() {
+                    // Get the AI recommended temperature from the display
+                    const aiTempElement = document.querySelector('.text-2xl.font-bold.text-purple-400');
+                    if (aiTempElement) {
+                        const aiTempText = aiTempElement.textContent.trim();
+                        // Extract numeric value from the temperature display
+                        const aiTempValue = parseFloat(aiTempText);
+                        if (!isNaN(aiTempValue)) {
+                            // Set the target temperature input value
+                            targetTempInput.value = aiTempValue;
+                            // Also update the slider if it exists
+                            const targetTempSlider = document.getElementById('target_temp_slider');
+                            if (targetTempSlider) {
+                                targetTempSlider.value = aiTempValue;
+                            }
+
+                            // Show confirmation
+                            showVoiceFeedback(`AI temperature ${aiTempValue}°C applied to request form`, 'success');
+                        }
+                    }
+                });
+            }
+        }
+
         // Real-time notification updates for users
         function loadUserNotifications() {
             fetch(`/api/room/{{ room.id }}/notifications`)
@@ -795,7 +843,7 @@
 
                     if (notifications.length === 0) {
                         container.innerHTML = `
-                            <div class="p-3 bg-tertiary rounded-lg text-text-muted text-sm">
+                            <div class="p-2 bg-tertiary rounded-lg text-text-muted text-xs">
                                 <p class="font-semibold text-text-primary">No active requests found.</p>
                                 <p class="text-xs mt-1">Submit a request to see its real-time status here.</p>
                             </div>
@@ -804,26 +852,26 @@
                     }
 
                     container.innerHTML = notifications.map(notification => `
-                        <div class="p-4 bg-tertiary rounded-lg border-l-4 ${
+                        <div class="p-3 bg-tertiary rounded-lg border-l-4 ${
                         notification.type === 'success' ? 'border-accent-green' :
                             notification.type === 'warning' ? 'border-accent-yellow' :
                                 notification.type === 'error' ? 'border-accent-red' : 'border-accent-blue'
                     } ${!notification.is_read ? 'ring-2 ring-accent-blue ring-opacity-50' : ''}">
-                            <div class="flex justify-between items-start mb-2">
-                                <h4 class="font-semibold text-text-primary">${notification.title}</h4>
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-semibold text-text-primary text-sm">${notification.title}</h4>
                                 <span class="text-xs text-text-muted">${new Date(notification.created_at).toLocaleTimeString()}</span>
                             </div>
-                            <p class="text-sm text-text-secondary mb-2">${notification.message}</p>
+                            <p class="text-xs text-text-secondary mb-1">${notification.message}</p>
                             ${notification.estimated_completion ? `
-                                <div class="flex items-center gap-2 text-xs text-accent-yellow mt-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="flex items-center gap-2 text-xs text-accent-yellow mt-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <span>Estimated completion: ${new Date(notification.estimated_completion).toLocaleString()}</span>
+                                    <span>Estimated: ${new Date(notification.estimated_completion).toLocaleString()}</span>
                                 </div>
                             ` : ''}
                             ${!notification.is_read ? `
-                                <div class="flex items-center gap-1 text-xs text-accent-blue mt-2">
+                                <div class="flex items-center gap-1 text-xs text-accent-blue mt-1">
                                     <div class="w-2 h-2 bg-accent-blue rounded-full animate-pulse"></div>
                                     <span>New</span>
                                 </div>
@@ -835,7 +883,7 @@
                     console.error('Error loading notifications:', error);
                     const container = document.getElementById('user_notification_status');
                     container.innerHTML = `
-                        <div class="p-3 bg-tertiary rounded-lg text-accent-red text-sm">
+                        <div class="p-2 bg-tertiary rounded-lg text-accent-red text-xs">
                             <p class="font-semibold">Failed to load notifications</p>
                             <p class="text-xs mt-1">Please refresh the page to try again.</p>
                         </div>
@@ -853,7 +901,7 @@
 
             // Show loading state
             submitButton.innerHTML = `
-                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -864,14 +912,14 @@
             // Show temporary loading notification
             const container = document.getElementById('user_notification_status');
             container.innerHTML = `
-                <div class="p-4 bg-accent-blue/30 border border-accent-blue rounded-lg">
-                    <div class="flex items-center gap-2 text-accent-blue mb-2">
-                        <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-3 bg-accent-blue/30 border border-accent-blue rounded-lg">
+                    <div class="flex items-center gap-2 text-accent-blue mb-1">
+                        <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
-                        <span class="font-semibold">Submitting Request...</span>
+                        <span class="font-semibold text-sm">Submitting Request...</span>
                     </div>
-                    <p class="text-sm text-accent-blue">Please wait while we process your request.</p>
+                    <p class="text-xs text-accent-blue">Please wait while we process your request.</p>
                 </div>
             `;
 
@@ -894,14 +942,14 @@
                     if (data.success) {
                         // Show success message
                         container.innerHTML = `
-                        <div class="p-4 bg-accent-green/30 border border-accent-green rounded-lg">
-                            <div class="flex items-center gap-2 text-accent-green mb-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-3 bg-accent-green/30 border border-accent-green rounded-lg">
+                            <div class="flex items-center gap-2 text-accent-green mb-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span class="font-semibold">Request Submitted Successfully!</span>
+                                <span class="font-semibold text-sm">Request Submitted Successfully!</span>
                             </div>
-                            <p class="text-sm text-accent-green">Your adjustment request has been sent for admin review.</p>
+                            <p class="text-xs text-accent-green">Your adjustment request has been sent for admin review.</p>
                             <p class="text-xs text-accent-green mt-1">Request ID: ${data.request_id}</p>
                         </div>
                     `;
@@ -921,14 +969,14 @@
 
                     // Show error message
                     container.innerHTML = `
-                    <div class="p-4 bg-accent-red/30 border border-accent-red rounded-lg">
-                        <div class="flex items-center gap-2 text-accent-red mb-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-3 bg-accent-red/30 border border-accent-red rounded-lg">
+                        <div class="flex items-center gap-2 text-accent-red mb-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                             </svg>
-                            <span class="font-semibold">Submission Failed</span>
+                            <span class="font-semibold text-sm">Submission Failed</span>
                         </div>
-                        <p class="text-sm text-accent-red">${error.message}</p>
+                        <p class="text-xs text-accent-red">${error.message}</p>
                         <p class="text-xs text-accent-red mt-1">Please check your input and try again.</p>
                     </div>
                 `;
@@ -940,15 +988,6 @@
                 });
         });
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function () {
-            toggleRequestFields();
-            loadUserNotifications();
-
-            // Poll for new notifications every 10 seconds
-            setInterval(loadUserNotifications, 10000);
-        });
-
         // Sync slider and input field
         document.getElementById('temp_setpoint_slider')?.addEventListener('input', function () {
             document.getElementById('temp_setpoint_input').value = this.value;
@@ -957,5 +996,66 @@
         document.getElementById('temp_setpoint_input')?.addEventListener('input', function () {
             document.getElementById('temp_setpoint_slider').value = this.value;
         });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            toggleRequestFields();
+            loadUserNotifications();
+            autoFillAITemperature();
+
+            // Poll for new notifications every 10 seconds
+            setInterval(loadUserNotifications, 10000);
+        });
+
+        function showVoiceFeedback(message, type = 'info', duration = 3000) {
+            // Remove existing feedback
+            const existingFeedback = document.getElementById('tt-voice-feedback');
+            if (existingFeedback) {
+                existingFeedback.remove();
+            }
+
+            // Create feedback element
+            const feedback = document.createElement('div');
+            feedback.id = 'tt-voice-feedback';
+            feedback.className = `tt-voice-feedback tt-voice-feedback-${type}`;
+            feedback.textContent = message;
+
+            // Style the feedback
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 10px 14px;
+                border-radius: 6px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: 280px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: tt-slideIn 0.3s ease-out;
+                font-family: system-ui, -apple-system, sans-serif;
+                font-size: 0.875rem;
+            `;
+
+            // Style based on type
+            const styles = {
+                success: 'background: linear-gradient(135deg, #10b981, #059669);',
+                error: 'background: linear-gradient(135deg, #ef4444, #dc2626);',
+                info: 'background: linear-gradient(135deg, #3b82f6, #2563eb);',
+                warning: 'background: linear-gradient(135deg, #f59e0b, #d97706);'
+            };
+
+            feedback.style.cssText += styles[type] || styles.info;
+
+            document.body.appendChild(feedback);
+
+            // Auto-remove after duration
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.style.animation = 'tt-slideOut 0.3s ease-in';
+                    setTimeout(() => feedback.remove(), 300);
+                }
+            }, duration);
+        }
     </script>
 {% endblock %}
