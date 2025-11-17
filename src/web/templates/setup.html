@@ -84,11 +84,15 @@
               <tr>
                 <th class="text-left">Room Name</th>
                 <th class="text-left">Location</th>
+                {% if session.role in ['admin', 'technician'] %}
                 <th class="text-center">Devices</th>
                 <th class="text-center">With Readings</th>
+                {% endif %}
                 <th class="text-center">Avg Temp</th>
                 <th class="text-center">Avg Humidity</th>
+                {% if session.role in ['admin', 'technician'] %}
                 <th class="text-center">Last Update</th>
+                {% endif %}
                 {% if session.role == 'admin' %}
                 <th class="text-right">Actions</th>
                 {% endif %}
@@ -101,8 +105,11 @@
                 <td class="whitespace-nowrap text-gray-400">
                   {{ r.location or '—' }}
                 </td>
+
+                {% if session.role in ['admin', 'technician'] %}
                 <td class="text-center">{{ r.devices_count or 0 }}</td>
                 <td class="text-center">{{ r.devices_with_readings or 0 }}</td>
+                {% endif %}
 
                 <td class="text-center">
                   {% if r.avg_temp is not none %} {{ '%.1f'|format(r.avg_temp)
@@ -114,10 +121,12 @@
                   '%.1f'|format(r.avg_humidity) }}% {% else %}—{% endif %}
                 </td>
 
+                {% if session.role in ['admin', 'technician'] %}
                 <td class="text-center whitespace-nowrap">
                   {% if r.last_update %} {{ (r.last_update|string).replace('T','
                   ') }} {% else %}—{% endif %}
                 </td>
+                {% endif %}
 
                 {% if session.role == 'admin' %}
                 <td class="text-right">
@@ -140,7 +149,7 @@
 
               {% else %}
               <tr>
-                <td colspan="8" class="text-center text-gray-400 py-6">
+                <td colspan="{% if session.role in ['admin', 'technician'] %}{% if session.role == 'admin' %}8{% else %}7{% endif %}{% else %}4{% endif %}" class="text-center text-gray-400 py-6">
                   No rooms yet — add your first one above.
                 </td>
               </tr>
