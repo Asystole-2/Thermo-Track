@@ -25,7 +25,7 @@ from utils.weather_gemini import WeatherAIAnalyzer
 # Google OAuth (Authlib)
 try:
     from authlib.integrations.flask_client import OAuth
-except ImportError:  # if authlib not installed, Google login will be disabled
+except ImportError:  # if authlib not installed; Google login will be disabled
     OAuth = None
 
 try:
@@ -104,6 +104,7 @@ PWD_RE = re.compile(
     r"^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+\=\[\]{};:'\",.<>/?\\|`~]).{8,}$"
 )
 
+
 # ----------------------------------------------------------------------
 # Database Utilities
 # ----------------------------------------------------------------------
@@ -166,14 +167,19 @@ def format_temperature(value, unit, decimals=1):
 # ----------------------------------------------------------------------
 # Data Access Functions
 # ----------------------------------------------------------------------
-def get_rooms_summary(user_id=None):
+
+
+def get_rooms_summary(user_id=None, user_role=None):
+    """Get rooms summary - all rooms for admin/technician, user's rooms only for regular users"""
     c = db_cursor()
     params = []
-    user_filter = ""
 
-    if user_id is not None:
+    # Admin and technician see ALL rooms
+    if user_role not in ['admin', 'technician'] and user_id is not None:
         user_filter = "WHERE rm.user_id = %s"
         params.append(user_id)
+    else:
+        user_filter = ""
 
     query = f"""
         SELECT
@@ -195,7 +201,6 @@ def get_rooms_summary(user_id=None):
     rows = c.fetchall()
     c.close()
     return rows
-
 
 def get_recent_readings(limit=50, offset=0, user_id=None):
     limit = max(1, min(int(limit or 50), 500))
@@ -230,12 +235,49 @@ def get_recent_readings(limit=50, offset=0, user_id=None):
     return rows
 
 
-def get_room_details(room_id, user_id=None):
+def get_all_recent_readings(limit=50, offset=0):
+    """Get all recent readings (for admin/technician)"""
+    limit = max(1, min(int(limit or 50), 500))
+    offset = max(0, int(offset or 0))
+
+    c = db_cursor()
+    query = """
+            SELECT r.id, \
+                   r.device_id, \
+                   r.temperature, \
+                   r.humidity, \
+                   r.motion_detected, \
+                   r.pressure, \
+                   r.light_level, \
+                   r.recorded_at, \
+                   d.name     AS device_name, \
+                   d.device_uid, \
+                   d.type     AS device_type, \
+                   rm.id      AS room_id, \
+                   rm.name    AS room_name, \
+                   u.username as room_owner
+            FROM readings r
+                     JOIN devices d ON d.id = r.device_id
+                     JOIN rooms rm ON rm.id = d.room_id
+                     LEFT JOIN users u ON rm.user_id = u.id
+            ORDER BY r.recorded_at DESC
+                LIMIT %s \
+            OFFSET %s \
+            """
+
+    c.execute(query, (limit, offset))
+    rows = c.fetchall()
+    c.close()
+    return rows
+
+
+def get_room_details(room_id, user_id=None, user_role=None):
     c = db_cursor()
     params = [room_id]
     user_filter = ""
 
-    if user_id is not None:
+    # Admin and technician can access any room
+    if user_id is not None and user_role not in ['admin', 'technician']:
         user_filter = " AND rm.user_id = %s"
         params.append(user_id)
 
@@ -243,14 +285,16 @@ def get_room_details(room_id, user_id=None):
         SELECT
             rm.id, rm.name AS room_name, rm.location, rm.created_at, rm.temperature_unit,
             COUNT(DISTINCT d.id) AS devices_count,
-            COALESCE(ROUND(AVG(lr.temperature), 1), 21.0) AS avg_temp,  -- FIX: Use COALESCE for NULL values
-            COALESCE(ROUND(AVG(lr.humidity), 1), 50.0) AS avg_humidity,  -- FIX: Use COALESCE for NULL values
-            MAX(lr.recorded_at) AS last_update
+            COALESCE(ROUND(AVG(lr.temperature), 1), 21.0) AS avg_temp,
+            COALESCE(ROUND(AVG(lr.humidity), 1), 50.0) AS avg_humidity,
+            MAX(lr.recorded_at) AS last_update,
+            u.username as owner_username
         FROM rooms rm
         LEFT JOIN devices d ON d.room_id = rm.id
         LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+        LEFT JOIN users u ON rm.user_id = u.id
         WHERE rm.id = %s {user_filter}
-        GROUP BY rm.id
+        GROUP BY rm.id, rm.name, rm.location, rm.created_at, rm.temperature_unit, u.username
     """
 
     c.execute(room_query, tuple(params))
@@ -261,20 +305,13 @@ def get_room_details(room_id, user_id=None):
         return None, None
 
     devices_query = """
-                    SELECT d.id, \
-                           d.name AS device_name, \
-                           d.device_uid, \
-                           d.type, \
-                           d.status, \
-                           lr.temperature, \
-                           lr.humidity, \
-                           lr.recorded_at, \
-                           lr.motion_detected
-                    FROM devices d
-                             LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
-                    WHERE d.room_id = %s
-                    ORDER BY d.name \
-                    """
+        SELECT d.id, d.name AS device_name, d.device_uid, d.type, d.status,
+               lr.temperature, lr.humidity, lr.recorded_at, lr.motion_detected
+        FROM devices d
+        LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+        WHERE d.room_id = %s
+        ORDER BY d.name
+    """
 
     c.execute(devices_query, (room_id,))
     devices_data = c.fetchall()
@@ -402,6 +439,7 @@ def is_admin(user_id):
         if cursor:
             cursor.close()
 
+
 # ----------------------------------------------------------------------
 # Error Handlers
 # ----------------------------------------------------------------------
@@ -409,7 +447,7 @@ def is_admin(user_id):
 def after_request(response):
     # Ensure API routes return JSON even on errors
     if request.path.startswith("/api/") or (
-        request.path.startswith("/room/") and "/request_adjustment" in request.path
+            request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         if response.status_code >= 400 and not response.is_json:
             data = {
@@ -432,7 +470,7 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     if request.path.startswith("/api/") or (
-        request.path.startswith("/room/") and "/request_adjustment" in request.path
+            request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         return jsonify({"success": False, "error": "Internal server error"}), 500
     return error
@@ -720,17 +758,23 @@ def register():
 @login_required
 def dashboard():
     user_id = session.get("user_id")
+    user_role = session.get("role")
     rooms = []
     rows = []
 
     try:
-        rooms = get_rooms_summary(user_id=user_id)
+        # Pass user_role to get_rooms_summary to determine filtering
+        rooms = get_rooms_summary(user_id=user_id, user_role=user_role)
     except Exception as e:
         log.exception("[dashboard] rooms load error: %s", e)
         flash("Could not load room data.", "error")
 
     try:
-        rows = get_recent_readings(limit=50, user_id=user_id)
+        # Admin and technician see ALL readings, regular users see only their readings
+        if user_role in ['admin', 'technician']:
+            rows = get_all_recent_readings(limit=50)
+        else:
+            rows = get_recent_readings(limit=50, user_id=user_id)
     except Exception as e:
         log.exception("[dashboard] readings load error: %s", e)
         flash("Could not load recent readings.", "error")
@@ -743,13 +787,44 @@ def dashboard():
     )
 
 
+@app.post("/dashboard/add-room/<int:room_id>")
+@login_required
+def dashboard_add_room(room_id):
+    try:
+        if add_room_to_user(session["user_id"], room_id):
+            flash("Room added to your dashboard.", "success")
+        else:
+            flash("Room is already in your dashboard.", "info")
+    except Exception as e:
+        log.exception("[dashboard_add_room] error: %s", e)
+        flash("Could not add room to dashboard.", "error")
+
+    return redirect(url_for("dashboard"))
+
+
+@app.post("/dashboard/remove-room/<int:room_id>")
+@login_required
+def dashboard_remove_room(room_id):
+    try:
+        if remove_room_from_user(session["user_id"], room_id):
+            flash("Room removed from your dashboard.", "success")
+        else:
+            flash("Room not found in your dashboard.", "warning")
+    except Exception as e:
+        log.exception("[dashboard_remove_room] error: %s", e)
+        flash("Could not remove room from dashboard.", "error")
+
+    return redirect(url_for("dashboard"))
+
+
 @app.route("/room/<int:room_id>")
 @login_required
 def room(room_id):
     user_id = session.get("user_id")
+    user_role = session.get("role")
 
     try:
-        room_data, devices_data = get_room_details(room_id, user_id=user_id)
+        room_data, devices_data = get_room_details(room_id, user_id=user_id, user_role=user_role)
     except Exception as e:
         log.exception("[room] error loading details for room %s: %s", room_id, e)
         flash("Could not load room details.", "error")
@@ -759,11 +834,12 @@ def room(room_id):
         flash("Room not found or you do not have permission to view it.", "error")
         return redirect(url_for("dashboard"))
 
+    # ... rest of the room function remains the same ...
     room_data.setdefault("temperature_unit", "celsius")
 
     # Ensure current_temp has a default value if None
-    current_temp = room_data.get("avg_temp", 21.0) or 21.0  # Default to 21.0 if None
-    current_humidity = room_data.get("avg_humidity", 50) or 50  # Default to 50 if None
+    current_temp = room_data.get("avg_temp", 21.0) or 21.0
+    current_humidity = room_data.get("avg_humidity", 50) or 50
 
     occupancy = (
         sum(1 for d in devices_data if d.get("motion_detected") == 1)
@@ -780,8 +856,8 @@ def room(room_id):
 
     # Ensure all values are not None
     ai_room_input = {
-        "temperature": current_temp_for_ai or 21.0,  # Default if None
-        "humidity": current_humidity or 50,  # Default if None
+        "temperature": current_temp_for_ai or 21.0,
+        "humidity": current_humidity or 50,
         "occupancy": occupancy,
         "room_type": room_data.get("location", "Unspecified") or "Unspecified",
     }
@@ -874,14 +950,29 @@ def room_apply_ai(room_id):
 @login_required
 def setup():
     user_id = session.get("user_id")
-    rooms = []
+    user_role = session.get("role")
+    user_rooms = []
+    available_rooms = []
+    all_rooms = []
 
     try:
-        rooms = get_rooms_summary(user_id=user_id)
+        user_rooms = get_user_rooms(user_id, user_role)
+        available_rooms = get_available_rooms(user_id, user_role)
+
+        # Get all rooms for admin/technician (same as user_rooms for them)
+        if user_role in ["admin", "technician"]:
+            all_rooms = user_rooms  # They already see all rooms
+
     except Exception as e:
         log.exception("[setup] error: %s", e)
 
-    return render_template("setup.html", active_page="setup", rooms=rooms)
+    return render_template(
+        "setup.html",
+        active_page="setup",
+        user_rooms=user_rooms,
+        available_rooms=available_rooms,
+        all_rooms=all_rooms
+    )
 
 
 @app.route("/reports")
@@ -1067,11 +1158,16 @@ def api_rooms():
 @login_required
 def api_readings():
     user_id = session.get("user_id")
+    user_role = session.get("role")
     limit = request.args.get("limit", type=int, default=200)
     offset = request.args.get("offset", type=int, default=0)
 
     try:
-        rows = get_recent_readings(limit=limit, offset=offset, user_id=user_id)
+        # Admin and technician see ALL readings, regular users see only their readings
+        if user_role in ['admin', 'technician']:
+            rows = get_all_recent_readings(limit=limit, offset=offset)
+        else:
+            rows = get_recent_readings(limit=limit, offset=offset, user_id=user_id)
         return jsonify(_jsonify_rows(rows))
     except Exception as e:
         log.exception("/api/readings error: %s", e)
@@ -1109,12 +1205,12 @@ def request_room_adjustment(room_id):
 
         cursor.execute(
             """
-                       SELECT AVG(r.temperature) as avg_temp
-                       FROM readings r
-                                JOIN devices d ON r.device_id = d.id
-                       WHERE d.room_id = %s
-                         AND r.temperature IS NOT NULL
-                       """,
+            SELECT AVG(r.temperature) as avg_temp
+            FROM readings r
+                     JOIN devices d ON r.device_id = d.id
+            WHERE d.room_id = %s
+              AND r.temperature IS NOT NULL
+            """,
             (room_id,),
         )
 
@@ -1179,11 +1275,11 @@ def request_room_adjustment(room_id):
         print("DEBUG: Attempting to insert into room_condition_requests")
         cursor.execute(
             """
-                       INSERT INTO room_condition_requests
-                       (room_id, user_id, request_type, current_temperature, target_temperature, fan_level_request,
-                        user_notes)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s)
-                       """,
+            INSERT INTO room_condition_requests
+            (room_id, user_id, request_type, current_temperature, target_temperature, fan_level_request,
+             user_notes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
             (
                 room_id,
                 session["user_id"],
@@ -1202,9 +1298,9 @@ def request_room_adjustment(room_id):
         print("DEBUG: Creating user notification")
         cursor.execute(
             """
-                       INSERT INTO user_notifications (user_id, request_id, title, message, type)
-                       VALUES (%s, %s, %s, %s, 'info')
-                       """,
+            INSERT INTO user_notifications (user_id, request_id, title, message, type)
+            VALUES (%s, %s, %s, %s, 'info')
+            """,
             (
                 session["user_id"],
                 request_id,
@@ -1263,11 +1359,10 @@ def get_room_notifications(room_id):
             """
             SELECT n.*, r.status as request_status, r.estimated_completion_time
             FROM user_notifications n
-            LEFT JOIN room_condition_requests r ON n.request_id = r.id
-            WHERE n.user_id = %s 
-            ORDER BY n.created_at DESC
-            LIMIT 10
-        """,
+                     LEFT JOIN room_condition_requests r ON n.request_id = r.id
+            WHERE n.user_id = %s
+            ORDER BY n.created_at DESC LIMIT 10
+            """,
             (session["user_id"],),
         )
 
@@ -1323,7 +1418,8 @@ def admin_room_requests():
     cursor.execute("SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'viewed'")
     viewed_count = cursor.fetchone()['count']
 
-    cursor.execute("SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'approved' AND DATE(created_at) = CURDATE()")
+    cursor.execute(
+        "SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'approved' AND DATE(created_at) = CURDATE()")
     approved_count = cursor.fetchone()['count']
 
     cursor.execute("SELECT COUNT(*) as count FROM rooms")
@@ -1603,10 +1699,10 @@ def debug_simple_test():
         # Total requests
         cursor.execute(
             """
-                       SELECT COUNT(*)
-                       FROM room_condition_requests
-                       WHERE user_id = %s
-                       """,
+            SELECT COUNT(*)
+            FROM room_condition_requests
+            WHERE user_id = %s
+            """,
             (user_id,),
         )
         total_requests = cursor.fetchone()["count(*)"]
@@ -1614,11 +1710,11 @@ def debug_simple_test():
         # Pending requests
         cursor.execute(
             """
-                       SELECT COUNT(*)
-                       FROM room_condition_requests
-                       WHERE user_id = %s
-                         AND status = 'pending'
-                       """,
+            SELECT COUNT(*)
+            FROM room_condition_requests
+            WHERE user_id = %s
+              AND status = 'pending'
+            """,
             (user_id,),
         )
         pending_requests = cursor.fetchone()["count(*)"]
@@ -1626,11 +1722,11 @@ def debug_simple_test():
         # Approved requests
         cursor.execute(
             """
-                       SELECT COUNT(*)
-                       FROM room_condition_requests
-                       WHERE user_id = %s
-                         AND status = 'approved'
-                       """,
+            SELECT COUNT(*)
+            FROM room_condition_requests
+            WHERE user_id = %s
+              AND status = 'approved'
+            """,
             (user_id,),
         )
         approved_requests = cursor.fetchone()["count(*)"]
@@ -1638,11 +1734,11 @@ def debug_simple_test():
         # Denied requests
         cursor.execute(
             """
-                       SELECT COUNT(*)
-                       FROM room_condition_requests
-                       WHERE user_id = %s
-                         AND status = 'denied'
-                       """,
+            SELECT COUNT(*)
+            FROM room_condition_requests
+            WHERE user_id = %s
+              AND status = 'denied'
+            """,
             (user_id,),
         )
         denied_requests = cursor.fetchone()["count(*)"]
@@ -1667,22 +1763,22 @@ def get_user_notifications():
     try:
         cursor.execute(
             """
-                       SELECT n.id,
-                              n.title,
-                              n.message,
-                              n.type,
-                              n.is_read,
-                              n.created_at,
-                              n.request_id,
-                              r.status as request_status,
-                              r.estimated_completion_time,
-                              rm.name  as room_name
-                       FROM user_notifications n
-                                LEFT JOIN room_condition_requests r ON n.request_id = r.id
-                                LEFT JOIN rooms rm ON r.room_id = rm.id
-                       WHERE n.user_id = %s
-                       ORDER BY n.created_at DESC LIMIT 50
-                       """,
+            SELECT n.id,
+                   n.title,
+                   n.message,
+                   n.type,
+                   n.is_read,
+                   n.created_at,
+                   n.request_id,
+                   r.status as request_status,
+                   r.estimated_completion_time,
+                   rm.name  as room_name
+            FROM user_notifications n
+                     LEFT JOIN room_condition_requests r ON n.request_id = r.id
+                     LEFT JOIN rooms rm ON r.room_id = rm.id
+            WHERE n.user_id = %s
+            ORDER BY n.created_at DESC LIMIT 50
+            """,
             (session["user_id"],),
         )
 
@@ -1726,11 +1822,11 @@ def mark_notification_read(notification_id):
     try:
         cursor.execute(
             """
-                       UPDATE user_notifications
-                       SET is_read = TRUE
-                       WHERE id = %s
-                         AND user_id = %s
-                       """,
+            UPDATE user_notifications
+            SET is_read = TRUE
+            WHERE id = %s
+              AND user_id = %s
+            """,
             (notification_id, session["user_id"]),
         )
 
@@ -1752,11 +1848,11 @@ def mark_all_notifications_read():
     try:
         cursor.execute(
             """
-                       UPDATE user_notifications
-                       SET is_read = TRUE
-                       WHERE user_id = %s
-                         AND is_read = FALSE
-                       """,
+            UPDATE user_notifications
+            SET is_read = TRUE
+            WHERE user_id = %s
+              AND is_read = FALSE
+            """,
             (session["user_id"],),
         )
 
@@ -1778,11 +1874,11 @@ def get_unread_notification_count():
     try:
         cursor.execute(
             """
-                       SELECT COUNT(*) as unread_count
-                       FROM user_notifications
-                       WHERE user_id = %s
-                         AND is_read = FALSE
-                       """,
+            SELECT COUNT(*) as unread_count
+            FROM user_notifications
+            WHERE user_id = %s
+              AND is_read = FALSE
+            """,
             (session["user_id"],),
         )
 
@@ -1807,10 +1903,10 @@ def notifications():
         # Total requests
         cursor.execute(
             """
-                       SELECT COUNT(*) as count
-                       FROM room_condition_requests
-                       WHERE user_id = %s
-                       """,
+            SELECT COUNT(*) as count
+            FROM room_condition_requests
+            WHERE user_id = %s
+            """,
             (user_id,),
         )
         total_requests = cursor.fetchone()["count"]
@@ -1818,10 +1914,10 @@ def notifications():
         # Pending requests
         cursor.execute(
             """
-                       SELECT COUNT(*) as count
-                       FROM room_condition_requests
-                       WHERE user_id = %s AND status = 'pending'
-                       """,
+            SELECT COUNT(*) as count
+            FROM room_condition_requests
+            WHERE user_id = %s AND status = 'pending'
+            """,
             (user_id,),
         )
         pending_requests = cursor.fetchone()["count"]
@@ -1829,10 +1925,10 @@ def notifications():
         # Approved requests
         cursor.execute(
             """
-                       SELECT COUNT(*) as count
-                       FROM room_condition_requests
-                       WHERE user_id = %s AND status = 'approved'
-                       """,
+            SELECT COUNT(*) as count
+            FROM room_condition_requests
+            WHERE user_id = %s AND status = 'approved'
+            """,
             (user_id,),
         )
         approved_requests = cursor.fetchone()["count"]
@@ -1840,10 +1936,10 @@ def notifications():
         # Denied requests
         cursor.execute(
             """
-                       SELECT COUNT(*) as count
-                       FROM room_condition_requests
-                       WHERE user_id = %s AND status = 'denied'
-                       """,
+            SELECT COUNT(*) as count
+            FROM room_condition_requests
+            WHERE user_id = %s AND status = 'denied'
+            """,
             (user_id,),
         )
         denied_requests = cursor.fetchone()["count"]
@@ -1968,20 +2064,132 @@ def settings():
     )
 
 
-def get_user_rooms(user_id):
-    cur = db_cursor()
-    cur.execute(
-        """
-        SELECT id, name, location
-        FROM rooms
-        WHERE user_id = %s
-        ORDER BY name ASC
-    """,
-        (user_id,),
-    )
-    rooms = cur.fetchall()
-    cur.close()
-    return rooms
+def get_user_rooms(user_id, user_role=None):
+    """Get rooms that belong to the current user, or all rooms for admin/technician"""
+    c = db_cursor()
+    try:
+        if user_role in ['admin', 'technician']:
+            # Admin and technician see ALL rooms
+            c.execute("""
+                      SELECT r.id,
+                             r.name                        AS room_name,
+                             r.location,
+                             r.created_at,
+                             COUNT(DISTINCT d.id)          AS devices_count,
+                             COUNT(DISTINCT lr.device_id)  AS devices_with_readings,
+                             ROUND(AVG(lr.temperature), 1) AS avg_temp,
+                             ROUND(AVG(lr.humidity), 1)    AS avg_humidity,
+                             MAX(lr.recorded_at)           AS last_update,
+                             u.username                    as owner_username,
+                             CASE
+                                 WHEN ur.user_id IS NOT NULL THEN 1
+                                 ELSE 0
+                                 END                       as is_in_my_rooms
+                      FROM rooms r
+                               LEFT JOIN devices d ON d.room_id = r.id
+                               LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+                               LEFT JOIN users u ON r.user_id = u.id
+                               LEFT JOIN user_rooms ur ON ur.room_id = r.id AND ur.user_id = %s
+                      GROUP BY r.id, r.name, r.location, r.created_at, u.username, ur.user_id
+                      ORDER BY r.name
+                      """, (user_id,))
+        else:
+            # Regular users only see their assigned rooms
+            c.execute("""
+                      SELECT r.id,
+                             r.name                        AS room_name,
+                             r.location,
+                             r.created_at,
+                             COUNT(DISTINCT d.id)          AS devices_count,
+                             COUNT(DISTINCT lr.device_id)  AS devices_with_readings,
+                             ROUND(AVG(lr.temperature), 1) AS avg_temp,
+                             ROUND(AVG(lr.humidity), 1)    AS avg_humidity,
+                             MAX(lr.recorded_at)           AS last_update,
+                             u.username                    as owner_username,
+                             1                             as is_in_my_rooms
+                      FROM user_rooms ur
+                               JOIN rooms r ON ur.room_id = r.id
+                               LEFT JOIN devices d ON d.room_id = r.id
+                               LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+                               LEFT JOIN users u ON r.user_id = u.id
+                      WHERE ur.user_id = %s
+                      GROUP BY r.id, r.name, r.location, r.created_at, u.username
+                      ORDER BY r.name
+                      """, (user_id,))
+        return c.fetchall()
+    finally:
+        c.close()
+
+
+def get_available_rooms(user_id, user_role=None):
+    """Get rooms that have at least 1 device but don't belong to the current user"""
+    if user_role in ['admin', 'technician']:
+        return []  # Admin/technician don't see available rooms since they see everything
+
+    c = db_cursor()
+    try:
+        c.execute("""
+                  SELECT r.id,
+                         r.name                        AS room_name,
+                         r.location,
+                         r.created_at,
+                         COUNT(DISTINCT d.id)          AS devices_count,
+                         COUNT(DISTINCT lr.device_id)  AS devices_with_readings,
+                         ROUND(AVG(lr.temperature), 1) AS avg_temp,
+                         ROUND(AVG(lr.humidity), 1)    AS avg_humidity,
+                         MAX(lr.recorded_at)           AS last_update,
+                         u.username                    as owner_username
+                  FROM rooms r
+                           LEFT JOIN devices d ON d.room_id = r.id
+                           LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+                           LEFT JOIN users u ON r.user_id = u.id
+                  WHERE r.id NOT IN (SELECT room_id
+                                     FROM user_rooms
+                                     WHERE user_id = %s)
+                    AND EXISTS (SELECT 1
+                                FROM devices
+                                WHERE room_id = r.id)
+                  GROUP BY r.id, r.name, r.location, r.created_at, u.username
+                  HAVING COUNT(DISTINCT d.id) > 0
+                  ORDER BY r.name
+                  """, (user_id,))
+        return c.fetchall()
+    finally:
+        c.close()
+
+
+def add_room_to_user(user_id, room_id):
+    """Add a room to user's room list"""
+    c = db_cursor()
+    try:
+        c.execute(
+            "INSERT IGNORE INTO user_rooms (user_id, room_id) VALUES (%s, %s)",
+            (user_id, room_id)
+        )
+        mysql.connection.commit()
+        return c.rowcount > 0
+    except Exception as e:
+        mysql.connection.rollback()
+        raise e
+    finally:
+        c.close()
+
+
+def remove_room_from_user(user_id, room_id):
+    """Remove a room from user's room list"""
+    c = db_cursor()
+    try:
+        c.execute(
+            "DELETE FROM user_rooms WHERE user_id = %s AND room_id = %s",
+            (user_id, room_id)
+        )
+        mysql.connection.commit()
+        return c.rowcount > 0
+    except Exception as e:
+        mysql.connection.rollback()
+        raise e
+    finally:
+        c.close()
 
 
 @app.route("/update-user-role/<int:user_id>", methods=["POST"])
@@ -2040,7 +2248,8 @@ def update_user_role(user_id):
 
     return redirect(url_for("settings"))
 
+
 # Application Entry Point
 if __name__ == "__main__":
-    # app.run(debug=True)
-    app.run(debug=False, use_reloader=False)
+    app.run(debug=True)
+    # app.run(debug=False, use_reloader=False)

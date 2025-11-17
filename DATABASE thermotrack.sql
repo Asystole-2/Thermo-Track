@@ -205,3 +205,31 @@ CREATE TABLE IF NOT EXISTS user_notifications (
     INDEX idx_notifications_read (is_read)
 ) ENGINE=InnoDB;
 
+-- update for room allocation for users
+-- Add a new table for user-room relationships (many-to-many)
+CREATE TABLE IF NOT EXISTS user_rooms (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    room_id INT NOT NULL,
+    added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_rooms_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_rooms_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_user_room (user_id, room_id),
+    INDEX idx_user_rooms_user (user_id),
+    INDEX idx_user_rooms_room (room_id)
+) ENGINE=InnoDB;
+
+-- Migrate existing rooms to user_rooms table
+INSERT IGNORE INTO user_rooms (user_id, room_id)
+SELECT user_id, id FROM rooms;
+
+-- Add a sample room that doesn't belong to the current user for testing
+INSERT IGNORE INTO rooms (user_id, name, location) VALUES
+(1, 'Shared Lab', 'Building D'),
+(1, 'Conference Room', 'Main Building');
+
+-- Add devices to these shared rooms
+INSERT IGNORE INTO devices (room_id, name, device_uid, type, status) VALUES
+(8, 'Shared Temp Sensor', 'shared-temp-001', 'Temperature', 'active'),
+(9, 'Conference Motion', 'conf-motion-001', 'Motion', 'active');
+

@@ -11,10 +11,14 @@
                     <div>
                         <h1 class="text-4xl font-extrabold text-text-primary mb-2">Facilities Dashboard</h1>
                         <p class="header-subtitle">
-                            Overview of campus-wide HVAC performance.
-                            <span class="ml-2 inline-block px-2 py-0.5 rounded bg-blue-900/40 text-blue-200 text-xs align-middle">
-                               Your readings only
-                           </span>
+                            {% if session.role in ['admin', 'technician'] %}
+                                Complete system-wide overview of all rooms and sensor data.
+                            {% else %}
+                                Overview of your assigned rooms and devices.
+                                <span class="ml-2 inline-block px-2 py-0.5 rounded bg-blue-900/40 text-blue-200 text-xs align-middle">
+                                   Your readings only
+                               </span>
+                            {% endif %}
                         </p>
                     </div>
                     <div class="flex items-center gap-3">
@@ -37,7 +41,7 @@
                                 <input
                                         type="text"
                                         id="searchInput"
-                                        placeholder="Search rooms, devices, locations, or sensor values..."
+                                        placeholder="{% if session.role in ['admin', 'technician'] %}Search all rooms, devices, locations, sensor values, or owners...{% else %}Search your rooms, devices, locations, or sensor values...{% endif %}"
                                         class="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
                                 >
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -95,9 +99,16 @@
             {% if rooms and rooms|length > 0 %}
                 <section class="mt-4" id="roomsSection">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-text-secondary">Rooms</h3>
+                        <h3 class="text-xl font-semibold text-text-secondary">
+                            {% if session.role in ['admin', 'technician'] %}
+                                All System Rooms
+                            {% else %}
+                                Your Rooms
+                            {% endif %}
+                        </h3>
                         <span class="text-xs text-text-muted room-count">
                 {{ rooms|length }} room{% if rooms|length != 1 %}s{% endif %}
+                            {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
             </span>
                     </div>
 
@@ -110,6 +121,7 @@
                                data-devices="{{ r.devices_count }}"
                                data-temp="{{ r.avg_temp or '' }}"
                                data-humidity="{{ r.avg_humidity or '' }}"
+                               {% if session.role in ['admin', 'technician'] %}data-owner="{{ (r.owner_username or '').lower() }}"{% endif %}
                             >
                                 <div class="flex items-start justify-between">
                                     <div>
@@ -125,6 +137,17 @@
                                             </svg>
                                             {{ r.location or 'Unspecified location' }}
                                         </p>
+                                        {% if session.role in ['admin', 'technician'] and r.owner_username %}
+                                            <p class="text-xs text-text-muted flex items-center gap-1 mt-1 room-owner">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                     viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                          stroke-width="2"
+                                                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                </svg>
+                                                Owner: {{ r.owner_username }}
+                                            </p>
+                                        {% endif %}
                                     </div>
 
                                     {% set status_label = "Normal" %}
@@ -199,9 +222,16 @@
             {% if rows and rows|length > 0 %}
                 <section class="mt-8" id="readingsSection">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-gray-300">Recent Readings</h3>
+                        <h3 class="text-xl font-semibold text-gray-300">
+                            {% if session.role in ['admin', 'technician'] %}
+                                All Recent Sensor Readings
+                            {% else %}
+                                Your Recent Readings
+                            {% endif %}
+                        </h3>
                         <span class="text-xs text-gray-400 readings-count">
                     {{ rows|length }} reading{% if rows|length != 1 %}s{% endif %}
+                            {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
                 </span>
                     </div>
 
@@ -212,6 +242,10 @@
                                 <th class="p-2 text-left">Device</th>
                                 <th class="p-2 text-left">UID</th>
                                 <th class="p-2 text-left">Type</th>
+                                {% if session.role in ['admin', 'technician'] %}
+                                    <th class="p-2 text-left">Room</th>
+                                    <th class="p-2 text-left">Owner</th>
+                                {% endif %}
                                 <th class="p-2 text-left">Temp (°C)</th>
                                 <th class="p-2 text-left">Humidity (%)</th>
                                 <th class="p-2 text-left">Motion</th>
@@ -227,12 +261,25 @@
                                     data-temp="{{ r.temperature or '' }}"
                                     data-humidity="{{ r.humidity or '' }}"
                                     data-motion="{{ r.motion_detected or '' }}"
+                                        {% if session.role in ['admin', 'technician'] %}
+                                    data-room-name="{{ (r.room_name or '').lower() }}"
+                                    data-owner="{{ (r.room_owner or '').lower() }}"
+                                        {% endif %}
                                 >
                                     <td class="p-2 reading-device">{{ r.device_name or 'N/A' }}</td>
                                     <td class="p-2 text-gray-400 reading-uid">{{ r.device_uid or '—' }}</td>
                                     <td class="p-2 reading-type">
                                         {{ r.device_type if r.device_type is defined else (r.type or '—') }}
                                     </td>
+                                    {% if session.role in ['admin', 'technician'] %}
+                                        <td class="p-2 reading-room">
+                                            <a href="{{ url_for('room', room_id=r.room_id) }}"
+                                               class="text-blue-400 hover:text-blue-300">
+                                                {{ r.room_name or '—' }}
+                                            </a>
+                                        </td>
+                                        <td class="p-2 reading-owner">{{ r.room_owner or '—' }}</td>
+                                    {% endif %}
                                     <td class="p-2 reading-temp">{{ r.temperature if r.temperature is not none else '—' }}</td>
                                     <td class="p-2 reading-humidity">{{ r.humidity if r.humidity is not none else '—' }}</td>
                                     <td class="p-2 reading-motion">
@@ -278,28 +325,191 @@
                         <div class="card">
                             <h4 class="text-lg font-bold text-gray-300 mb-2">No Data Found</h4>
                             <p class="text-sm text-muted mb-4">
-                                To preview the dashboard, insert a user, room(s), device(s), and <code>readings</code>
-                                with that
-                                user's <code>user_id</code>. Then refresh this page.
+                                {% if session.role in ['admin', 'technician'] %}
+                                    No rooms or sensor readings found in the system.
+                                {% else %}
+                                    No rooms have been added to your dashboard yet.
+                                {% endif %}
                             </p>
+                            {% if session.role not in ['admin', 'technician'] %}
+                                <a href="{{ url_for('setup') }}" class="btn btn-primary">
+                                    Go to Setup to Add Rooms
+                                </a>
+                            {% endif %}
                         </div>
                     </div>
                 </section>
             {% endif %}
         </main>
     </div>
+
+    <!-- Enhanced Search Script with Admin/Technician Support -->
     <script>
         console.log('Debug: Page loaded');
+        console.log('User role:', '{{ session.role }}');
         console.log('Filter buttons found:', document.querySelectorAll('.filter-btn').length);
         console.log('Search input found:', document.getElementById('searchInput') !== null);
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
-                console.log('Button clicked - filter:', this.dataset.filter);
-                console.log('Button classes:', this.className);
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('searchInput');
+            const clearSearch = document.getElementById('clearSearch');
+            const searchResults = document.getElementById('searchResults');
+            const resultsCount = document.getElementById('resultsCount');
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const roomsSection = document.getElementById('roomsSection');
+            const readingsSection = document.getElementById('readingsSection');
+            const noResults = document.getElementById('noResults');
+
+            let currentFilter = 'rooms';
+
+            // Check if user is admin/technician
+            const isAdminOrTechnician = '{{ session.role }}' === 'admin' || '{{ session.role }}' === 'technician';
+
+            function updateVisibility() {
+                const searchTerm = searchInput.value.toLowerCase();
+                let totalVisible = 0;
+                let hasVisibleRooms = false;
+                let hasVisibleReadings = false;
+
+                // Filter rooms
+                if (roomsSection) {
+                    const roomCards = roomsSection.querySelectorAll('.room-card');
+                    let visibleRooms = 0;
+
+                    roomCards.forEach(card => {
+                        const roomName = card.dataset.roomName || '';
+                        const location = card.dataset.location || '';
+                        const devices = card.dataset.devices || '';
+                        const temp = card.dataset.temp || '';
+                        const humidity = card.dataset.humidity || '';
+                        const owner = card.dataset.owner || '';
+
+                        const matchesSearch = !searchTerm ||
+                            roomName.includes(searchTerm) ||
+                            location.includes(searchTerm) ||
+                            devices.includes(searchTerm) ||
+                            temp.includes(searchTerm) ||
+                            humidity.includes(searchTerm) ||
+                            (isAdminOrTechnician && owner.includes(searchTerm));
+
+                        if (matchesSearch && (currentFilter === 'rooms' || currentFilter === 'all')) {
+                            card.style.display = 'block';
+                            visibleRooms++;
+                            totalVisible++;
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+
+                    hasVisibleRooms = visibleRooms > 0;
+                    roomsSection.style.display = hasVisibleRooms ? 'block' : 'none';
+                }
+
+                // Filter readings
+                if (readingsSection) {
+                    const readingRows = readingsSection.querySelectorAll('.reading-row');
+                    let visibleReadings = 0;
+
+                    readingRows.forEach(row => {
+                        const deviceName = row.dataset.deviceName || '';
+                        const deviceUid = row.dataset.deviceUid || '';
+                        const deviceType = row.dataset.deviceType || '';
+                        const temp = row.dataset.temp || '';
+                        const humidity = row.dataset.humidity || '';
+                        const motion = row.dataset.motion || '';
+                        const roomName = row.dataset.roomName || '';
+                        const owner = row.dataset.owner || '';
+
+                        const matchesSearch = !searchTerm ||
+                            deviceName.includes(searchTerm) ||
+                            deviceUid.includes(searchTerm) ||
+                            deviceType.includes(searchTerm) ||
+                            temp.includes(searchTerm) ||
+                            humidity.includes(searchTerm) ||
+                            motion.includes(searchTerm) ||
+                            (isAdminOrTechnician && roomName.includes(searchTerm)) ||
+                            (isAdminOrTechnician && owner.includes(searchTerm));
+
+                        if (matchesSearch && (currentFilter === 'readings' || currentFilter === 'all')) {
+                            row.style.display = '';
+                            visibleReadings++;
+                            totalVisible++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    hasVisibleReadings = visibleReadings > 0;
+                    readingsSection.style.display = hasVisibleReadings ? 'block' : 'none';
+                }
+
+                // Show/hide no results message
+                if (totalVisible === 0 && searchTerm) {
+                    noResults.classList.remove('hidden');
+                    if (roomsSection) roomsSection.style.display = 'none';
+                    if (readingsSection) readingsSection.style.display = 'none';
+                } else {
+                    noResults.classList.add('hidden');
+                }
+
+                // Update search results count
+                if (searchTerm) {
+                    searchResults.classList.remove('hidden');
+                    resultsCount.textContent = totalVisible;
+                } else {
+                    searchResults.classList.add('hidden');
+                }
+
+                // Show/hide clear button
+                if (searchTerm) {
+                    clearSearch.classList.remove('hidden');
+                } else {
+                    clearSearch.classList.add('hidden');
+                }
+            }
+
+            // Search input event
+            if (searchInput) {
+                searchInput.addEventListener('input', updateVisibility);
+            }
+
+            // Clear search event
+            if (clearSearch) {
+                clearSearch.addEventListener('click', function () {
+                    searchInput.value = '';
+                    updateVisibility();
+                    searchInput.focus();
+                });
+            }
+
+            // Filter button events
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    currentFilter = this.dataset.filter;
+
+                    // Update button states
+                    filterButtons.forEach(b => {
+                        if (b === this) {
+                            b.classList.remove('inactive', 'bg-gray-600', 'text-gray-300');
+                            b.classList.add('active', 'bg-blue-600', 'text-white');
+                        } else {
+                            b.classList.remove('active', 'bg-blue-600', 'text-white');
+                            b.classList.add('inactive', 'bg-gray-600', 'text-gray-300');
+                        }
+                    });
+
+                    updateVisibility();
+                });
             });
+
+            // Initial visibility update
+            updateVisibility();
+
+            console.log('Search and filter system initialized');
+            console.log('Admin/Technician mode:', isAdminOrTechnician);
         });
     </script>
+
     <style>
         /* CSS Variables for Theme Support */
         :root {
@@ -471,4 +681,3 @@
         }
     </style>
 {% endblock %}
-
