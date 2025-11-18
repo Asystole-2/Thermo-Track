@@ -114,6 +114,7 @@ PWD_RE = re.compile(
 # DATABASE UTILITIES
 # =============================================================================
 
+
 def db_cursor():
     return mysql.connection.cursor()
 
@@ -131,6 +132,7 @@ def _jsonify_rows(rows):
 # =============================================================================
 # TEMPERATURE CONVERSION UTILITIES
 # =============================================================================
+
 
 def _ensure_numeric(value):
     if isinstance(value, Decimal):
@@ -175,11 +177,12 @@ def format_temperature(value, unit, decimals=1):
 # DATA ACCESS FUNCTIONS
 # =============================================================================
 
+
 def get_rooms_summary(user_id=None, user_role=None):
     """Get rooms summary based on user role"""
     c = db_cursor()
 
-    if user_role in ['admin', 'technician']:
+    if user_role in ["admin", "technician"]:
         # Admin/technician sees ALL rooms
         query = """
                 SELECT r.id, \
@@ -235,7 +238,7 @@ def get_recent_readings(limit=50, offset=0, user_id=None, user_role=None):
 
     c = db_cursor()
 
-    if user_role in ['admin', 'technician']:
+    if user_role in ["admin", "technician"]:
         # Admin/technician sees ALL readings
         query = """
                 SELECT r.id, \
@@ -299,11 +302,11 @@ def get_room_details(room_id, user_id=None, user_role=None):
     c = db_cursor()
 
     # Check if user has access to this room
-    if user_role not in ['admin', 'technician']:
+    if user_role not in ["admin", "technician"]:
         # For regular users, check if they have access via user_rooms
         c.execute(
             "SELECT 1 FROM user_rooms WHERE user_id = %s AND room_id = %s",
-            (user_id, room_id)
+            (user_id, room_id),
         )
         if not c.fetchone():
             c.close()
@@ -364,6 +367,7 @@ def get_room_details(room_id, user_id=None, user_role=None):
 # ROOM MANAGEMENT FUNCTIONS
 # =============================================================================
 
+
 def create_room(name, location=None, user_id=None, temperature_unit="celsius"):
     name = (name or "").strip()
     location = (location or "").strip() or None
@@ -385,7 +389,7 @@ def create_room(name, location=None, user_id=None, temperature_unit="celsius"):
         # Add the creator to user_rooms for this room
         cur.execute(
             "INSERT IGNORE INTO user_rooms (user_id, room_id) VALUES (%s, %s)",
-            (user_id, room_id)
+            (user_id, room_id),
         )
 
         mysql.connection.commit()
@@ -474,10 +478,10 @@ def get_all_rooms_with_stats():
 
         # Convert decimal values to float for JSON serialization
         for room in rooms:
-            if room['avg_temp'] is not None:
-                room['avg_temp'] = float(room['avg_temp'])
-            if room['avg_humidity'] is not None:
-                room['avg_humidity'] = float(room['avg_humidity'])
+            if room["avg_temp"] is not None:
+                room["avg_temp"] = float(room["avg_temp"])
+            if room["avg_humidity"] is not None:
+                room["avg_humidity"] = float(room["avg_humidity"])
 
         return rooms
     except Exception as e:
@@ -558,7 +562,7 @@ def add_room_to_user(user_id, room_id):
     try:
         c.execute(
             "INSERT IGNORE INTO user_rooms (user_id, room_id) VALUES (%s, %s)",
-            (user_id, room_id)
+            (user_id, room_id),
         )
         mysql.connection.commit()
         return c.rowcount > 0
@@ -575,7 +579,7 @@ def remove_room_from_user(user_id, room_id):
     try:
         c.execute(
             "DELETE FROM user_rooms WHERE user_id = %s AND room_id = %s",
-            (user_id, room_id)
+            (user_id, room_id),
         )
         mysql.connection.commit()
         return c.rowcount > 0
@@ -589,6 +593,7 @@ def remove_room_from_user(user_id, room_id):
 # =============================================================================
 # AUTHENTICATION & AUTHORIZATION
 # =============================================================================
+
 
 def login_required(f):
     @wraps(f)
@@ -648,11 +653,12 @@ def role_required(*roles):
 # ERROR HANDLERS
 # =============================================================================
 
+
 @app.after_request
 def after_request(response):
     # Ensure API routes return JSON even on errors
     if request.path.startswith("/api/") or (
-            request.path.startswith("/room/") and "/request_adjustment" in request.path
+        request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         if response.status_code >= 400 and not response.is_json:
             data = {
@@ -675,7 +681,7 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     if request.path.startswith("/api/") or (
-            request.path.startswith("/room/") and "/request_adjustment" in request.path
+        request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         return jsonify({"success": False, "error": "Internal server error"}), 500
     return error
@@ -684,6 +690,7 @@ def internal_error(error):
 # =============================================================================
 # ROUTE HANDLERS – LANDING & AUTH
 # =============================================================================
+
 
 @app.route("/")
 def index():
@@ -930,6 +937,7 @@ def register():
 # MAIN APPLICATION ROUTES
 # =============================================================================
 
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -958,79 +966,87 @@ def dashboard():
     )
 
 
-@app.route('/setup')
+@app.route("/setup")
 @login_required
 def setup():
     try:
-        user_id = session.get('user_id')
-        user_role = session.get('role')
+        user_id = session.get("user_id")
+        user_role = session.get("role")
 
-        if user_role in ['admin', 'technician']:
+        if user_role in ["admin", "technician"]:
             all_rooms = get_all_rooms_with_stats()
-            return render_template('setup.html',
-                                   all_rooms=all_rooms,
-                                   user_role=user_role,
-                                   user_rooms=[],
-                                   available_rooms=[])
+            return render_template(
+                "setup.html",
+                all_rooms=all_rooms,
+                user_role=user_role,
+                user_rooms=[],
+                available_rooms=[],
+            )
         else:
             user_rooms = get_user_rooms(user_id)
             available_rooms = get_available_rooms(user_id)
-            return render_template('setup.html',
-                                   user_rooms=user_rooms,
-                                   available_rooms=available_rooms,
-                                   user_role=user_role,
-                                   all_rooms=[])
+            return render_template(
+                "setup.html",
+                user_rooms=user_rooms,
+                available_rooms=available_rooms,
+                user_role=user_role,
+                all_rooms=[],
+            )
 
     except Exception as e:
         log.error(f"Setup error: {str(e)}", exc_info=True)
 
-        user_role = session.get('role', 'user')
-        if user_role in ['admin', 'technician']:
-            return render_template('setup.html',
-                                   all_rooms=[],
-                                   user_role=user_role,
-                                   user_rooms=[],
-                                   available_rooms=[],
-                                   error="Failed to load room data")
+        user_role = session.get("role", "user")
+        if user_role in ["admin", "technician"]:
+            return render_template(
+                "setup.html",
+                all_rooms=[],
+                user_role=user_role,
+                user_rooms=[],
+                available_rooms=[],
+                error="Failed to load room data",
+            )
         else:
-            return render_template('setup.html',
-                                   user_rooms=[],
-                                   available_rooms=[],
-                                   user_role=user_role,
-                                   all_rooms=[],
-                                   error="Failed to load room data")
+            return render_template(
+                "setup.html",
+                user_rooms=[],
+                available_rooms=[],
+                user_role=user_role,
+                all_rooms=[],
+                error="Failed to load room data",
+            )
 
 
-@app.route('/dashboard/add_room/<int:room_id>', methods=['POST'])
+@app.route("/dashboard/add_room/<int:room_id>", methods=["POST"])
 @login_required
 def dashboard_add_room(room_id):
-    if session.get('role') in ['admin', 'technician']:
-        flash('Admins and technicians automatically have access to all rooms.', 'info')
-        return redirect(url_for('setup'))
+    if session.get("role") in ["admin", "technician"]:
+        flash("Admins and technicians automatically have access to all rooms.", "info")
+        return redirect(url_for("setup"))
 
-    user_id = session.get('user_id')
+    user_id = session.get("user_id")
     if add_room_to_user(user_id, room_id):
-        flash('Room added to your dashboard successfully!', 'success')
+        flash("Room added to your dashboard successfully!", "success")
     else:
-        flash('Room is already in your dashboard.', 'warning')
+        flash("Room is already in your dashboard.", "warning")
 
-    return redirect(url_for('setup'))
+    return redirect(url_for("setup"))
 
 
-@app.route('/dashboard/remove_room/<int:room_id>', methods=['POST'])
+@app.route("/dashboard/remove_room/<int:room_id>", methods=["POST"])
 @login_required
 def dashboard_remove_room(room_id):
-    if session.get('role') in ['admin', 'technician']:
-        flash('Admins and technicians cannot remove rooms from dashboard.', 'info')
-        return redirect(url_for('setup'))
+    if session.get("role") in ["admin", "technician"]:
+        flash("Admins and technicians cannot remove rooms from dashboard.", "info")
+        return redirect(url_for("setup"))
 
-    user_id = session.get('user_id')
+    user_id = session.get("user_id")
     if remove_room_from_user(user_id, room_id):
-        flash('Room removed from your dashboard.', 'success')
+        flash("Room removed from your dashboard.", "success")
     else:
-        flash('Room was not in your dashboard.', 'warning')
+        flash("Room was not in your dashboard.", "warning")
 
-    return redirect(url_for('setup'))
+    return redirect(url_for("setup"))
 
 
 @app.route("/room/<int:room_id>")
@@ -1040,7 +1056,9 @@ def room(room_id):
     user_role = session.get("role")
 
     try:
-        room_data, devices_data = get_room_details(room_id, user_id=user_id, user_role=user_role)
+        room_data, devices_data = get_room_details(
+            room_id, user_id=user_id, user_role=user_role
+        )
     except Exception as e:
         log.exception("[room] error loading details for room %s: %s", room_id, e)
         flash("Could not load room details.", "error")
@@ -1192,6 +1210,7 @@ def policies():
 # ROOM MANAGEMENT ROUTES
 # =============================================================================
 
+
 @app.post("/setuprooms/create")
 @login_required
 def setuprooms_create():
@@ -1299,6 +1318,7 @@ def add_device():
 # API ROUTES
 # =============================================================================
 
+
 @app.get("/api/rooms")
 @login_required
 def api_rooms():
@@ -1322,7 +1342,9 @@ def api_readings():
     offset = request.args.get("offset", type=int, default=0)
 
     try:
-        rows = get_recent_readings(limit=limit, offset=offset, user_id=user_id, user_role=user_role)
+        rows = get_recent_readings(
+            limit=limit, offset=offset, user_id=user_id, user_role=user_role
+        )
         return jsonify(_jsonify_rows(rows))
     except Exception as e:
         log.exception("/api/readings error: %s", e)
@@ -1332,6 +1354,7 @@ def api_readings():
 # =============================================================================
 # ROOM CONDITION REQUEST ROUTES
 # =============================================================================
+
 
 @app.route("/room/<int:room_id>/request_adjustment", methods=["POST"])
 @login_required
@@ -1375,9 +1398,20 @@ def request_room_adjustment(room_id):
             try:
                 target_temp = float(target_temp)
                 if target_temp < 16 or target_temp > 28:
-                    return jsonify({"success": False, "error": "Temperature must be between 16°C and 28°C"}), 400
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "error": "Temperature must be between 16°C and 28°C",
+                            }
+                        ),
+                        400,
+                    )
             except ValueError:
-                return jsonify({"success": False, "error": "Invalid temperature value"}), 400
+                return (
+                    jsonify({"success": False, "error": "Invalid temperature value"}),
+                    400,
+                )
 
         # Create request in database
         cursor.execute(
@@ -1416,11 +1450,13 @@ def request_room_adjustment(room_id):
 
         mysql.connection.commit()
 
-        return jsonify({
-            "success": True,
-            "message": "Request submitted successfully",
-            "request_id": request_id,
-        })
+        return jsonify(
+            {
+                "success": True,
+                "message": "Request submitted successfully",
+                "request_id": request_id,
+            }
+        )
 
     except Exception as e:
         log.error(f"Error in room adjustment request: {e}")
@@ -1431,9 +1467,11 @@ def request_room_adjustment(room_id):
         if cursor:
             cursor.close()
 
+
 # =============================================================================
 # REQUEST STATUS API ROUTES
 # =============================================================================
+
 
 @app.route("/api/user/room-requests")
 @login_required
@@ -1454,19 +1492,33 @@ def get_user_room_requests():
 
         requests = []
         for row in cursor.fetchall():
-            requests.append({
-                'id': row['id'],
-                'room_id': row['room_id'],
-                'room_name': row['room_name'],
-                'request_type': row['request_type'],
-                'current_temperature': float(row['current_temperature']) if row['current_temperature'] else None,
-                'target_temperature': float(row['target_temperature']) if row['target_temperature'] else None,
-                'fan_level_request': row['fan_level_request'],
-                'user_notes': row['user_notes'],
-                'status': row['status'],
-                'estimated_completion_time': row['estimated_completion_time'].isoformat() if row['estimated_completion_time'] else None,
-                'created_at': row['created_at'].isoformat(),
-            })
+            requests.append(
+                {
+                    "id": row["id"],
+                    "room_id": row["room_id"],
+                    "room_name": row["room_name"],
+                    "request_type": row["request_type"],
+                    "current_temperature": (
+                        float(row["current_temperature"])
+                        if row["current_temperature"]
+                        else None
+                    ),
+                    "target_temperature": (
+                        float(row["target_temperature"])
+                        if row["target_temperature"]
+                        else None
+                    ),
+                    "fan_level_request": row["fan_level_request"],
+                    "user_notes": row["user_notes"],
+                    "status": row["status"],
+                    "estimated_completion_time": (
+                        row["estimated_completion_time"].isoformat()
+                        if row["estimated_completion_time"]
+                        else None
+                    ),
+                    "created_at": row["created_at"].isoformat(),
+                }
+            )
 
         return jsonify(requests)
 
@@ -1476,15 +1528,19 @@ def get_user_room_requests():
     finally:
         cursor.close()
 
+
 # =============================================================================
 # ADMIN ROOM REQUESTS ROUTES
 # =============================================================================
+
 
 @app.route("/admin/room-requests")
 @login_required
 def admin_room_requests():
     """Admin panel for managing room condition requests"""
-    log.debug(f"Session data - user_id: {session.get('user_id')}, role: {session.get('role')}")
+    log.debug(
+        f"Session data - user_id: {session.get('user_id')}, role: {session.get('role')}"
+    )
 
     if not is_admin(session["user_id"]):
         flash("Access denied. Admin privileges required.", "error")
@@ -1493,18 +1549,23 @@ def admin_room_requests():
     cursor = mysql.connection.cursor()
 
     # Get counts for stats
-    cursor.execute("SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'pending'")
-    pending_count = cursor.fetchone()['count']
-
-    cursor.execute("SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'viewed'")
-    viewed_count = cursor.fetchone()['count']
+    cursor.execute(
+        "SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'pending'"
+    )
+    pending_count = cursor.fetchone()["count"]
 
     cursor.execute(
-        "SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'approved' AND DATE(created_at) = CURDATE()")
-    approved_count = cursor.fetchone()['count']
+        "SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'viewed'"
+    )
+    viewed_count = cursor.fetchone()["count"]
+
+    cursor.execute(
+        "SELECT COUNT(*) as count FROM room_condition_requests WHERE status = 'approved' AND DATE(created_at) = CURDATE()"
+    )
+    approved_count = cursor.fetchone()["count"]
 
     cursor.execute("SELECT COUNT(*) as count FROM rooms")
-    rooms_count = cursor.fetchone()['count']
+    rooms_count = cursor.fetchone()["count"]
 
     cursor.close()
 
@@ -1516,6 +1577,7 @@ def admin_room_requests():
         rooms_count=rooms_count,
         active_page="admin_room_requests",
     )
+
 
 @app.route("/api/admin/room-requests")
 @login_required
@@ -1546,158 +1608,201 @@ def get_admin_room_requests():
 
     requests = []
     for row in cursor.fetchall():
-        requests.append({
-            'id': row['id'],
-            'room_id': row['room_id'],
-            'user_id': row['user_id'],
-            'request_type': row['request_type'],
-            'current_temperature': float(row['current_temperature']) if row['current_temperature'] else None,
-            'target_temperature': float(row['target_temperature']) if row['target_temperature'] else None,
-            'fan_level_request': row['fan_level_request'],
-            'user_notes': row['user_notes'],
-            'status': row['status'],
-            'estimated_completion_time': row['estimated_completion_time'].isoformat() if row[
-                'estimated_completion_time'] else None,
-            'created_at': row['created_at'].isoformat(),
-            'username': row['username'],
-            'room_name': row['room_name']
-        })
+        requests.append(
+            {
+                "id": row["id"],
+                "room_id": row["room_id"],
+                "user_id": row["user_id"],
+                "request_type": row["request_type"],
+                "current_temperature": (
+                    float(row["current_temperature"])
+                    if row["current_temperature"]
+                    else None
+                ),
+                "target_temperature": (
+                    float(row["target_temperature"])
+                    if row["target_temperature"]
+                    else None
+                ),
+                "fan_level_request": row["fan_level_request"],
+                "user_notes": row["user_notes"],
+                "status": row["status"],
+                "estimated_completion_time": (
+                    row["estimated_completion_time"].isoformat()
+                    if row["estimated_completion_time"]
+                    else None
+                ),
+                "created_at": row["created_at"].isoformat(),
+                "username": row["username"],
+                "room_name": row["room_name"],
+            }
+        )
 
     cursor.close()
 
     log.debug(f"Returning {len(requests)} requests to admin panel")
     return jsonify(requests)
 
-@app.route('/api/admin/room-requests/<int:request_id>/view', methods=['POST'])
+
+@app.route("/api/admin/room-requests/<int:request_id>/view", methods=["POST"])
 @login_required
 def mark_request_viewed(request_id):
     """Mark a request as viewed by admin"""
-    if not is_admin(session['user_id']):
-        return jsonify({'error': 'Unauthorized'}), 403
+    if not is_admin(session["user_id"]):
+        return jsonify({"error": "Unauthorized"}), 403
 
     cursor = mysql.connection.cursor()
     try:
         log.debug(f"Marking request {request_id} as viewed")
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE room_condition_requests
             SET status = 'viewed',
                 updated_at = NOW()
             WHERE id = %s
-        """, (request_id,))
+        """,
+            (request_id,),
+        )
 
         # Create notification for user
-        cursor.execute("SELECT user_id FROM room_condition_requests WHERE id = %s", (request_id,))
+        cursor.execute(
+            "SELECT user_id FROM room_condition_requests WHERE id = %s", (request_id,)
+        )
         result = cursor.fetchone()
 
         if result:
-            user_id = result['user_id']
-            cursor.execute("""
+            user_id = result["user_id"]
+            cursor.execute(
+                """
                 INSERT INTO user_notifications (user_id, request_id, title, message, type)
                 VALUES (%s, %s, 'Request Viewed', 'An admin is now reviewing your room adjustment request.', 'info')
-            """, (user_id, request_id))
+            """,
+                (user_id, request_id),
+            )
 
         mysql.connection.commit()
-        return jsonify({'success': True})
+        return jsonify({"success": True})
 
     except Exception as e:
         mysql.connection.rollback()
         log.error(f"Error marking as viewed: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
     finally:
         cursor.close()
 
-@app.route('/api/admin/room-requests/<int:request_id>/approve', methods=['POST'])
+
+@app.route("/api/admin/room-requests/<int:request_id>/approve", methods=["POST"])
 @login_required
 def approve_room_request(request_id):
     """Approve a room request"""
-    if not is_admin(session['user_id']):
-        return jsonify({'error': 'Unauthorized'}), 403
+    if not is_admin(session["user_id"]):
+        return jsonify({"error": "Unauthorized"}), 403
 
     data = request.json
     cursor = mysql.connection.cursor()
 
     try:
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE room_condition_requests
             SET status = 'approved',
                 estimated_completion_time = %s,
                 updated_at = NOW()
             WHERE id = %s
-        """, (data.get('estimated_completion_time'), request_id))
+        """,
+            (data.get("estimated_completion_time"), request_id),
+        )
 
         # Get request details for notification
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT r.user_id, r.request_type, r.room_id, r.target_temperature
             FROM room_condition_requests r
             WHERE id = %s
-        """, (request_id,))
+        """,
+            (request_id,),
+        )
         req_data = cursor.fetchone()
 
         if req_data:
             # Create success notification for user
-            completion_time = data.get('estimated_completion_time', 'soon')
+            completion_time = data.get("estimated_completion_time", "soon")
             message = f"Your {req_data['request_type'].replace('_', ' ')} request has been approved. "
             message += f"Estimated completion: {completion_time}"
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO user_notifications (user_id, request_id, title, message, type)
                 VALUES (%s, %s, 'Request Approved', %s, 'success')
-            """, (req_data['user_id'], request_id, message))
+            """,
+                (req_data["user_id"], request_id, message),
+            )
 
         mysql.connection.commit()
-        return jsonify({'success': True})
+        return jsonify({"success": True})
 
     except Exception as e:
         mysql.connection.rollback()
         log.error(f"Error approving request: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
     finally:
         cursor.close()
 
-@app.route('/api/admin/room-requests/<int:request_id>/deny', methods=['POST'])
+
+@app.route("/api/admin/room-requests/<int:request_id>/deny", methods=["POST"])
 @login_required
 def deny_room_request(request_id):
     """Deny a room request"""
-    if not is_admin(session['user_id']):
-        return jsonify({'error': 'Unauthorized'}), 403
+    if not is_admin(session["user_id"]):
+        return jsonify({"error": "Unauthorized"}), 403
 
     data = request.json
     cursor = mysql.connection.cursor()
 
     try:
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE room_condition_requests
             SET status = 'denied',
                 updated_at = NOW()
             WHERE id = %s
-        """, (request_id,))
+        """,
+            (request_id,),
+        )
 
         # Get user ID for notification
-        cursor.execute("SELECT user_id FROM room_condition_requests WHERE id = %s", (request_id,))
+        cursor.execute(
+            "SELECT user_id FROM room_condition_requests WHERE id = %s", (request_id,)
+        )
         result = cursor.fetchone()
 
         if result:
-            user_id = result['user_id']
-            reason = data.get('reason', 'No reason provided')
-            cursor.execute("""
+            user_id = result["user_id"]
+            reason = data.get("reason", "No reason provided")
+            cursor.execute(
+                """
                 INSERT INTO user_notifications (user_id, request_id, title, message, type)
                 VALUES (%s, %s, 'Request Denied', %s, 'error')
-            """, (user_id, request_id, f"Your request was denied. Reason: {reason}"))
+            """,
+                (user_id, request_id, f"Your request was denied. Reason: {reason}"),
+            )
 
         mysql.connection.commit()
-        return jsonify({'success': True})
+        return jsonify({"success": True})
 
     except Exception as e:
         mysql.connection.rollback()
         log.error(f"Error denying request: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
     finally:
         cursor.close()
+
 
 # =============================================================================
 # ADMIN USER MANAGEMENT ROUTES
 # =============================================================================
+
 
 @app.route("/admin/create-user", methods=["POST"])
 @login_required
@@ -1725,7 +1830,10 @@ def admin_create_user():
 
     # Validate password strength
     if not PWD_RE.match(password):
-        flash("Password must be ≥ 8 chars, include one uppercase, one number, and one symbol.", "error")
+        flash(
+            "Password must be ≥ 8 chars, include one uppercase, one number, and one symbol.",
+            "error",
+        )
         return redirect(url_for("settings"))
 
     hashed = generate_password_hash(password)
@@ -1733,7 +1841,9 @@ def admin_create_user():
     cur = db_cursor()
     try:
         # Check if username or email already exists
-        cur.execute("SELECT id FROM users WHERE username = %s OR email = %s", (username, email))
+        cur.execute(
+            "SELECT id FROM users WHERE username = %s OR email = %s", (username, email)
+        )
         if cur.fetchone():
             flash("Username or email already exists.", "error")
             return redirect(url_for("settings"))
@@ -1757,6 +1867,7 @@ def admin_create_user():
         cur.close()
 
     return redirect(url_for("settings"))
+
 
 @app.route("/delete-user/<int:user_id>", methods=["POST"])
 @login_required
@@ -1787,7 +1898,9 @@ def delete_user(user_id):
         if current_user_role == "technician":
             # Technicians can only delete users and viewers
             if target_user_role in ["admin", "technician"]:
-                flash("Technicians cannot delete admin or technician accounts.", "error")
+                flash(
+                    "Technicians cannot delete admin or technician accounts.", "error"
+                )
                 return redirect(url_for("settings"))
         elif current_user_role == "admin":
             # Admins can delete anyone except themselves (already checked above)
@@ -1806,6 +1919,7 @@ def delete_user(user_id):
         cur.close()
 
     return redirect(url_for("settings"))
+
 
 @app.route("/update-user-role/<int:user_id>", methods=["POST"])
 @login_required
@@ -1843,14 +1957,20 @@ def update_user_role(user_id):
             # Technicians can change any role
             cur.execute("UPDATE users SET role = %s WHERE id = %s", (new_role, user_id))
             mysql.connection.commit()
-            flash(f"Successfully updated {target_username}'s role from {target_user_role} to {new_role}.", "success")
+            flash(
+                f"Successfully updated {target_username}'s role from {target_user_role} to {new_role}.",
+                "success",
+            )
 
         # Permission checks for admins
         elif current_user_role == "admin":
             # Admins can change any role
             cur.execute("UPDATE users SET role = %s WHERE id = %s", (new_role, user_id))
             mysql.connection.commit()
-            flash(f"Successfully updated {target_username}'s role to {new_role}.", "success")
+            flash(
+                f"Successfully updated {target_username}'s role to {new_role}.",
+                "success",
+            )
 
     except Exception as e:
         mysql.connection.rollback()
@@ -1861,9 +1981,11 @@ def update_user_role(user_id):
 
     return redirect(url_for("settings"))
 
+
 # =============================================================================
 # NOTIFICATION ROUTES
 # =============================================================================
+
 
 @app.route("/notifications")
 @login_required
@@ -1910,6 +2032,7 @@ def notifications():
         approved_requests=approved_requests,
         denied_requests=denied_requests,
     )
+
 
 @app.route("/api/user/notifications")
 @login_required
@@ -1969,6 +2092,7 @@ def get_user_notifications():
     finally:
         cursor.close()
 
+
 @app.route("/api/user/notifications/<int:notification_id>/read", methods=["POST"])
 @login_required
 def mark_notification_read(notification_id):
@@ -1993,6 +2117,7 @@ def mark_notification_read(notification_id):
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
         cursor.close()
+
 
 @app.route("/api/user/notifications/read-all", methods=["POST"])
 @login_required
@@ -2019,6 +2144,7 @@ def mark_all_notifications_read():
     finally:
         cursor.close()
 
+
 @app.route("/api/user/notifications/unread-count")
 @login_required
 def get_unread_notification_count():
@@ -2043,9 +2169,11 @@ def get_unread_notification_count():
     finally:
         cursor.close()
 
+
 # =============================================================================
 # ROOM-SPECIFIC NOTIFICATION ROUTES
 # =============================================================================
+
 
 @app.route("/api/room/<int:room_id>/notifications")
 @login_required
@@ -2058,10 +2186,10 @@ def get_room_notifications(room_id):
     try:
         # Check if user has access to this room
         user_role = session.get("role")
-        if user_role not in ['admin', 'technician']:
+        if user_role not in ["admin", "technician"]:
             cursor.execute(
                 "SELECT 1 FROM user_rooms WHERE user_id = %s AND room_id = %s",
-                (session["user_id"], room_id)
+                (session["user_id"], room_id),
             )
             if not cursor.fetchone():
                 return jsonify([])
@@ -2106,9 +2234,11 @@ def get_room_notifications(room_id):
     finally:
         cursor.close()
 
+
 # =============================================================================
 # SETTINGS & USER MANAGEMENT ROUTES
 # =============================================================================
+
 
 @app.route("/settings")
 @login_required
@@ -2120,7 +2250,9 @@ def settings():
         if session.get("role") == "technician":
             cur.execute("SELECT id, username, email, role FROM users ORDER BY id ASC")
         else:
-            cur.execute("SELECT id, username, email, role FROM users WHERE role != 'technician' ORDER BY id ASC")
+            cur.execute(
+                "SELECT id, username, email, role FROM users WHERE role != 'technician' ORDER BY id ASC"
+            )
         users = cur.fetchall()
         cur.close()
 
@@ -2136,6 +2268,7 @@ def settings():
 # THEME MANAGEMENT
 # =============================================================================
 
+
 @app.context_processor
 def inject_theme():
     return dict(current_theme=session.get("theme", "system"))
@@ -2148,6 +2281,60 @@ def set_theme(theme):
         session["theme"] = theme
         flash(f"Theme changed to {theme} mode", "success")
     return redirect(request.referrer or url_for("dashboard"))
+
+
+# =============================================================================
+# change password route
+# =============================================================================
+@app.route("/change-password", methods=["GET", "POST"])
+def change_password():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        current_password = request.form.get("current_password")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        cursor = db_cursor()
+        cursor.execute("SELECT password FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            flash("User not found.", "error")
+            return redirect("/change-password")
+
+        # Validate current password
+        if not check_password_hash(user["password"], current_password):
+            flash("Current password is incorrect.", "error")
+            return redirect("/change-password")
+
+        # Check new passwords match
+        if new_password != confirm_password:
+            flash("New passwords do not match.", "error")
+            return redirect("/change-password")
+
+        # Update password
+        if not PWD_RE.match(new_password):
+            flash(
+                "Password must be at least 8 characters, include an uppercase letter, a number, and a special character.",
+                "error",
+            )
+            return redirect("/change-password")
+
+        hashed_pw = generate_password_hash(new_password)
+        cursor.execute(
+            "UPDATE users SET password = %s WHERE id = %s", (hashed_pw, user_id)
+        )
+        mysql.connection.commit()
+        cursor.close()
+
+        flash("Password changed successfully!", "success")
+        return redirect("/settings")
+
+    return render_template("change_password.html")
 
 
 # =============================================================================
