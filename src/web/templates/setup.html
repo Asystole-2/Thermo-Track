@@ -49,24 +49,22 @@
                 </section>
             {% endif %}
 
-            <!-- Search Bar (Regular Users Only) -->
-            {% if session.role not in ['admin', 'technician'] %}
-                <section class="mb-6">
-                    <div class="card p-4">
-                        <div class="relative">
-                            <input
-                                    type="text"
-                                    id="roomSearchInput"
-                                    placeholder="Search rooms by name, location, or devices..."
-                                    class="w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent transition duration-200"
-                            >
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-search text-text-muted"></i>
-                            </div>
+            <!-- Search Bar -->
+            <section class="mb-6">
+                <div class="card p-4">
+                    <div class="relative">
+                        <input
+                                type="text"
+                                id="roomSearchInput"
+                                placeholder="{% if session.role in ['admin', 'technician'] %}Search all rooms by name, location, devices, owner, or readings...{% else %}Search rooms by name, location, or devices...{% endif %}"
+                                class="w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent transition duration-200"
+                        >
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-text-muted"></i>
                         </div>
                     </div>
-                </section>
-            {% endif %}
+                </div>
+            </section>
 
             <!-- Room Management Filters (Regular Users Only) -->
             {% if session.role not in ['admin', 'technician'] %}
@@ -370,7 +368,7 @@
                 </section>
             {% endif %}
 
-            <!-- All Rooms Section (Admin/Technician only) - NO FILTERS -->
+            <!-- All Rooms Section (Admin/Technician only) -->
             {% if session.role in ['admin', 'technician'] %}
                 <section id="allRoomsSection">
                     <div class="flex items-center justify-between mb-4">
@@ -380,7 +378,8 @@
                         </h3>
                         <span class="text-xs text-text-muted room-count flex items-center gap-1">
                             <i class="fas fa-hashtag"></i>
-                            {{ all_rooms|length }} room{% if all_rooms|length != 1 %}s{% endif %} total
+                            <span id="allRoomsCount">{{ all_rooms|length }}</span> of {{ all_rooms|length }} room
+                            {% if all_rooms|length != 1 %}s{% endif %} total
                         </span>
                     </div>
 
@@ -419,9 +418,17 @@
                                         {% endif %}
                                     </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="allRoomsTable">
                                     {% for r in all_rooms %}
-                                        <tr class="hover:bg-tertiary/40 transition border-b border-border">
+                                        <tr class="all-room-row hover:bg-tertiary/40 transition border-b border-border"
+                                            data-room-name="{{ r.room_name.lower() }}"
+                                            data-location="{{ (r.location or '').lower() }}"
+                                            data-devices="{{ r.devices_count }}"
+                                            data-readings="{{ r.devices_with_readings }}"
+                                            data-temp="{{ r.avg_temp or '' }}"
+                                            data-humidity="{{ r.avg_humidity or '' }}"
+                                            data-owner="{{ (r.owner_username or '').lower() }}"
+                                            data-last-update="{{ (r.last_update or '')|string|lower }}">
                                             <td class="whitespace-nowrap p-3">
                                                 <a href="{{ url_for('room', room_id=r.id) }}"
                                                    class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2">
@@ -607,13 +614,14 @@
     <!-- Search Functionality -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Only initialize for regular users
+            const searchInput = document.getElementById('roomSearchInput');
+
             {% if session.role not in ['admin', 'technician'] %}
+                // Regular user functionality
                 console.log('Initializing setup page for regular user');
 
                 const filterButtons = document.querySelectorAll('.filter-room-btn');
                 const roomSections = document.querySelectorAll('.room-section');
-                const searchInput = document.getElementById('roomSearchInput');
 
                 function showSection(sectionType) {
                     console.log('Switching to section type:', sectionType);
@@ -680,15 +688,11 @@
                         const location = row.dataset.location || '';
                         const devices = row.dataset.devices || '';
 
-                        console.log(`Row ${index}:`, {roomName, location, devices});
-
                         const searchLower = searchTerm.toLowerCase();
                         const matches = !searchTerm ||
                             roomName.includes(searchLower) ||
                             location.includes(searchLower) ||
                             devices.includes(searchLower);
-
-                        console.log(`Row ${index} matches:`, matches);
 
                         if (matches) {
                             row.classList.remove('hidden');
@@ -710,10 +714,87 @@
                     });
                 });
 
-                if (searchInput) {
-                    searchInput.addEventListener('input', function () {
-                        const searchTerm = this.value.trim();
-                        console.log('Search input:', searchTerm);
+                // Initialize
+                showSection('my-rooms');
+
+            {% else %}
+                // Admin/Technician functionality
+                console.log('Initializing setup page for admin/technician');
+
+                function filterAllRooms(searchTerm) {
+                    const allRoomsSection = document.getElementById('allRoomsSection');
+                    if (!allRoomsSection) {
+                        console.log('All rooms section not found');
+                        return;
+                    }
+
+                    console.log(`Filtering all rooms with: "${searchTerm}"`);
+                    const rows = allRoomsSection.querySelectorAll('.all-room-row');
+                    console.log(`Total rows to filter: ${rows.length}`);
+
+                    let visibleCount = 0;
+
+                    rows.forEach((row, index) => {
+                        const roomName = row.dataset.roomName || '';
+                        const location = row.dataset.location || '';
+                        const devices = row.dataset.devices || '';
+                        const readings = row.dataset.readings || '';
+                        const temp = row.dataset.temp || '';
+                        const humidity = row.dataset.humidity || '';
+                        const owner = row.dataset.owner || '';
+                        const lastUpdate = row.dataset.lastUpdate || '';
+
+                        const searchLower = searchTerm.toLowerCase();
+                        const matches = !searchTerm ||
+                            roomName.includes(searchLower) ||
+                            location.includes(searchLower) ||
+                            devices.includes(searchLower) ||
+                            readings.includes(searchLower) ||
+                            temp.includes(searchLower) ||
+                            humidity.includes(searchLower) ||
+                            owner.includes(searchLower) ||
+                            lastUpdate.includes(searchLower);
+
+                        if (matches) {
+                            row.classList.remove('hidden');
+                            visibleCount++;
+                        } else {
+                            row.classList.add('hidden');
+                        }
+                    });
+
+                    // Update count display
+                    const countElement = document.getElementById('allRoomsCount');
+                    if (countElement) {
+                        countElement.textContent = visibleCount;
+                    }
+
+                    console.log(`Filter complete: ${visibleCount} rooms match "${searchTerm}"`);
+                }
+
+                function clearAllRoomsSearch() {
+                    const allRoomsSection = document.getElementById('allRoomsSection');
+                    if (allRoomsSection) {
+                        const rows = allRoomsSection.querySelectorAll('.all-room-row');
+                        rows.forEach(row => row.classList.remove('hidden'));
+
+                        const countElement = document.getElementById('allRoomsCount');
+                        if (countElement) {
+                            countElement.textContent = rows.length;
+                        }
+                    }
+                }
+
+            {% endif %}
+
+            // Common search functionality for all users
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const searchTerm = this.value.trim();
+                    console.log('Search input:', searchTerm);
+
+                    {% if session.role not in ['admin', 'technician'] %}
+                        // Regular user search
                         if (searchTerm) {
                             filterRooms(searchTerm);
                         } else {
@@ -725,13 +806,144 @@
                                 updateRoomCount(activeSection);
                             }
                         }
-                    });
-                }
-
-                // Initialize
-                showSection('my-rooms');
-            {% endif %}
+                    {% else %}
+                        // Admin/Technician search
+                        if (searchTerm) {
+                            filterAllRooms(searchTerm);
+                        } else {
+                            clearAllRoomsSearch();
+                        }
+                    {% endif %}
+                });
+            }
         });
+    </script>
+    document.addEventListener('DOMContentLoaded', function () {
+    // Only initialize for regular users
+    {% if session.role not in ['admin', 'technician'] %}
+        console.log('Initializing setup page for regular user');
+
+        const filterButtons = document.querySelectorAll('.filter-room-btn');
+        const roomSections = document.querySelectorAll('.room-section');
+        const searchInput = document.getElementById('roomSearchInput');
+
+        function showSection(sectionType) {
+        console.log('Switching to section type:', sectionType);
+
+        const sectionId = sectionType === 'my-rooms' ? 'myRoomsSection' : 'availableRoomsSection';
+        const targetSection = document.getElementById(sectionId);
+
+        // Hide all room sections
+        roomSections.forEach(section => {
+        section.classList.add('hidden');
+        });
+
+        // Show selected section
+        if (targetSection) {
+        targetSection.classList.remove('hidden');
+        console.log('Section displayed:', targetSection.id);
+        updateRoomCount(targetSection);
+        }
+
+        // Update button states
+        filterButtons.forEach(btn => {
+        if (btn.dataset.filter === sectionType) {
+        btn.classList.remove('inactive', 'bg-tertiary', 'text-text-secondary');
+        btn.classList.add('active', 'bg-accent-blue', 'text-white');
+        } else {
+        btn.classList.remove('active', 'bg-accent-blue', 'text-white');
+        btn.classList.add('inactive', 'bg-tertiary', 'text-text-secondary');
+        }
+        });
+
+        // Apply search filter
+        if (searchInput && searchInput.value.trim()) {
+        filterRooms(searchInput.value.trim());
+        }
+        }
+
+        function updateRoomCount(section) {
+        const rows = section.querySelectorAll('.room-row');
+        const visibleRows = Array.from(rows).filter(row => !row.classList.contains('hidden'));
+        const countElement = section.querySelector('.room-count span');
+
+        console.log(`Updating count: ${visibleRows.length} visible rows`);
+
+        if (countElement) {
+        countElement.textContent = visibleRows.length;
+        }
+        }
+
+        function filterRooms(searchTerm) {
+        const activeSection = document.querySelector('.room-section:not(.hidden)');
+        if (!activeSection) {
+        console.log('No active section found');
+        return;
+        }
+
+        console.log(`Filtering rooms with: "${searchTerm}"`);
+        const rows = activeSection.querySelectorAll('.room-row');
+        console.log(`Total rows to filter: ${rows.length}`);
+
+        let visibleCount = 0;
+
+        rows.forEach((row, index) => {
+        const roomName = row.dataset.roomName || '';
+        const location = row.dataset.location || '';
+        const devices = row.dataset.devices || '';
+
+        console.log(`Row ${index}:`, {roomName, location, devices});
+
+        const searchLower = searchTerm.toLowerCase();
+        const matches = !searchTerm ||
+        roomName.includes(searchLower) ||
+        location.includes(searchLower) ||
+        devices.includes(searchLower);
+
+        console.log(`Row ${index} matches:`, matches);
+
+        if (matches) {
+        row.classList.remove('hidden');
+        visibleCount++;
+        } else {
+        row.classList.add('hidden');
+        }
+        });
+
+        updateRoomCount(activeSection);
+        console.log(`Filter complete: ${visibleCount} rooms match "${searchTerm}"`);
+        }
+
+        // Add event listeners
+        filterButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+        const filterType = this.getAttribute('data-filter');
+        showSection(filterType);
+        });
+        });
+
+        if (searchInput) {
+        searchInput.addEventListener('input', function () {
+        const searchTerm = this.value.trim();
+        console.log('Search input:', searchTerm);
+        if (searchTerm) {
+        filterRooms(searchTerm);
+        } else {
+        // Clear search - show all rows
+        const activeSection = document.querySelector('.room-section:not(.hidden)');
+        if (activeSection) {
+        const rows = activeSection.querySelectorAll('.room-row');
+        rows.forEach(row => row.classList.remove('hidden'));
+        updateRoomCount(activeSection);
+        }
+        }
+        });
+        }
+
+        // Initialize
+        showSection('my-rooms');
+    {% endif %}
+    });
     </script>
     <!-- Modal Script -->
     <script>
@@ -780,13 +992,15 @@
             display: table-cell !important;
         }
 
-        /* Override any hiding that might be happening */
         .room-section .room-row {
             display: table-row !important;
         }
 
-        /* Fix for search functionality - properly hide table rows */
         .room-section .room-row.hidden {
+            display: none !important;
+        }
+
+        .all-room-row.hidden {
             display: none !important;
         }
 
