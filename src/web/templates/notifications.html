@@ -131,103 +131,149 @@
     </div>
 
     <script>
-        // Load notifications on page load
-        document.addEventListener('DOMContentLoaded', function () {
+// Load notifications on page load and set up auto-refresh
+document.addEventListener('DOMContentLoaded', function () {
+    // Initial load
+    loadNotifications();
+    initializeModalListeners();
+
+    // Set up visibility change listener for auto-refresh when tab becomes active
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            // Page became visible, refresh notifications
+            console.log('Page became visible - refreshing notifications...');
             loadNotifications();
-            initializeModalListeners();
-        });
-
-        function loadNotifications() {
-            const tableBody = document.getElementById('notifications-table-body');
-            const emptyState = document.getElementById('empty-state');
-            const loadingState = document.getElementById('loading-state');
-
-            tableBody.innerHTML = '';
-            emptyState.classList.add('hidden');
-            loadingState.classList.remove('hidden');
-
-            fetch('/api/user/notifications')
-                .then(response => {
-                    if (!response.ok) throw new Error('Failed to load notifications');
-                    return response.json();
-                })
-                .then(notifications => {
-                    loadingState.classList.add('hidden');
-
-                    if (notifications.length === 0) {
-                        emptyState.classList.remove('hidden');
-                        return;
-                    }
-
-                    notifications.forEach(notification => {
-                        const row = document.createElement('tr');
-                        row.className = `border-b border-gray-700 ${!notification.is_read ? 'bg-blue-900/20' : ''}`;
-
-                        row.innerHTML = `
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full ${getNotificationColor(notification.type)}"></span>
-                                    <span class="capitalize">${notification.type}</span>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 font-medium text-white">${notification.room_name || '—'}</td>
-                            <td class="px-4 py-3">
-                                <div>
-                                    <div class="font-medium text-white">${notification.title}</div>
-                                    <div class="text-gray-500 text-xs">${notification.message}</div>
-                                    ${notification.estimated_completion ? `
-                                        <div class="flex items-center gap-1 text-yellow-400 text-xs mt-1">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                            </svg>
-                                            Est: ${new Date(notification.estimated_completion).toLocaleString()}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(notification.request_status)}">
-                                    ${notification.request_status ? notification.request_status.replace('_', ' ') : 'notification'}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-gray-400">
-                                ${new Date(notification.created_at).toLocaleDateString()}
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="flex gap-2">
-                                    ${!notification.is_read ? `
-                                        <button onclick="markAsRead('${notification.id}')"
-                                                class="text-blue-400 hover:text-blue-300 text-sm">
-                                            Mark Read
-                                        </button>
-                                    ` : ''}
-                                    ${notification.request_id ? `
-                                        <button onclick="viewRequestDetails('${notification.request_id}')"
-                                                class="text-green-400 hover:text-green-300 text-sm">
-                                            Details
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            </td>
-                        `;
-
-                        tableBody.appendChild(row);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading notifications:', error);
-                    loadingState.classList.add('hidden');
-                    emptyState.innerHTML = `
-                        <svg class="w-16 h-16 mx-auto text-red-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                        </svg>
-                        <h3 class="text-lg font-semibold text-red-400 mb-2">Failed to load notifications</h3>
-                        <p class="text-gray-500">Please try refreshing the page.</p>
-                    `;
-                    emptyState.classList.remove('hidden');
-                });
         }
+    });
 
+    // Auto-refresh every 60 seconds when page is active
+    let refreshInterval;
+
+    function startAutoRefresh() {
+        refreshInterval = setInterval(() => {
+            if (!document.hidden) {
+                console.log('Auto-refreshing notifications...');
+                loadNotifications();
+            }
+        }, 60000); // 60 seconds
+    }
+
+    function stopAutoRefresh() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+    }
+
+    // Start auto-refresh when page is visible
+    if (!document.hidden) {
+        startAutoRefresh();
+    }
+
+    // Manage auto-refresh based on page visibility
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            stopAutoRefresh();
+        } else {
+            startAutoRefresh();
+            // Also do an immediate refresh when coming back to the page
+            loadNotifications();
+        }
+    });
+});
+
+function loadNotifications() {
+    const tableBody = document.getElementById('notifications-table-body');
+    const emptyState = document.getElementById('empty-state');
+    const loadingState = document.getElementById('loading-state');
+
+    tableBody.innerHTML = '';
+    emptyState.classList.add('hidden');
+    loadingState.classList.remove('hidden');
+
+    // Add cache busting to prevent browser caching
+    const timestamp = new Date().getTime();
+
+    fetch(`/api/user/notifications?t=${timestamp}`)
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to load notifications');
+            return response.json();
+        })
+        .then(notifications => {
+            loadingState.classList.add('hidden');
+
+            if (notifications.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            notifications.forEach(notification => {
+                const row = document.createElement('tr');
+                row.className = `border-b border-gray-700 ${!notification.is_read ? 'bg-blue-900/20' : ''}`;
+
+                row.innerHTML = `
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full ${getNotificationColor(notification.type)}"></span>
+                            <span class="capitalize">${notification.type}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 font-medium text-white">${notification.room_name || '—'}</td>
+                    <td class="px-4 py-3">
+                        <div>
+                            <div class="font-medium text-white">${notification.title}</div>
+                            <div class="text-gray-500 text-xs">${notification.message}</div>
+                            ${notification.estimated_completion ? `
+                                <div class="flex items-center gap-1 text-yellow-400 text-xs mt-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Est: ${new Date(notification.estimated_completion).toLocaleString()}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(notification.request_status)}">
+                            ${notification.request_status ? notification.request_status.replace('_', ' ') : 'notification'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-400">
+                        ${new Date(notification.created_at).toLocaleDateString()}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex gap-2">
+                            ${!notification.is_read ? `
+                                <button onclick="markAsRead('${notification.id}')"
+                                        class="text-blue-400 hover:text-blue-300 text-sm">
+                                    Mark Read
+                                </button>
+                            ` : ''}
+                            ${notification.request_id ? `
+                                <button onclick="viewRequestDetails('${notification.request_id}')"
+                                        class="text-green-400 hover:text-green-300 text-sm">
+                                    Details
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading notifications:', error);
+            loadingState.classList.add('hidden');
+            emptyState.innerHTML = `
+                <svg class="w-16 h-16 mx-auto text-red-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+                <h3 class="text-lg font-semibold text-red-400 mb-2">Failed to load notifications</h3>
+                <p class="text-gray-500">Please try refreshing the page.</p>
+            `;
+            emptyState.classList.remove('hidden');
+        });
+}
         function getNotificationColor(type) {
             const colors = {
                 'success': 'bg-green-500',
