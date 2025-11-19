@@ -22,8 +22,9 @@
                     <div class="flex items-center gap-3">
                         {% if session.role in ['admin', 'technician'] %}
                             <button id="openAddDeviceModal"
-                                    class="btn p-2 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded">
-                                + Add Device
+                                    class="btn bg-accent-blue hover:bg-accent-blue-hover text-white rounded flex items-center gap-2">
+                                <i class="fas fa-plus"></i>
+                                Add Device
                             </button>
                         {% endif %}
                         {% include 'components/notification_bell.html' %}
@@ -33,23 +34,20 @@
 
             {% if session.role not in ['admin', 'technician'] and user_rooms|length == 0 and available_rooms|length == 0 %}
                 <section class="mb-6">
-                    <div class="card p-6 bg-yellow-900/20 border border-yellow-600">
+                    <div class="card p-6 bg-accent-yellow/20 border border-accent-yellow">
                         <div class="flex items-center gap-3">
-                            <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                            </svg>
+                            <i class="fas fa-exclamation-triangle text-accent-yellow text-xl"></i>
                             <div>
-                                <h4 class="text-lg font-semibold text-yellow-300">No Rooms Available</h4>
-                                <p class="text-yellow-200 text-sm">
-                                    There are no rooms available in the system yet. Please contact an administrator to
-                                    add rooms.
+                                <h4 class="text-lg font-semibold text-accent-yellow">No Rooms Available</h4>
+                                <p class="text-text-secondary text-sm">
+                                    There are no rooms available in the system yet. Please contact an administrator to add rooms.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </section>
             {% endif %}
+
             <!-- Search Bar (Regular Users Only) -->
             {% if session.role not in ['admin', 'technician'] %}
                 <section class="mb-6">
@@ -59,14 +57,10 @@
                                     type="text"
                                     id="roomSearchInput"
                                     placeholder="Search rooms by name, location, or devices..."
-                                    class="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                    class="w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent transition duration-200"
                             >
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
+                                <i class="fas fa-search text-text-muted"></i>
                             </div>
                         </div>
                     </div>
@@ -79,13 +73,15 @@
                     <div class="card p-4">
                         <div class="flex flex-wrap gap-2">
                             <button id="filterMyRooms"
-                                    class="filter-room-btn active px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-blue-600 text-white"
+                                    class="filter-room-btn active px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-accent-blue text-white flex items-center gap-2"
                                     data-filter="my-rooms">
+                                <i class="fas fa-home"></i>
                                 My Rooms ({{ user_rooms|length }})
                             </button>
                             <button id="filterAvailableRooms"
-                                    class="filter-room-btn inactive px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-gray-600 text-gray-300"
+                                    class="filter-room-btn inactive px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-tertiary text-text-secondary hover:bg-tertiary-hover flex items-center gap-2"
                                     data-filter="available-rooms">
+                                <i class="fas fa-door-open"></i>
                                 Available Rooms ({{ available_rooms|length }})
                             </button>
                         </div>
@@ -96,8 +92,9 @@
             <!-- Create Room (Technician and Admin) -->
             {% if session.role in ['admin', 'technician'] %}
                 <section class="mb-6" id="createRoomSection">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-300">
-                        Create a new room
+                    <h3 class="text-xl font-semibold mb-4 text-text-primary flex items-center gap-2">
+                        <i class="fas fa-plus-circle text-accent-green"></i>
+                        Create a New Room
                     </h3>
 
                     <form
@@ -107,7 +104,10 @@
                     >
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                             <div class="md:col-span-2">
-                                <label for="room_name" class="form-label">Room Name</label>
+                                <label for="room_name" class="form-label flex items-center gap-2">
+                                    <i class="fas fa-door-closed text-text-muted"></i>
+                                    Room Name
+                                </label>
                                 <input
                                         id="room_name"
                                         name="room_name"
@@ -119,9 +119,10 @@
                             </div>
 
                             <div class="md:col-span-1">
-                                <label for="room_location" class="form-label"
-                                >Location (optional)</label
-                                >
+                                <label for="room_location" class="form-label flex items-center gap-2">
+                                    <i class="fas fa-map-marker-alt text-text-muted"></i>
+                                    Location (optional)
+                                </label>
                                 <input
                                         id="room_location"
                                         name="room_location"
@@ -132,7 +133,8 @@
                             </div>
 
                             <div class="md:col-span-1">
-                                <button type="submit" class="btn btn-primary w-full">
+                                <button type="submit" class="btn bg-accent-green hover:bg-accent-green-hover text-white w-full flex items-center justify-center gap-2">
+                                    <i class="fas fa-plus"></i>
                                     Add Room
                                 </button>
                             </div>
@@ -145,61 +147,92 @@
             {% if session.role not in ['admin', 'technician'] %}
                 <section id="myRoomsSection" class="room-section">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-gray-300">My Rooms</h3>
-                        <span class="text-xs text-gray-400 room-count">
-                        Showing <span id="myRoomsCount">{{ user_rooms|length }}</span> of {{ user_rooms|length }} room{% if user_rooms|length != 1 %}s{% endif %}
-                    </span>
+                        <h3 class="text-xl font-semibold text-text-primary flex items-center gap-2">
+                            <i class="fas fa-home text-accent-blue"></i>
+                            My Rooms
+                        </h3>
+                        <span class="text-xs text-text-muted room-count flex items-center gap-1">
+                            <i class="fas fa-hashtag"></i>
+                            Showing <span id="myRoomsCount">{{ user_rooms|length }}</span> of {{ user_rooms|length }} room{% if user_rooms|length != 1 %}s{% endif %}
+                        </span>
                     </div>
 
                     {% if user_rooms and user_rooms|length > 0 %}
                         <div class="card p-5 overflow-hidden">
                             <div class="overflow-x-auto">
                                 <table class="table w-full">
-                                    <thead>
+                                    <thead class="bg-tertiary">
                                     <tr>
-                                        <th class="text-left">Room Name</th>
-                                        <th class="text-left">Location</th>
-                                        <th class="text-center">Devices</th>
-                                        <th class="text-center">Avg Temp</th>
-                                        <th class="text-center">Avg Humidity</th>
-                                        <th class="text-right">Actions</th>
+                                        <th class="text-left p-3 text-text-primary font-medium">
+                                            <i class="fas fa-door-closed mr-2"></i>Room Name
+                                        </th>
+                                        <th class="text-left p-3 text-text-primary font-medium">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>Location
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-microchip mr-2"></i>Devices
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-thermometer-half mr-2"></i>Avg Temp
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-tint mr-2"></i>Avg Humidity
+                                        </th>
+                                        <th class="text-right p-3 text-text-primary font-medium">Actions</th>
                                     </tr>
                                     </thead>
                                     <tbody id="myRoomsTable">
                                     {% for r in user_rooms %}
-                                        <tr class="room-row" data-room-name="{{ r.room_name.lower() }}"
+                                        <tr class="room-row hover:bg-tertiary/40 transition border-b border-border"
+                                            data-room-name="{{ r.room_name.lower() }}"
                                             data-location="{{ (r.location or '').lower() }}"
                                             data-devices="{{ r.devices_count }}">
-                                            <td class="whitespace-nowrap">
+                                            <td class="whitespace-nowrap p-3">
                                                 <a href="{{ url_for('room', room_id=r.id) }}"
-                                                   class="text-blue-400 hover:text-blue-300 font-medium">
+                                                   class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2">
+                                                    <i class="fas fa-door-open"></i>
                                                     {{ r.room_name }}
                                                 </a>
                                             </td>
-                                            <td class="whitespace-nowrap text-gray-400">
+                                            <td class="whitespace-nowrap p-3 text-text-muted">
                                                 {{ r.location or '—' }}
                                             </td>
-                                            <td class="text-center">{{ r.devices_count or 0 }}</td>
-                                            <td class="text-center">
-                                                {% if r.avg_temp is not none %} {{ '%.1f'|format(r.avg_temp) }}
-                                                    °C {% else %}—{% endif %}
+                                            <td class="text-center p-3">
+                                                <span class="inline-flex items-center gap-1">
+                                                    <i class="fas fa-microchip text-text-muted"></i>
+                                                    {{ r.devices_count or 0 }}
+                                                </span>
                                             </td>
-                                            <td class="text-center">
-                                                {% if r.avg_humidity is not none %} {{ '%.1f'|format(r.avg_humidity) }}
-                                                    % {% else %}—{% endif %}
+                                            <td class="text-center p-3">
+                                                {% if r.avg_temp is not none %}
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <i class="fas fa-thermometer-half text-accent-red"></i>
+                                                        {{ '%.1f'|format(r.avg_temp) }}°C
+                                                    </span>
+                                                {% else %}—{% endif %}
                                             </td>
-                                            <td class="text-right">
+                                            <td class="text-center p-3">
+                                                {% if r.avg_humidity is not none %}
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <i class="fas fa-tint text-accent-blue"></i>
+                                                        {{ '%.1f'|format(r.avg_humidity) }}%
+                                                    </span>
+                                                {% else %}—{% endif %}
+                                            </td>
+                                            <td class="text-right p-3">
                                                 <div class="flex justify-end gap-2">
                                                     <a href="{{ url_for('room', room_id=r.id) }}"
-                                                       class="btn btn-primary btn-sm">
+                                                       class="btn bg-accent-blue hover:bg-accent-blue-hover text-white btn-sm flex items-center gap-2">
+                                                        <i class="fas fa-eye"></i>
                                                         View
                                                     </a>
                                                     <form action="{{ url_for('dashboard_remove_room', room_id=r.id) }}"
                                                           method="post"
                                                           class="inline">
                                                         <button type="submit"
-                                                                class="btn btn-danger btn-sm"
+                                                                class="btn bg-accent-red hover:bg-accent-red-hover text-white btn-sm flex items-center gap-2"
                                                                 onclick="return confirm('Remove {{ r.room_name }} from your rooms?')">
+                                                            <i class="fas fa-times"></i>
                                                             Remove
                                                         </button>
                                                     </form>
@@ -213,16 +246,13 @@
                         </div>
                     {% else %}
                         <div class="card p-8 text-center">
-                            <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                            <h3 class="text-lg font-semibold text-gray-300 mb-2">No Rooms Added</h3>
-                            <p class="text-gray-400 text-sm mb-4">
+                            <i class="fas fa-inbox text-4xl text-text-muted mb-4"></i>
+                            <h3 class="text-lg font-semibold text-text-primary mb-2">No Rooms Added</h3>
+                            <p class="text-text-muted text-sm mb-4">
                                 You haven't added any rooms to your dashboard yet.
                             </p>
-                            <p class="text-gray-400 text-sm">
+                            <p class="text-text-muted text-sm flex items-center justify-center gap-2">
+                                <i class="fas fa-arrow-right"></i>
                                 Use the "Available Rooms" tab to find and add rooms.
                             </p>
                         </div>
@@ -234,57 +264,86 @@
             {% if session.role not in ['admin', 'technician'] %}
                 <section id="availableRoomsSection" class="room-section hidden">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-gray-300">Available Rooms</h3>
-                        <span class="text-xs text-gray-400 room-count">
-                        Showing <span
-                                id="availableRoomsCount">{{ available_rooms|length }}</span> of {{ available_rooms|length }} room
+                        <h3 class="text-xl font-semibold text-text-primary flex items-center gap-2">
+                            <i class="fas fa-door-open text-accent-green"></i>
+                            Available Rooms
+                        </h3>
+                        <span class="text-xs text-text-muted room-count flex items-center gap-1">
+                            <i class="fas fa-hashtag"></i>
+                            Showing <span id="availableRoomsCount">{{ available_rooms|length }}</span> of {{ available_rooms|length }} room
                             {% if available_rooms|length != 1 %}s{% endif %} available
-                    </span>
+                        </span>
                     </div>
 
                     {% if available_rooms and available_rooms|length > 0 %}
                         <div class="card p-5 overflow-hidden">
                             <div class="overflow-x-auto">
                                 <table class="table w-full">
-                                    <thead>
+                                    <thead class="bg-tertiary">
                                     <tr>
-                                        <th class="text-left">Room Name</th>
-                                        <th class="text-left">Location</th>
-                                        <th class="text-center">Devices</th>
-                                        <th class="text-center">Avg Temp</th>
-                                        <th class="text-center">Avg Humidity</th>
-                                        <th class="text-right">Actions</th>
+                                        <th class="text-left p-3 text-text-primary font-medium">
+                                            <i class="fas fa-door-closed mr-2"></i>Room Name
+                                        </th>
+                                        <th class="text-left p-3 text-text-primary font-medium">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>Location
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-microchip mr-2"></i>Devices
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-thermometer-half mr-2"></i>Avg Temp
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-tint mr-2"></i>Avg Humidity
+                                        </th>
+                                        <th class="text-right p-3 text-text-primary font-medium">Actions</th>
                                     </tr>
                                     </thead>
                                     <tbody id="availableRoomsTable">
                                     {% for r in available_rooms %}
-                                        <tr class="room-row" data-room-name="{{ r.room_name.lower() }}"
+                                        <tr class="room-row hover:bg-tertiary/40 transition border-b border-border"
+                                            data-room-name="{{ r.room_name.lower() }}"
                                             data-location="{{ (r.location or '').lower() }}"
                                             data-devices="{{ r.devices_count }}">
-                                            <td class="whitespace-nowrap">
+                                            <td class="whitespace-nowrap p-3">
                                                 <a href="{{ url_for('room', room_id=r.id) }}"
-                                                   class="text-blue-400 hover:text-blue-300 font-medium">
+                                                   class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2">
+                                                    <i class="fas fa-door-open"></i>
                                                     {{ r.room_name }}
                                                 </a>
                                             </td>
-                                            <td class="whitespace-nowrap text-gray-400">
+                                            <td class="whitespace-nowrap p-3 text-text-muted">
                                                 {{ r.location or '—' }}
                                             </td>
-                                            <td class="text-center">{{ r.devices_count or 0 }}</td>
-                                            <td class="text-center">
-                                                {% if r.avg_temp is not none %} {{ '%.1f'|format(r.avg_temp) }}
-                                                    °C {% else %}—{% endif %}
+                                            <td class="text-center p-3">
+                                                <span class="inline-flex items-center gap-1">
+                                                    <i class="fas fa-microchip text-text-muted"></i>
+                                                    {{ r.devices_count or 0 }}
+                                                </span>
                                             </td>
-                                            <td class="text-center">
-                                                {% if r.avg_humidity is not none %} {{ '%.1f'|format(r.avg_humidity) }}
-                                                    % {% else %}—{% endif %}
+                                            <td class="text-center p-3">
+                                                {% if r.avg_temp is not none %}
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <i class="fas fa-thermometer-half text-accent-red"></i>
+                                                        {{ '%.1f'|format(r.avg_temp) }}°C
+                                                    </span>
+                                                {% else %}—{% endif %}
                                             </td>
-                                            <td class="text-right">
+                                            <td class="text-center p-3">
+                                                {% if r.avg_humidity is not none %}
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <i class="fas fa-tint text-accent-blue"></i>
+                                                        {{ '%.1f'|format(r.avg_humidity) }}%
+                                                    </span>
+                                                {% else %}—{% endif %}
+                                            </td>
+                                            <td class="text-right p-3">
                                                 <form action="{{ url_for('dashboard_add_room', room_id=r.id) }}"
                                                       method="post"
                                                       class="inline">
                                                     <button type="submit"
-                                                            class="btn btn-primary btn-sm">
+                                                            class="btn bg-accent-green hover:bg-accent-green-hover text-white btn-sm flex items-center gap-2">
+                                                        <i class="fas fa-plus"></i>
                                                         Add to My Rooms
                                                     </button>
                                                 </form>
@@ -297,13 +356,9 @@
                         </div>
                     {% else %}
                         <div class="card p-8 text-center">
-                            <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                            </svg>
-                            <h3 class="text-lg font-semibold text-gray-300 mb-2">No Available Rooms</h3>
-                            <p class="text-gray-400 text-sm">
+                            <i class="fas fa-search text-4xl text-text-muted mb-4"></i>
+                            <h3 class="text-lg font-semibold text-text-primary mb-2">No Available Rooms</h3>
+                            <p class="text-text-muted text-sm">
                                 There are no additional rooms available to add to your dashboard.
                             </p>
                         </div>
@@ -315,62 +370,105 @@
             {% if session.role in ['admin', 'technician'] %}
                 <section id="allRoomsSection">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-gray-300">All System Rooms</h3>
-                        <span class="text-xs text-gray-400 room-count">
-                        {{ all_rooms|length }} room{% if all_rooms|length != 1 %}s{% endif %} total
-                    </span>
+                        <h3 class="text-xl font-semibold text-text-primary flex items-center gap-2">
+                            <i class="fas fa-building text-accent-blue"></i>
+                            All System Rooms
+                        </h3>
+                        <span class="text-xs text-text-muted room-count flex items-center gap-1">
+                            <i class="fas fa-hashtag"></i>
+                            {{ all_rooms|length }} room{% if all_rooms|length != 1 %}s{% endif %} total
+                        </span>
                     </div>
 
                     {% if all_rooms and all_rooms|length > 0 %}
                         <div class="card p-5 overflow-hidden">
                             <div class="overflow-x-auto">
                                 <table class="table w-full">
-                                    <thead>
+                                    <thead class="bg-tertiary">
                                     <tr>
-                                        <th class="text-left">Room Name</th>
-                                        <th class="text-left">Location</th>
-                                        <th class="text-center">Devices</th>
-                                        <th class="text-center">With Readings</th>
-                                        <th class="text-center">Avg Temp</th>
-                                        <th class="text-center">Avg Humidity</th>
-                                        <th class="text-center">Last Update</th>
-                                        <th class="text-center">Owner</th>
+                                        <th class="text-left p-3 text-text-primary font-medium">
+                                            <i class="fas fa-door-closed mr-2"></i>Room Name
+                                        </th>
+                                        <th class="text-left p-3 text-text-primary font-medium">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>Location
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-microchip mr-2"></i>Devices
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-chart-line mr-2"></i>With Readings
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-thermometer-half mr-2"></i>Avg Temp
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-tint mr-2"></i>Avg Humidity
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-clock mr-2"></i>Last Update
+                                        </th>
+                                        <th class="text-center p-3 text-text-primary font-medium">
+                                            <i class="fas fa-user mr-2"></i>Owner
+                                        </th>
                                         {% if session.role == 'admin' %}
-                                            <th class="text-right">Actions</th>
+                                            <th class="text-right p-3 text-text-primary font-medium">Actions</th>
                                         {% endif %}
                                     </tr>
                                     </thead>
                                     <tbody>
                                     {% for r in all_rooms %}
-                                        <tr>
-                                            <td class="whitespace-nowrap">
+                                        <tr class="hover:bg-tertiary/40 transition border-b border-border">
+                                            <td class="whitespace-nowrap p-3">
                                                 <a href="{{ url_for('room', room_id=r.id) }}"
-                                                   class="text-blue-400 hover:text-blue-300 font-medium">
+                                                   class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2">
+                                                    <i class="fas fa-door-open"></i>
                                                     {{ r.room_name }}
                                                 </a>
                                             </td>
-                                            <td class="whitespace-nowrap text-gray-400">
+                                            <td class="whitespace-nowrap p-3 text-text-muted">
                                                 {{ r.location or '—' }}
                                             </td>
-                                            <td class="text-center">{{ r.devices_count or 0 }}</td>
-                                            <td class="text-center">{{ r.devices_with_readings or 0 }}</td>
-                                            <td class="text-center">
-                                                {% if r.avg_temp is not none %} {{ '%.1f'|format(r.avg_temp) }}
-                                                    °C {% else %}—{% endif %}
+                                            <td class="text-center p-3">
+                                                <span class="inline-flex items-center gap-1">
+                                                    <i class="fas fa-microchip text-text-muted"></i>
+                                                    {{ r.devices_count or 0 }}
+                                                </span>
                                             </td>
-                                            <td class="text-center">
-                                                {% if r.avg_humidity is not none %} {{ '%.1f'|format(r.avg_humidity) }}
-                                                    % {% else %}—{% endif %}
+                                            <td class="text-center p-3">
+                                                <span class="inline-flex items-center gap-1">
+                                                    <i class="fas fa-chart-line text-accent-green"></i>
+                                                    {{ r.devices_with_readings or 0 }}
+                                                </span>
                                             </td>
-                                            <td class="text-center whitespace-nowrap">
+                                            <td class="text-center p-3">
+                                                {% if r.avg_temp is not none %}
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <i class="fas fa-thermometer-half text-accent-red"></i>
+                                                        {{ '%.1f'|format(r.avg_temp) }}°C
+                                                    </span>
+                                                {% else %}—{% endif %}
+                                            </td>
+                                            <td class="text-center p-3">
+                                                {% if r.avg_humidity is not none %}
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <i class="fas fa-tint text-accent-blue"></i>
+                                                        {{ '%.1f'|format(r.avg_humidity) }}%
+                                                    </span>
+                                                {% else %}—{% endif %}
+                                            </td>
+                                            <td class="text-center p-3 whitespace-nowrap text-text-muted text-sm">
                                                 {% if r.last_update %}
-                                                    {{ (r.last_update|string).replace('T',' ') }} {% else %}—{% endif %}
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <i class="fas fa-calendar"></i>
+                                                        {{ (r.last_update|string).replace('T',' ') }}
+                                                    </span>
+                                                {% else %}—{% endif %}
                                             </td>
-                                            <td class="text-center">
+                                            <td class="text-center p-3">
                                                 {{ r.owner_username or '—' }}
                                             </td>
                                             {% if session.role == 'admin' %}
-                                                <td class="text-right">
+                                                <td class="text-right p-3">
                                                     <form
                                                             action="{{ url_for('setuprooms_delete', room_id=r.id) }}"
                                                             method="post"
@@ -378,9 +476,10 @@
                                                     >
                                                         <button
                                                                 type="submit"
-                                                                class="btn btn-danger btn-sm"
+                                                                class="btn bg-accent-red hover:bg-accent-red-hover text-white btn-sm flex items-center gap-2"
                                                                 onclick="return confirm('Delete {{ r.room_name }}?')"
                                                         >
+                                                            <i class="fas fa-trash"></i>
                                                             Delete
                                                         </button>
                                                     </form>
@@ -394,13 +493,9 @@
                         </div>
                     {% else %}
                         <div class="card p-8 text-center">
-                            <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                            <h3 class="text-lg font-semibold text-gray-300 mb-2">No Rooms Found</h3>
-                            <p class="text-gray-400 text-sm">
+                            <i class="fas fa-inbox text-4xl text-text-muted mb-4"></i>
+                            <h3 class="text-lg font-semibold text-text-primary mb-2">No Rooms Found</h3>
+                            <p class="text-text-muted text-sm">
                                 No rooms have been created yet.
                             </p>
                         </div>
@@ -415,13 +510,16 @@
                         class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50"
                 >
                     <div
-                            class="bg-gray-900 rounded-xl shadow-xl w-full max-w-lg p-6 border border-gray-700"
+                            class="bg-secondary rounded-xl shadow-xl w-full max-w-lg p-6 border border-border"
                     >
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-200">Add Device</h3>
+                            <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
+                                <i class="fas fa-plus-circle text-accent-blue"></i>
+                                Add Device
+                            </h3>
                             <button
                                     id="closeAddDeviceModal"
-                                    class="text-gray-400 hover:text-gray-200"
+                                    class="text-text-muted hover:text-text-primary text-xl"
                             >
                                 &times;
                             </button>
@@ -433,7 +531,10 @@
                                 class="space-y-4"
                         >
                             <div>
-                                <label class="form-label">Room</label>
+                                <label class="form-label flex items-center gap-2">
+                                    <i class="fas fa-door-open text-text-muted"></i>
+                                    Room
+                                </label>
                                 <select name="room_id" class="form-input" required>
                                     <option value="" disabled selected>Select a room</option>
                                     {% for r in all_rooms %}
@@ -443,25 +544,37 @@
                             </div>
 
                             <div>
-                                <label class="form-label">Device Name</label>
+                                <label class="form-label flex items-center gap-2">
+                                    <i class="fas fa-tag text-text-muted"></i>
+                                    Device Name
+                                </label>
                                 <input type="text" name="name" class="form-input" required/>
                             </div>
 
                             <div>
-                                <label class="form-label">Device UID</label>
+                                <label class="form-label flex items-center gap-2">
+                                    <i class="fas fa-fingerprint text-text-muted"></i>
+                                    Device UID
+                                </label>
                                 <input type="text" name="device_uid" class="form-input" required/>
                             </div>
 
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="form-label">Type</label>
-                                    <input type="text" name="type" class="form-input"/>
+                                    <label class="form-label flex items-center gap-2">
+                                        <i class="fas fa-cog text-text-muted"></i>
+                                        Type
+                                    </label>
+                                    <input type="text" name="type" class="form-input" placeholder="e.g., Sensor"/>
                                 </div>
                                 <div>
-                                    <label class="form-label">Status</label>
+                                    <label class="form-label flex items-center gap-2">
+                                        <i class="fas fa-circle text-text-muted"></i>
+                                        Status
+                                    </label>
                                     <select name="status" class="form-input">
-                                        <option value="active">active</option>
-                                        <option value="inactive">inactive</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
                                     </select>
                                 </div>
                             </div>
@@ -470,11 +583,15 @@
                                 <button
                                         type="button"
                                         id="cancelAddDevice"
-                                        class="btn bg-gray-700 hover:bg-gray-600"
+                                        class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary flex items-center gap-2"
                                 >
+                                    <i class="fas fa-times"></i>
                                     Cancel
                                 </button>
-                                <button class="btn btn-primary">Save Device</button>
+                                <button class="btn bg-accent-blue hover:bg-accent-blue-hover text-white flex items-center gap-2">
+                                    <i class="fas fa-save"></i>
+                                    Save Device
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -483,15 +600,16 @@
         </main>
     </div>
 
-    <!-- Minimal Script - Just Tab Switching -->
+    <!-- Enhanced Script with Search Functionality -->
     <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Only initialize basic tab switching for regular users
+    // Only initialize for regular users
     {% if session.role not in ['admin', 'technician'] %}
-    console.log('Initializing basic tab switching for regular user');
+    console.log('Initializing setup page for regular user');
 
     const filterButtons = document.querySelectorAll('.filter-room-btn');
     const roomSections = document.querySelectorAll('.room-section');
+    const searchInput = document.getElementById('roomSearchInput');
 
     function showSection(sectionType) {
         console.log('Switching to section type:', sectionType);
@@ -516,13 +634,46 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update button states
         filterButtons.forEach(btn => {
             if (btn.dataset.filter === sectionType) {
-                btn.classList.remove('inactive', 'bg-gray-600', 'text-gray-300');
-                btn.classList.add('active', 'bg-blue-600', 'text-white');
+                btn.classList.remove('inactive', 'bg-tertiary', 'text-text-secondary');
+                btn.classList.add('active', 'bg-accent-blue', 'text-white');
             } else {
-                btn.classList.remove('active', 'bg-blue-600', 'text-white');
-                btn.classList.add('inactive', 'bg-gray-600', 'text-gray-300');
+                btn.classList.remove('active', 'bg-accent-blue', 'text-white');
+                btn.classList.add('inactive', 'bg-tertiary', 'text-text-secondary');
             }
         });
+
+        // Apply search filter to the newly shown section
+        if (searchInput && searchInput.value.trim()) {
+            filterRooms(searchInput.value.trim());
+        }
+    }
+
+    function filterRooms(searchTerm) {
+        const activeSection = document.querySelector('.room-section:not(.hidden)');
+        if (!activeSection) return;
+
+        const rows = activeSection.querySelectorAll('.room-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const roomName = row.dataset.roomName || '';
+            const location = row.dataset.location || '';
+            const devices = row.dataset.devices || '';
+
+            const matches = !searchTerm ||
+                roomName.includes(searchTerm.toLowerCase()) ||
+                location.includes(searchTerm.toLowerCase()) ||
+                devices.includes(searchTerm.toLowerCase());
+
+            row.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        // Update count display
+        const countElement = activeSection.querySelector('.room-count span');
+        if (countElement) {
+            countElement.textContent = visibleCount;
+        }
     }
 
     // Add event listeners to filter buttons
@@ -534,9 +685,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Add search functionality
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            filterRooms(this.value.trim());
+        });
+    }
+
     // Show my-rooms by default
     showSection('my-rooms');
-    console.log('Basic setup complete - tables should be visible');
+    console.log('Setup complete - tables should be visible');
     {% endif %}
 });
     </script>
@@ -568,6 +726,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         })();
     </script>
+
     <style>
     /* Ensure tables are always visible */
     .room-section table {
@@ -590,6 +749,22 @@ document.addEventListener('DOMContentLoaded', function() {
     /* Override any hiding that might be happening */
     .room-section .room-row {
         display: table-row !important;
+    }
+
+    /* Table styling improvements */
+    .table th {
+        background-color: var(--bg-tertiary);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .table td {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    /* Button improvements */
+    .btn-sm {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
     }
 </style>
 {% endblock %}
