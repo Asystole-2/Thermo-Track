@@ -1476,6 +1476,206 @@ def get_user_room_requests():
     finally:
         cursor.close()
 
+
+@app.route('/api/requests/<int:request_id>')
+def get_request_details(request_id):
+    """Get detailed information about a specific room adjustment request"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        cursor = mysql.connection.cursor()
+
+        print(f"DEBUG: Looking for request {request_id} for user {session['user_id']}")
+
+        # Simple query without complex joins first
+        cursor.execute("""
+            SELECT id,
+                   room_id,
+                   user_id,
+                   request_type,
+                   current_temperature,
+                   target_temperature,
+                   fan_level_request,
+                   user_notes,
+                   status,
+                   estimated_completion_time,
+                   created_at,
+                   updated_at
+            FROM room_condition_requests
+            WHERE id = %s
+              AND user_id = %s
+        """, (request_id, session['user_id']))
+
+        request_data = cursor.fetchone()
+
+        print(f"DEBUG: Query result: {request_data}")
+
+        if not request_data:
+            # Let's check if the request exists at all
+            cursor.execute("SELECT id, user_id FROM room_condition_requests WHERE id = %s", (request_id,))
+            any_request = cursor.fetchone()
+            if any_request:
+                return jsonify({'error': f'Request exists but belongs to user {any_request["user_id"]}'}), 403
+            else:
+                return jsonify({'error': 'Request not found in database'}), 404
+
+        # FIX: request_data is already a dictionary, use it directly
+        request_dict = dict(request_data)  # Create a copy of the dictionary
+
+        print(f"DEBUG: Basic request data: {request_dict}")
+
+        # Now get room information separately
+        cursor.execute("SELECT name, location, temperature_unit FROM rooms WHERE id = %s",
+                       (request_dict['room_id'],))
+        room_data = cursor.fetchone()
+
+        if room_data:
+            request_dict['room_name'] = room_data['name']
+            request_dict['room_location'] = room_data['location']
+            request_dict['temperature_unit'] = room_data['temperature_unit']
+            print(f"DEBUG: Room data found: {room_data}")
+        else:
+            request_dict['room_name'] = 'Unknown Room'
+            request_dict['room_location'] = 'Unknown Location'
+            request_dict['temperature_unit'] = 'celsius'
+            print(f"DEBUG: No room data for room_id {request_dict['room_id']}")
+
+        # Convert datetime objects and Decimal objects
+        for date_field in ['created_at', 'updated_at', 'estimated_completion_time']:
+            if request_dict.get(date_field) and hasattr(request_dict[date_field], 'isoformat'):
+                request_dict[date_field] = request_dict[date_field].isoformat()
+
+        # Convert Decimal to float for temperature fields
+        for temp_field in ['current_temperature', 'target_temperature']:
+            if request_dict.get(temp_field) is not None:
+                if isinstance(request_dict[temp_field], Decimal):
+                    request_dict[temp_field] = float(request_dict[temp_field])
+
+        cursor.close()
+        print(f"DEBUG: Final response: {request_dict}")
+        return jsonify(request_dict)
+
+    except Exception as e:
+        print(f"Error in get_request_details: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/debug/requests/<int:request_id>')
+def debug_request_details(request_id):
+    """Debug endpoint to check what's wrong with the request details"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        print(f"DEBUG: User {session['user_id']} accessing request {request_id}")
+
+        cursor = mysql.connection.cursor()
+
+        # Test 1: Check if request exists at all
+        cursor.execute("SELECT id FROM room_condition_requests WHERE id = %s", (request_id,))
+        request_exists = cursor.fetchone()
+        print(f"DEBUG: Request exists check: {request_exists}")
+
+        if not request_exists:
+            return jsonify({'error': f'Request {request_id} not found in database'}), 404
+
+        # Test 2: Check if user owns this request
+        cursor.execute("SELECT user_id FROM room_condition_requests WHERE id = %s", (request_id,))
+        request_owner = cursor.fetchone()
+        print(f"DEBUG: Request owner: {request_owner}, Current user: {session['user_id']}")
+
+        # Access the user_id from the dictionary instead of by index
+        if not request_owner or request_owner['user_id'] != session['user_id']:
+            return jsonify({'error': f'User does not own request {request_id}'}), 403
+
+        # Test 3: Try the full query
+        query = """
+                SELECT rcr.id, \
+                       rcr.room_id, \
+                       rcr.user_id, \
+                       rcr.request_type, \
+                       rcr.current_temperature, \
+                       rcr.target_temperature, \
+                       rcr.fan_level_request, \
+                       rcr.user_notes, \
+                       rcr.status, \
+                       rcr.estimated_completion_time, \
+                       rcr.created_at, \
+                       rcr.updated_at, \
+                       r.name     as room_name, \
+                       r.location as room_location, \
+                       r.temperature_unit
+                FROM room_condition_requests rcr
+                         LEFT JOIN rooms r ON rcr.room_id = r.id
+                WHERE rcr.id = %s \
+                """
+
+        print(f"DEBUG: Executing query for request {request_id}")
+        cursor.execute(query, (request_id,))
+        request_data = cursor.fetchone()
+        print(f"DEBUG: Query result: {request_data}")
+
+        if not request_data:
+            return jsonify({'error': 'No data returned from query'}), 404
+
+        # Get column names
+        columns = [desc[0] for desc in cursor.description]
+        print(f"DEBUG: Columns: {columns}")
+
+        request_dict = dict(zip(columns, request_data))
+        print(f"DEBUG: Final dict: {request_dict}")
+
+        cursor.close()
+        return jsonify({'success': True, 'data': request_dict})
+
+    except Exception as e:
+        print(f"DEBUG ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Exception: {str(e)}'}), 500
+
+    @app.route('/api/check-requests')
+    def check_requests():
+        """Check what requests exist in the database"""
+        if 'user_id' not in session:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        try:
+            cursor = mysql.connection.cursor()
+
+            # Check all requests for the current user
+            cursor.execute("""
+                           SELECT id, room_id, request_type, status, created_at
+                           FROM room_condition_requests
+                           WHERE user_id = %s
+                           ORDER BY created_at DESC
+                           """, (session['user_id'],))
+
+            user_requests = cursor.fetchall()
+
+            # Check all requests in the entire table
+            cursor.execute("""
+                           SELECT id, user_id, room_id, request_type, status, created_at
+                           FROM room_condition_requests
+                           ORDER BY created_at DESC LIMIT 10
+                           """)
+
+            all_requests = cursor.fetchall()
+
+            cursor.close()
+
+            return jsonify({
+                'user_requests': user_requests,
+                'all_requests': all_requests,
+                'user_id': session['user_id']
+            })
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
 # =============================================================================
 # ADMIN ROOM REQUESTS ROUTES
 # =============================================================================

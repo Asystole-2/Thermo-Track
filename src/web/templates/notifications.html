@@ -93,12 +93,48 @@
                 </div>
             </div>
         </main>
+
+        <!-- Request Details Modal -->
+        <div id="requestDetailsModal"
+             class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4">
+            <div class="bg-secondary rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden border border-border mx-2 sm:mx-0">
+                <div class="flex items-center justify-between p-4 sm:p-6 border-b border-border">
+                    <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
+                        <i class="fas fa-info-circle text-accent-blue"></i>
+                        Request Details
+                    </h3>
+                    <button id="closeRequestDetailsModal"
+                            class="text-text-muted hover:text-text-primary text-2xl sm:text-xl p-1">
+                        &times;
+                    </button>
+                </div>
+
+                <div class="p-4 sm:p-6 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                    <div id="requestDetailsContent">
+                        <!-- Dynamic content will be loaded here -->
+                        <div class="text-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-blue mx-auto"></div>
+                            <p class="text-text-muted mt-2">Loading request details...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-end gap-2 p-4 sm:p-6 border-t border-border">
+                    <button id="closeRequestDetailsBtn"
+                            class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary flex items-center justify-center gap-2 w-full sm:w-auto order-2 sm:order-1">
+                        <i class="fas fa-times"></i>
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         // Load notifications on page load
         document.addEventListener('DOMContentLoaded', function () {
             loadNotifications();
+            initializeModalListeners();
         });
 
         function loadNotifications() {
@@ -229,9 +265,469 @@
                 .catch(error => console.error('Error marking as read:', error));
         }
 
+        function markAllAsRead() {
+            fetch('/api/user/notifications/mark-all-read', {
+                method: 'POST'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        loadNotifications();
+                        // Update the notification bell count
+                        if (window.notificationSystem) {
+                            window.notificationSystem.loadNotificationCount();
+                        }
+                    }
+                })
+                .catch(error => console.error('Error marking all as read:', error));
+        }
+
+        // Request Details Modal Functions
+        function showRequestDetailsModal() {
+            const modal = document.getElementById('requestDetailsModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function hideRequestDetailsModal() {
+            const modal = document.getElementById('requestDetailsModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = ''; // Restore scrolling
+        }
+
         function viewRequestDetails(requestId) {
-            // Implement view request details functionality
-            window.location.href = `/requests/${requestId}`;
+            console.log('Loading details for request:', requestId);
+            showRequestDetailsModal();
+
+            // Show loading state
+            const content = document.getElementById('requestDetailsContent');
+            content.innerHTML = `
+        <div class="text-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-blue mx-auto"></div>
+            <p class="text-text-muted mt-2">Loading request details...</p>
+        </div>
+    `;
+
+            // Load request details
+            fetch(`/api/requests/${requestId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error('Request not found');
+                        } else if (response.status === 401) {
+                            throw new Error('Please log in to view request details');
+                        } else if (response.status === 500) {
+                            throw new Error('Server error - please try again later');
+                        } else {
+                            throw new Error(`Error: ${response.status} ${response.statusText}`);
+                        }
+                    }
+                    return response.json();
+                })
+                .then(request => {
+                    if (request.error) {
+                        throw new Error(request.error);
+                    }
+                    displayRequestDetails(request);
+                })
+                .catch(error => {
+                    console.error('Error loading request details:', error);
+                    displayRequestDetailsError(error.message);
+                });
+        }
+
+        function displayRequestDetailsError(errorMessage) {
+            const content = document.getElementById('requestDetailsContent');
+            content.innerHTML = `
+        <div class="text-center py-8">
+            <i class="fas fa-exclamation-triangle text-4xl text-accent-red mb-4"></i>
+            <h3 class="text-lg font-semibold text-text-primary mb-2">Unable to Load Details</h3>
+            <p class="text-text-muted text-sm mb-4">
+                ${errorMessage}
+            </p>
+            <p class="text-text-muted text-xs mb-4">
+                If this problem persists, please contact support.
+            </p>
+            <div class="flex gap-2 justify-center">
+                <button onclick="hideRequestDetailsModal()"
+                        class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary">
+                    Close
+                </button>
+                <button onclick="viewRequestDetails(${window.lastRequestId || '3'})"
+                        class="btn bg-accent-blue hover:bg-accent-blue-hover text-white">
+                    Try Again
+                </button>
+            </div>
+        </div>
+    `;
+        }
+
+        // Store the last request ID for retry functionality
+        let lastRequestId = null;
+
+        function viewRequestDetails(requestId) {
+            lastRequestId = requestId;
+            console.log('Loading details for request:', requestId);
+            showRequestDetailsModal();
+
+            const content = document.getElementById('requestDetailsContent');
+            content.innerHTML = `
+        <div class="text-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-blue mx-auto"></div>
+            <p class="text-text-muted mt-2">Loading request details...</p>
+            <p class="text-text-muted text-xs mt-1">Request ID: ${requestId}</p>
+        </div>
+    `;
+
+            // Test both endpoints
+            Promise.any([
+                fetch(`/api/requests/${requestId}`).then(r => r.ok ? r.json() : Promise.reject('Main API failed')),
+                fetch(`/api/debug/requests/${requestId}`).then(r => r.ok ? r.json() : Promise.reject('Debug API failed'))
+            ])
+                .then(data => {
+                    console.log('API Response:', data);
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    // Handle debug endpoint response format
+                    const requestData = data.data || data;
+                    displayRequestDetails(requestData);
+                })
+                .catch(error => {
+                    console.error('All API attempts failed:', error);
+                    // Show fallback with error details
+                    const detailsButton = document.querySelector(`button[onclick*="viewRequestDetails('${requestId}')"]`);
+                    let fallbackData = null;
+
+                    if (detailsButton) {
+                        const row = detailsButton.closest('tr');
+                        if (row) {
+                            fallbackData = extractNotificationData(row, requestId);
+                        }
+                    }
+
+                    if (fallbackData) {
+                        displayFallbackRequestDetails(fallbackData, error.message);
+                    } else {
+                        displayRequestDetailsError(error.message);
+                    }
+                });
+        }
+
+        function displayFallbackRequestDetails(notification, errorMsg = null) {
+            const content = document.getElementById('requestDetailsContent');
+            const statusBadgeClass = getStatusBadgeClass(notification.status.toLowerCase());
+
+            content.innerHTML = `
+        <div class="space-y-6">
+            ${errorMsg ? `
+            <div class="p-4 bg-accent-red/10 rounded-lg border border-accent-red/20">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-exclamation-triangle text-accent-red"></i>
+                    <span class="font-semibold text-text-primary">API Error</span>
+                </div>
+                <p class="text-text-secondary text-sm">
+                    ${errorMsg}
+                </p>
+            </div>
+            ` : ''}
+
+            <div class="p-4 bg-accent-yellow/10 rounded-lg border border-accent-yellow/20">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-info-circle text-accent-yellow"></i>
+                    <span class="font-semibold text-text-primary">Limited Information Available</span>
+                </div>
+                <p class="text-text-secondary text-sm">
+                    Showing basic information from notification. Detailed request data is temporarily unavailable.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-tertiary rounded-lg">
+                <div>
+                    <h4 class="font-semibold text-text-primary mb-2">Room Information</h4>
+                    <p class="text-text-secondary text-sm">
+                        <strong>Room:</strong> ${notification.room_name}<br>
+                        <strong>Request ID:</strong> ${notification.id}
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-text-primary mb-2">Request Status</h4>
+                    <p class="text-text-secondary text-sm">
+                        <strong>Status:</strong>
+                        <span class="px-2 py-1 text-xs rounded-full ${statusBadgeClass} ml-1">
+                            ${notification.status}
+                        </span><br>
+                        <strong>Created:</strong> ${notification.created_at}
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-tertiary rounded-lg">
+                <h4 class="font-semibold text-text-primary mb-2">Request Summary</h4>
+                <div class="space-y-2">
+                    <div>
+                        <strong class="text-text-secondary">Title:</strong><br>
+                        <span class="text-text-primary">${notification.title}</span>
+                    </div>
+                    <div>
+                        <strong class="text-text-secondary">Description:</strong><br>
+                        <span class="text-text-primary">${notification.message}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+        }
+
+        function extractNotificationData(row, requestId) {
+            const cells = row.querySelectorAll('td');
+            return {
+                id: requestId,
+                room_name: cells[1].textContent.trim(),
+                title: cells[2].querySelector('.font-medium')?.textContent.trim() || 'Request Details',
+                message: cells[2].querySelector('.text-gray-500')?.textContent.trim() || 'No additional information available',
+                status: cells[3].querySelector('span')?.textContent.trim() || 'unknown',
+                created_at: cells[4].textContent.trim() || new Date().toLocaleDateString()
+            };
+        }
+
+        function displayFallbackRequestDetails(notification) {
+            const content = document.getElementById('requestDetailsContent');
+            const statusBadgeClass = getStatusBadgeClass(notification.status.toLowerCase());
+
+            content.innerHTML = `
+        <div class="space-y-6">
+            <div class="p-4 bg-accent-yellow/10 rounded-lg border border-accent-yellow/20">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-info-circle text-accent-yellow"></i>
+                    <span class="font-semibold text-text-primary">Limited Information Available</span>
+                </div>
+                <p class="text-text-secondary text-sm">
+                    Showing basic information from notification. Detailed request data is temporarily unavailable.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-tertiary rounded-lg">
+                <div>
+                    <h4 class="font-semibold text-text-primary mb-2">Room Information</h4>
+                    <p class="text-text-secondary text-sm">
+                        <strong>Room:</strong> ${notification.room_name}<br>
+                        <strong>Request ID:</strong> ${notification.id}
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-text-primary mb-2">Request Status</h4>
+                    <p class="text-text-secondary text-sm">
+                        <strong>Status:</strong>
+                        <span class="px-2 py-1 text-xs rounded-full ${statusBadgeClass} ml-1">
+                            ${notification.status}
+                        </span><br>
+                        <strong>Created:</strong> ${notification.created_at}
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-tertiary rounded-lg">
+                <h4 class="font-semibold text-text-primary mb-2">Request Summary</h4>
+                <div class="space-y-2">
+                    <div>
+                        <strong class="text-text-secondary">Title:</strong><br>
+                        <span class="text-text-primary">${notification.title}</span>
+                    </div>
+                    <div>
+                        <strong class="text-text-secondary">Description:</strong><br>
+                        <span class="text-text-primary">${notification.message}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+        }
+
+        function displayRequestDetails(request) {
+            const content = document.getElementById('requestDetailsContent');
+
+            // Format the request data for display
+            const formattedDate = new Date(request.created_at).toLocaleString();
+            const statusBadgeClass = getStatusBadgeClass(request.status);
+            const temperatureUnit = request.temperature_unit || 'celsius';
+            const tempSymbol = temperatureUnit === 'celsius' ? '°C' : temperatureUnit === 'fahrenheit' ? '°F' : 'K';
+
+            content.innerHTML = `
+        <div class="space-y-4 sm:space-y-6">
+            <!-- Header Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-tertiary rounded-lg">
+                <div class="space-y-2">
+                    <h4 class="font-semibold text-text-primary flex items-center gap-2 text-sm sm:text-base">
+                        <i class="fas fa-door-open text-accent-blue"></i>
+                        Room Information
+                    </h4>
+                    <div class="text-text-secondary text-xs sm:text-sm space-y-1">
+                        <div class="flex flex-wrap gap-1">
+                            <strong class="min-w-[60px]">Room:</strong>
+                            <span>${request.room_name || 'N/A'}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            <strong class="min-w-[60px]">Location:</strong>
+                            <span>${request.room_location || 'Not specified'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="font-semibold text-text-primary flex items-center gap-2 text-sm sm:text-base">
+                        <i class="fas fa-calendar text-accent-blue"></i>
+                        Request Information
+                    </h4>
+                    <div class="text-text-secondary text-xs sm:text-sm space-y-1">
+                        <div class="flex flex-wrap gap-1">
+                            <strong class="min-w-[80px]">Submitted:</strong>
+                            <span>${formattedDate}</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1">
+                            <strong class="min-w-[50px]">Status:</strong>
+                            <span class="px-2 py-1 text-xs rounded-full ${statusBadgeClass}">
+                                ${request.status ? request.status.replace('_', ' ') : 'unknown'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Details -->
+            <div class="p-3 sm:p-4 bg-tertiary rounded-lg">
+                <h4 class="font-semibold text-text-primary mb-3 flex items-center gap-2 text-sm sm:text-base">
+                    <i class="fas fa-clipboard-list text-accent-blue"></i>
+                    Request Details
+                </h4>
+
+                ${request.request_type === 'temperature_change' ? `
+                    <div class="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                        <div class="flex flex-col xs:flex-row justify-between gap-1">
+                            <span class="text-text-secondary min-w-[140px]">Request Type:</span>
+                            <span class="text-text-primary font-medium">Temperature Adjustment</span>
+                        </div>
+                        ${request.target_temperature ? `
+                            <div class="flex flex-col xs:flex-row justify-between gap-1">
+                                <span class="text-text-secondary min-w-[140px]">Requested Temperature:</span>
+                                <span class="text-text-primary font-medium">
+                                    ${request.target_temperature}${tempSymbol}
+                                </span>
+                            </div>
+                        ` : ''}
+                        ${request.current_temperature ? `
+                            <div class="flex flex-col xs:flex-row justify-between gap-1">
+                                <span class="text-text-secondary min-w-[140px]">Current Temperature:</span>
+                                <span class="text-text-primary font-medium">
+                                    ${request.current_temperature}${tempSymbol}
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : request.request_type === 'fan_adjustment' ? `
+                    <div class="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                        <div class="flex flex-col xs:flex-row justify-between gap-1">
+                            <span class="text-text-secondary min-w-[140px]">Request Type:</span>
+                            <span class="text-text-primary font-medium">Fan/Airflow Adjustment</span>
+                        </div>
+                        ${request.fan_level_request ? `
+                            <div class="flex flex-col xs:flex-row justify-between gap-1">
+                                <span class="text-text-secondary min-w-[140px]">Requested Adjustment:</span>
+                                <span class="text-text-primary font-medium capitalize">
+                                    ${request.fan_level_request.replace('_', ' ')}
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : `
+                    <div class="text-text-secondary text-xs sm:text-sm">No specific request details available.</div>
+                `}
+            </div>
+
+            <!-- User Notes -->
+            ${request.user_notes ? `
+                <div class="p-3 sm:p-4 bg-tertiary rounded-lg">
+                    <h4 class="font-semibold text-text-primary mb-2 flex items-center gap-2 text-sm sm:text-base">
+                        <i class="fas fa-edit text-accent-blue"></i>
+                        Additional Notes
+                    </h4>
+                    <p class="text-text-secondary text-xs sm:text-sm bg-secondary p-3 rounded border border-border whitespace-pre-wrap break-words">
+                        ${request.user_notes}
+                    </p>
+                </div>
+            ` : ''}
+
+            <!-- Estimated Completion -->
+            ${request.estimated_completion_time ? `
+                <div class="p-3 sm:p-4 bg-accent-yellow/10 rounded-lg border border-accent-yellow/20">
+                    <h4 class="font-semibold text-text-primary mb-2 flex items-center gap-2 text-sm sm:text-base">
+                        <i class="fas fa-clock text-accent-yellow"></i>
+                        Estimated Completion
+                    </h4>
+                    <p class="text-text-secondary text-xs sm:text-sm">
+                        ${new Date(request.estimated_completion_time).toLocaleString()}
+                    </p>
+                </div>
+            ` : ''}
+
+            <!-- Technical Details -->
+            <div class="p-3 sm:p-4 bg-tertiary rounded-lg">
+                <h4 class="font-semibold text-text-primary mb-3 flex items-center gap-2 text-sm sm:text-base">
+                    <i class="fas fa-cog text-accent-blue"></i>
+                    Technical Information
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                    <div class="break-all">
+                        <span class="text-text-secondary">Request ID:</span><br>
+                        <code class="text-text-primary font-mono text-xs">${request.id}</code>
+                    </div>
+                    <div>
+                        <span class="text-text-secondary">Room ID:</span><br>
+                        <span class="text-text-primary">${request.room_id}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+        }
+
+        function displayRequestDetailsError() {
+            const content = document.getElementById('requestDetailsContent');
+            content.innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-4xl text-accent-red mb-4"></i>
+                    <h3 class="text-lg font-semibold text-text-primary mb-2">Failed to Load Details</h3>
+                    <p class="text-text-muted text-sm mb-4">
+                        Unable to load request details. Please try again later.
+                    </p>
+                    <button onclick="hideRequestDetailsModal()"
+                            class="btn bg-accent-blue hover:bg-accent-blue-hover text-white">
+                        Close
+                    </button>
+                </div>
+            `;
+        }
+
+        function initializeModalListeners() {
+            const modal = document.getElementById('requestDetailsModal');
+            const closeBtn = document.getElementById('closeRequestDetailsModal');
+            const closeBtn2 = document.getElementById('closeRequestDetailsBtn');
+
+            if (closeBtn) closeBtn.addEventListener('click', hideRequestDetailsModal);
+            if (closeBtn2) closeBtn2.addEventListener('click', hideRequestDetailsModal);
+
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) hideRequestDetailsModal();
+                });
+            }
+
+            // Add keyboard event listener for ESC key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    hideRequestDetailsModal();
+                }
+            });
         }
 
         function focusOnUserRequest(requestId) {
@@ -257,15 +753,7 @@
         // Check URL parameters on page load
         document.addEventListener('DOMContentLoaded', function () {
             const urlParams = new URLSearchParams(window.location.search);
-            const requestId = urlParams.get('request_id');
             const notificationId = urlParams.get('notification_id');
-
-            if (requestId) {
-                // Load user requests and focus on the specific one
-                loadUserRequests().then(() => {
-                    focusOnUserRequest(requestId);
-                });
-            }
 
             if (notificationId) {
                 // Mark the specific notification as read
@@ -276,7 +764,19 @@
             }
         });
     </script>
+
     <style>
+        @media (max-width: 480px) {
+            #requestDetailsModal > div {
+                margin: 0.25rem;
+                border-radius: 0.5rem;
+            }
+
+            #requestDetailsModal .p-4 {
+                padding: 0.75rem;
+            }
+        }
+
         /* Enhanced button styles */
         .btn {
             transition: all 0.2s ease-in-out;
@@ -325,5 +825,48 @@
         .divide-border > * + * {
             border-color: var(--border-color);
         }
-    </style>
-{% endblock %}
+
+        /* Modal Styles */
+        #requestDetailsModal {
+            backdrop-filter: blur(4px);
+        }
+
+        #requestDetailsModal > div {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Scrollbar styling for modal content */
+        #requestDetailsModal .overflow-y-auto {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+
+        #requestDetailsModal .overflow-y-auto::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #requestDetailsModal .overflow-y-auto::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #requestDetailsModal .overflow-y-auto::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 3px;
+        }
+
+        /* Ensure modal is above other content */
+        #requestDetailsModal {
+            z-index: 1000;
+        }
+    </style>{% endblock %}
