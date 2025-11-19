@@ -10,17 +10,12 @@ except ImportError:
         PUD_DOWN, PUD_UP = 5, 6
 
         def setmode(self, mode): print(f"Mock GPIO: Set mode {mode}")
-
-        def setup(self, pin, mode, initial=None): print(f"Mock GPIO: Setup pin {pin} as {mode}")
-
+        def setup(self, pin, mode, initial=None, pull_up_down=None): 
+            print(f"Mock GPIO: Setup pin {pin} as {mode}")
         def output(self, pin, value): print(f"Mock GPIO: Pin {pin} → {'HIGH' if value else 'LOW'}")
-
         def input(self, pin): return 0
-
         def cleanup(self): print("Mock GPIO: Cleanup")
-
         def setwarnings(self, flag): print(f"Mock GPIO: Warnings {flag}")
-
 
     GPIO = MockGPIO()
 
@@ -38,28 +33,27 @@ try:
 except ImportError:
     print("Warning: Could not import pubnub_client. Using fallback.")
 
-
     def publish_data(payload):
         print(f"[PubNub Fallback] Would publish: {payload}")
 
 
-# --- PIN CONFIGURATION (BOARD numbering) ---
+# --- PIN CONFIGURATION (BCM numbering) ---
 class PinConfig:
-    # Sensors (Inputs)
-    PIR_PIN = 11  # BOARD pin 11 (GPIO 17)
-    DHT_PIN = 7  # BOARD pin 7 (GPIO 4)
+    # Inputs
+    PIR_PIN = 6       # BCM 6  (BOARD 31)
+    DHT_PIN = 4       # BCM 4  (BOARD 7)
 
-    # Actuators (Outputs)
-    BUZZER_PIN = 13  # BOARD pin 13 (GPIO 27)
-    LED_PIN = 15  # BOARD pin 15 (GPIO 22)
-    FAN_PIN = 8  # BOARD pin 8 (GPIO 14)
+    # Outputs
+    BUZZER_PIN = 27  # BCM 27 (BOARD 13)
+    LED_PIN = 22     # BCM 22 (BOARD 15)
+    FAN_PIN = 14     # BCM 14 (BOARD 8)
 
 
 # --- LOGIC THRESHOLDS ---
-READ_INTERVAL_SECONDS = 2.0  # Respect DHT22's 2-second sampling rate
-TEMP_THRESHOLD_C = 26.0  # Fan turns on above this temperature
-MOTION_COOLDOWN = 2.0  # Prevent motion re-triggering
-BUZZER_DURATION = 0.8  # Buzzer beep duration
+READ_INTERVAL_SECONDS = 2.0
+TEMP_THRESHOLD_C = 20.0
+MOTION_COOLDOWN = 2.0
+BUZZER_DURATION = 0.8
 
 
 class SmartHomeMonitor:
@@ -71,7 +65,6 @@ class SmartHomeMonitor:
         self._gpio = GPIO
         self.dht_device = None
 
-        # Disable GPIO warnings
         self._gpio.setwarnings(False)
 
         if self._gpio.__class__.__name__ == 'MockGPIO':
@@ -85,9 +78,8 @@ class SmartHomeMonitor:
         """Initialize DHT22 sensor."""
         if adafruit_dht and board:
             try:
-                # Use BCM pin 4 (BOARD pin 7)
                 self.dht_device = adafruit_dht.DHT22(board.D4)
-                print(f"[Monitor] DHT22 sensor initialized on BCM 4 (BOARD 7)")
+                print(f"[Monitor] DHT22 sensor initialized on BCM 4")
             except Exception as e:
                 print(f"[Monitor] Error initializing DHT22: {e}")
                 self.dht_device = None
@@ -96,9 +88,14 @@ class SmartHomeMonitor:
 
     def _setup_gpio(self):
         """Configure GPIO pins for all components."""
-        self._gpio.setmode(self._gpio.BOARD)
+        try:
+            self._gpio.cleanup()
+        except Exception:
+            pass
 
-        # Inputs with pull-down resistors
+        self._gpio.setmode(self._gpio.BCM)
+
+        # Inputs
         self._gpio.setup(PinConfig.PIR_PIN, self._gpio.IN, pull_up_down=self._gpio.PUD_DOWN)
 
         # Outputs
@@ -106,7 +103,7 @@ class SmartHomeMonitor:
         self._gpio.setup(PinConfig.LED_PIN, self._gpio.OUT, initial=self._gpio.LOW)
         self._gpio.setup(PinConfig.FAN_PIN, self._gpio.OUT, initial=self._gpio.LOW)
 
-        print(f"[Monitor] GPIO configured - PIR:{PinConfig.PIR_PIN}, "
+        print(f"[Monitor] GPIO configured (BCM mode) - PIR:{PinConfig.PIR_PIN}, "
               f"Buzzer:{PinConfig.BUZZER_PIN}, LED:{PinConfig.LED_PIN}, Fan:{PinConfig.FAN_PIN}")
 
     def _beep_buzzer(self, duration=BUZZER_DURATION):
@@ -118,16 +115,15 @@ class SmartHomeMonitor:
     def _control_actuators(self, temp_c: Optional[float], motion_detected: bool):
         """Control actuators based on sensor readings."""
 
-        # Motion-based controls (LED and Buzzer)
+        # Motion
         if motion_detected:
             self._gpio.output(PinConfig.LED_PIN, self._gpio.HIGH)
             self._beep_buzzer()
             print("  [Actuator] Motion detected: LED ON, Buzzer beeped")
         else:
             self._gpio.output(PinConfig.LED_PIN, self._gpio.LOW)
-            # Buzzer automatically turns off after beep duration
 
-        # Temperature-based control (Fan)
+        # Temperature/Fan
         if temp_c is not None:
             if temp_c > TEMP_THRESHOLD_C:
                 self._gpio.output(PinConfig.FAN_PIN, self._gpio.HIGH)
@@ -143,7 +139,7 @@ class SmartHomeMonitor:
         print(f"Motion cooldown: {MOTION_COOLDOWN}s")
         print(f"Read interval: {READ_INTERVAL_SECONDS}s")
 
-        last_motion_state = 0
+        last_motion_state = self._gpio.LOW
         last_motion_time = 0
         motion_detected = False
 
@@ -152,14 +148,13 @@ class SmartHomeMonitor:
                 ts = int(time.time())
                 temp_c, humidity = None, None
 
-                # --- A. Read DHT22 Sensor ---
+                # Read DHT22
                 if self.dht_device:
                     try:
                         temp_c = self.dht_device.temperature
                         humidity = self.dht_device.humidity
 
                         if temp_c is not None and humidity is not None:
-                            # Publish DHT data
                             print(f"[DHT22] Temp: {temp_c:5.1f}°C | Humidity: {humidity:3.1f}%")
                             publish_data({
                                 "event": "dht22_reading",
@@ -176,11 +171,13 @@ class SmartHomeMonitor:
                     except Exception as e:
                         print(f"[DHT22] Unexpected Error: {e}")
 
-                # --- B. Read PIR Sensor ---
+                # PIR
                 current_pir_state = self._gpio.input(PinConfig.PIR_PIN)
                 motion_detected = False
 
-                # Rising edge detection (motion started)
+                print(f"[PIR] Current state: {'HIGH' if current_pir_state else 'LOW'}, Last state: {'HIGH' if last_motion_state else 'LOW'}")
+
+                # Motion start
                 if current_pir_state == self._gpio.HIGH and last_motion_state == self._gpio.LOW:
                     print("[PIR] MOTION DETECTED!")
                     motion_detected = True
@@ -193,7 +190,7 @@ class SmartHomeMonitor:
                         "at": ts
                     })
 
-                # Falling edge detection (motion stopped after cooldown)
+                # Motion stop
                 elif current_pir_state == self._gpio.LOW and last_motion_state == self._gpio.HIGH:
                     if ts - last_motion_time >= MOTION_COOLDOWN:
                         print("[PIR] No motion")
@@ -201,14 +198,13 @@ class SmartHomeMonitor:
                         publish_data({
                             "event": "motion",
                             "device_uid": "pir_sensor_01",
-                            "occupied": 1,
+                            "occupied": 0,
                             "at": ts
                         })
 
-                # --- C. Control Actuators ---
+                # Control actuators
                 self._control_actuators(temp_c, motion_detected)
 
-                # --- D. Wait for next cycle ---
                 time.sleep(READ_INTERVAL_SECONDS)
 
         except KeyboardInterrupt:
@@ -224,7 +220,6 @@ class SmartHomeMonitor:
         """Clean up GPIO and DHT resources."""
         print("\n[Monitor] Cleaning up resources...")
 
-        # Turn off all actuators
         if self._gpio:
             self._gpio.output(PinConfig.BUZZER_PIN, self._gpio.LOW)
             self._gpio.output(PinConfig.LED_PIN, self._gpio.LOW)
