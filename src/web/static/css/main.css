@@ -11,12 +11,8 @@
   --text-secondary: #4a5568;
   --text-muted: #718096;
   --accent-blue: #3b82f6;
-  --accent-green: #10b981;
-  --accent-red: #ef4444;
-  --accent-yellow: #f59e0b;
   --border-color: #cbd5e0;
   --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
   /* Dark Mode Colors */
   --bg-primary-dark: #0d1117;

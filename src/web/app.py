@@ -2179,30 +2179,251 @@ def get_room_notifications(room_id):
     finally:
         cursor.close()
 
+
 # =============================================================================
-# SETTINGS & USER MANAGEMENT ROUTES
+# PROFILE MANAGEMENT ROUTES
 # =============================================================================
 
 @app.route("/settings")
 @login_required
 def settings():
     users = []
+    user_profile = {}
+
+    # Get current user's profile data
+    cur = db_cursor()
+    try:
+        cur.execute(
+            "SELECT username, email, first_name, last_name, bio, profile_picture, created_at FROM users WHERE id = %s",
+            (session["user_id"],)
+        )
+        user_data = cur.fetchone()
+        if user_data:
+            user_profile = {
+                'username': user_data['username'],
+                'email': user_data['email'],
+                'first_name': user_data['first_name'],
+                'last_name': user_data['last_name'],
+                'bio': user_data['bio'],
+                'profile_picture': user_data['profile_picture'],
+                'created_at': user_data['created_at'].strftime('%B %Y') if user_data['created_at'] else 'Unknown'
+            }
+            # Update session with latest data
+            for key, value in user_profile.items():
+                if value is not None:
+                    session[key] = value
+    except Exception as e:
+        log.error(f"Error fetching user profile: {e}")
+    finally:
+        cur.close()
 
     if session.get("role") in ["admin", "technician"]:
         cur = db_cursor()
         if session.get("role") == "technician":
             cur.execute("SELECT id, username, email, role FROM users ORDER BY id ASC")
         else:
-            cur.execute("SELECT id, username, email, role FROM users WHERE role != 'technician' ORDER BY id ASC")
+            cur.execute("SELECT id, username, email, role FROM users ORDER BY id ASC")
         users = cur.fetchall()
         cur.close()
 
     return render_template(
         "settings.html",
         users=users,
-        rooms=get_user_rooms(session["user_id"]),
+        user_profile=user_profile,
         active_page="settings",
     )
+
+
+@app.route("/update-profile", methods=["POST"])
+@login_required
+def update_profile():
+    """Update user profile information"""
+    user_id = session.get("user_id")
+    username = request.form.get("username", "").strip()
+    email = request.form.get("email", "").strip()
+    first_name = request.form.get("first_name", "").strip() or None
+    last_name = request.form.get("last_name", "").strip() or None
+    bio = request.form.get("bio", "").strip() or None
+
+    # Validate inputs
+    if not username or not email:
+        flash("Username and email are required.", "error")
+        return redirect(url_for("settings"))
+
+    if not EMAIL_RE.match(email):
+        flash("Please enter a valid email address.", "error")
+        return redirect(url_for("settings"))
+
+    cur = db_cursor()
+    try:
+        # Check if username or email already exists (excluding current user)
+        cur.execute(
+            "SELECT id FROM users WHERE (username = %s OR email = %s) AND id != %s",
+            (username, email, user_id)
+        )
+        if cur.fetchone():
+            flash("Username or email already exists.", "error")
+            return redirect(url_for("settings"))
+
+        # Update user profile
+        cur.execute(
+            """
+            UPDATE users
+            SET username   = %s,
+                email      = %s,
+                first_name = %s,
+                last_name  = %s,
+                bio        = %s
+            WHERE id = %s
+            """,
+            (username, email, first_name, last_name, bio, user_id)
+        )
+
+        # Update session data
+        session["username"] = username
+        session["email"] = email
+        if first_name:
+            session["first_name"] = first_name
+        if last_name:
+            session["last_name"] = last_name
+        if bio:
+            session["bio"] = bio
+
+        mysql.connection.commit()
+        flash("Profile updated successfully!", "success")
+
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error updating profile: {e}")
+        flash("Failed to update profile.", "error")
+    finally:
+        cur.close()
+
+    return redirect(url_for("settings"))
+
+
+@app.route("/api/upload-profile-picture", methods=["POST"])
+@login_required
+def upload_profile_picture():
+    """Handle profile picture upload"""
+    user_id = session.get("user_id")
+
+    if 'profile_picture' not in request.files:
+        return jsonify({"success": False, "error": "No file provided"}), 400
+
+    file = request.files['profile_picture']
+
+    if file.filename == '':
+        return jsonify({"success": False, "error": "No file selected"}), 400
+
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    if not ('.' in file.filename and
+            file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+        return jsonify({"success": False, "error": "Invalid file type"}), 400
+
+    # Validate file size (max 5MB)
+    file.seek(0, 2)  # Seek to end to get file size
+    file_size = file.tell()
+    file.seek(0)  # Reset file pointer
+
+    if file_size > 5 * 1024 * 1024:
+        return jsonify({"success": False, "error": "File too large (max 5MB)"}), 400
+
+    try:
+        # Generate unique filename
+        file_extension = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"profile_{user_id}_{int(datetime.now().timestamp())}.{file_extension}"
+
+        # Create uploads directory if it doesn't exist
+        upload_dir = os.path.join(app.static_folder, 'uploads', 'profiles')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Save file
+        file_path = os.path.join(upload_dir, filename)
+        file.save(file_path)
+
+        # Update user profile picture in database
+        cur = db_cursor()
+        cur.execute(
+            "UPDATE users SET profile_picture = %s WHERE id = %s",
+            (filename, user_id)
+        )
+        mysql.connection.commit()
+        cur.close()
+
+        # Update session
+        session["profile_picture"] = filename
+
+        return jsonify({
+            "success": True,
+            "filename": filename,
+            "url": f"/static/uploads/profiles/{filename}"
+        })
+
+    except Exception as e:
+        log.error(f"Error uploading profile picture: {e}")
+        return jsonify({"success": False, "error": "Upload failed"}), 500
+
+
+@app.route("/api/remove-profile-picture", methods=["POST"])
+@login_required
+def remove_profile_picture():
+    """Remove user's profile picture"""
+    user_id = session.get("user_id")
+
+    try:
+        # Get current profile picture filename
+        cur = db_cursor()
+        cur.execute("SELECT profile_picture FROM users WHERE id = %s", (user_id,))
+        result = cur.fetchone()
+
+        if result and result['profile_picture']:
+            # Delete the file from filesystem
+            file_path = os.path.join(app.static_folder, 'uploads', 'profiles', result['profile_picture'])
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        # Update database
+        cur.execute(
+            "UPDATE users SET profile_picture = NULL WHERE id = %s",
+            (user_id,)
+        )
+        mysql.connection.commit()
+        cur.close()
+
+        # Update session
+        session.pop('profile_picture', None)
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error removing profile picture: {e}")
+        return jsonify({"success": False, "error": "Failed to remove profile picture"}), 500
+
+
+@app.route("/set-theme/<theme>")
+@login_required
+def set_theme(theme):
+    """Set user's theme preference"""
+    if theme in ["light", "dark", "system"]:
+        session["theme"] = theme
+        # Also store in database for persistence
+        cur = db_cursor()
+        try:
+            cur.execute(
+                "UPDATE users SET theme_preference = %s WHERE id = %s",
+                (theme, session["user_id"])
+            )
+            mysql.connection.commit()
+        except Exception as e:
+            log.error(f"Error saving theme preference: {e}")
+        finally:
+            cur.close()
+
+        flash(f"Theme changed to {theme} mode", "success")
+    return redirect(request.referrer or url_for("dashboard"))
 
 # =============================================================================
 # change password route
@@ -2267,13 +2488,13 @@ def inject_theme():
     return dict(current_theme=session.get("theme", "system"))
 
 
-@app.route("/set-theme/<theme>")
-@login_required
-def set_theme(theme):
-    if theme in ["light", "dark", "system"]:
-        session["theme"] = theme
-        flash(f"Theme changed to {theme} mode", "success")
-    return redirect(request.referrer or url_for("dashboard"))
+# @app.route("/set-theme/<theme>")
+# @login_required
+# def set_theme(theme):
+#     if theme in ["light", "dark", "system"]:
+#         session["theme"] = theme
+#         flash(f"Theme changed to {theme} mode", "success")
+#     return redirect(request.referrer or url_for("dashboard"))
 
 
 # =============================================================================
