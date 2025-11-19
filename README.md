@@ -101,7 +101,7 @@ export PYTHONPATH="$PWD/src"
 
 DHT22 Pin → Raspberry Pi Pin
 ─────────────────────────────
-VCC (Pin 1)   → 3.3V/5V Power (Pin 1/2)
+VCC (Pin 1)   → 3.3V Power (Pin 1)
 Data (Pin 2)  → GPIO 4 (Pin 7)
 Ground (Pin 4) → Ground (Pin 6)
 
