@@ -37,61 +37,62 @@
             </div>
 
             <!-- Notifications Table -->
-<div class="card p-6 bg-secondary">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-semibold text-text-primary">Recent Requests & Notifications</h2>
-        <div class="flex gap-2">
-            <button onclick="markAllAsRead()"
-                    class="btn bg-accent-blue hover:bg-accent-blue-hover text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg text-sm">
-                Mark All as Read
-            </button>
-            <button onclick="loadNotifications()"
-                    class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg text-sm flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                Refresh
-            </button>
-        </div>
-    </div>
+            <div class="card p-6 bg-secondary">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-text-primary">Recent Requests & Notifications</h2>
+                    <div class="flex gap-2">
+                        <button onclick="markAllAsRead()"
+                                class="btn bg-accent-blue hover:bg-accent-blue-hover text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg text-sm">
+                            Mark All as Read
+                        </button>
+                        <button onclick="loadNotifications()"
+                                class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg text-sm flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
 
-    <div class="overflow-x-auto border border-border rounded-lg">
-        <table class="w-full text-sm text-left text-text-muted">
-            <thead class="text-sm uppercase bg-tertiary text-text-primary border-b-2 border-border">
-            <tr>
-                <th class="px-6 py-4 font-semibold border-r border-border">Type</th>
-                <th class="px-6 py-4 font-semibold border-r border-border">Room</th>
-                <th class="px-6 py-4 font-semibold border-r border-border">Request Details</th>
-                <th class="px-6 py-4 font-semibold border-r border-border">Status</th>
-                <th class="px-6 py-4 font-semibold border-r border-border">Date</th>
-                <th class="px-6 py-4 font-semibold">Actions</th>
-            </tr>
-            </thead>
-            <tbody id="notifications-table-body" class="divide-y divide-border">
-            <!-- Dynamic content will be loaded here -->
-            </tbody>
-        </table>
-    </div>
+                <div class="overflow-x-auto border border-border rounded-lg">
+                    <table class="w-full text-sm text-left text-text-muted">
+                        <thead class="text-sm uppercase bg-tertiary text-text-primary border-b-2 border-border">
+                        <tr>
+                            <th class="px-6 py-4 font-semibold border-r border-border">Type</th>
+                            <th class="px-6 py-4 font-semibold border-r border-border">Room</th>
+                            <th class="px-6 py-4 font-semibold border-r border-border">Request Details</th>
+                            <th class="px-6 py-4 font-semibold border-r border-border">Status</th>
+                            <th class="px-6 py-4 font-semibold border-r border-border">Date</th>
+                            <th class="px-6 py-4 font-semibold">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="notifications-table-body" class="divide-y divide-border">
+                        <!-- Dynamic content will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
 
-    <!-- Empty State -->
-    <div id="empty-state" class="text-center py-12 hidden">
-        <svg class="w-16 h-16 mx-auto text-text-muted/60 mb-4" fill="none" stroke="currentColor"
-             viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-        <h3 class="text-lg font-semibold text-text-muted mb-2">No notifications yet</h3>
-        <p class="text-text-muted/80">Your room adjustment requests and system notifications will appear
-            here.</p>
-    </div>
+                <!-- Empty State -->
+                <div id="empty-state" class="text-center py-12 hidden">
+                    <svg class="w-16 h-16 mx-auto text-text-muted/60 mb-4" fill="none" stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-text-muted mb-2">No notifications yet</h3>
+                    <p class="text-text-muted/80">Your room adjustment requests and system notifications will appear
+                        here.</p>
+                </div>
 
-    <!-- Loading State -->
-    <div id="loading-state" class="text-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-blue mx-auto"></div>
-        <p class="text-text-muted mt-2">Loading notifications...</p>
-    </div>
-</div>        </main>
+                <!-- Loading State -->
+                <div id="loading-state" class="text-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-blue mx-auto"></div>
+                    <p class="text-text-muted mt-2">Loading notifications...</p>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
@@ -159,13 +160,13 @@
                             <td class="px-4 py-3">
                                 <div class="flex gap-2">
                                     ${!notification.is_read ? `
-                                        <button onclick="markAsRead('${notification.id}')" 
+                                        <button onclick="markAsRead('${notification.id}')"
                                                 class="text-blue-400 hover:text-blue-300 text-sm">
                                             Mark Read
                                         </button>
                                     ` : ''}
                                     ${notification.request_id ? `
-                                        <button onclick="viewRequestDetails('${notification.request_id}')" 
+                                        <button onclick="viewRequestDetails('${notification.request_id}')"
                                                 class="text-green-400 hover:text-green-300 text-sm">
                                             Details
                                         </button>
@@ -232,55 +233,97 @@
             // Implement view request details functionality
             window.location.href = `/requests/${requestId}`;
         }
+
+        function focusOnUserRequest(requestId) {
+            console.log('DEBUG: Focusing on user request:', requestId);
+
+            // Find the request in the user's request list and highlight it
+            const requestElement = document.querySelector(`[data-request-id="${requestId}"]`);
+            if (requestElement) {
+                requestElement.scrollIntoView({behavior: 'smooth', block: 'center'});
+
+                // Add highlight
+                requestElement.style.transition = 'all 0.5s ease';
+                requestElement.style.boxShadow = '0 0 0 3px var(--accent-blue)';
+                requestElement.style.transform = 'scale(1.02)';
+
+                setTimeout(() => {
+                    requestElement.style.boxShadow = '';
+                    requestElement.style.transform = '';
+                }, 3000);
+            }
+        }
+
+        // Check URL parameters on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const requestId = urlParams.get('request_id');
+            const notificationId = urlParams.get('notification_id');
+
+            if (requestId) {
+                // Load user requests and focus on the specific one
+                loadUserRequests().then(() => {
+                    focusOnUserRequest(requestId);
+                });
+            }
+
+            if (notificationId) {
+                // Mark the specific notification as read
+                fetch(`/api/user/notifications/${notificationId}/read`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+            }
+        });
     </script>
     <style>
-    /* Enhanced button styles */
-    .btn {
-        transition: all 0.2s ease-in-out;
-        font-weight: 500;
-        border: none;
-        cursor: pointer;
-    }
+        /* Enhanced button styles */
+        .btn {
+            transition: all 0.2s ease-in-out;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+        }
 
-    .btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.17);
-    }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.17);
+        }
 
-    /* Table header enhancements */
-    thead th {
-        font-size: 0.875rem; /* text-sm equivalent but slightly larger than body */
-        letter-spacing: 0.025em;
-    }
+        /* Table header enhancements */
+        thead th {
+            font-size: 0.875rem; /* text-sm equivalent but slightly larger than body */
+            letter-spacing: 0.025em;
+        }
 
-    /* Table cell padding */
-    tbody td {
-        padding: 0.75rem 1.5rem; /* px-6 py-3 equivalent */
-        font-size: 0.875rem; /* text-sm */
-        vertical-align: middle;
-    }
+        /* Table cell padding */
+        tbody td {
+            padding: 0.75rem 1.5rem; /* px-6 py-3 equivalent */
+            font-size: 0.875rem; /* text-sm */
+            vertical-align: middle;
+        }
 
-    /* Hover effect for table rows */
-    tbody tr {
-        transition: background-color 0.15s ease-in-out;
-    }
+        /* Hover effect for table rows */
+        tbody tr {
+            transition: background-color 0.15s ease-in-out;
+        }
 
-    tbody tr:hover {
-        background-color: var(--bg-tertiary);
-    }
+        tbody tr:hover {
+            background-color: var(--bg-tertiary);
+        }
 
-    /* Ensure proper contrast for table headers */
-    thead {
-        background-color: var(--bg-tertiary);
-    }
+        /* Ensure proper contrast for table headers */
+        thead {
+            background-color: var(--bg-tertiary);
+        }
 
-    /* Border styling for better separation */
-    .border-border {
-        border-color: var(--border-color);
-    }
+        /* Border styling for better separation */
+        .border-border {
+            border-color: var(--border-color);
+        }
 
-    .divide-border > * + * {
-        border-color: var(--border-color);
-    }
-</style>
+        .divide-border > * + * {
+            border-color: var(--border-color);
+        }
+    </style>
 {% endblock %}

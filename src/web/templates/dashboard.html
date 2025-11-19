@@ -33,68 +33,7 @@
             </header>
 
             <!-- Search Bar -->
-            <section class="mb-6">
-                <div class="card p-4">
-                    <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
-                        <div class="flex-1 w-full md:w-auto">
-                            <div class="relative">
-                                <input
-                                        type="text"
-                                        id="searchInput"
-                                        placeholder="{% if session.role in ['admin', 'technician'] %}Search all rooms, devices, locations, sensor values, or owners...{% else %}Search your rooms, devices, locations, or sensor values...{% endif %}"
-                                        class="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                                >
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
-                                         viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
-                                </div>
-                                <button
-                                        id="clearSearch"
-                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition duration-200 hidden"
-                                >
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                    id="filterRooms"
-                                    class="filter-btn active px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-blue-600 text-white"
-                                    data-filter="rooms"
-                            >
-                                Rooms
-                            </button>
-                            <button
-                                    id="filterReadings"
-                                    class="filter-btn inactive px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-gray-600 text-gray-300"
-                                    data-filter="readings"
-                            >
-                                Sensor Logs
-                            </button>
-                            <button
-                                    id="filterAll"
-                                    class="filter-btn inactive px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-gray-600 text-gray-300"
-                                    data-filter="all"
-                            >
-                                All
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Search Results Summary -->
-                    <div id="searchResults" class="mt-3 text-sm text-gray-400 hidden">
-                        Found <span id="resultsCount">0</span> results
-                    </div>
-                </div>
-            </section>
-
+            {% include 'components/search_bar.html' %}
             <!-- ===================== ROOMS ===================== -->
             {% if rooms and rooms|length > 0 %}
                 <section class="mt-4" id="roomsSection">

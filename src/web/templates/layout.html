@@ -100,7 +100,7 @@
       rel="stylesheet"
     />
   </head>
-  <body class="no-flash">
+  <body class="no-flash" data-user-role="{{ session.get('role', 'user') }}">
     {% block body %} {% endblock %}
 
     <!-- Flash Messages Display -->

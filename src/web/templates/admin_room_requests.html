@@ -9,7 +9,8 @@
                 <div class="header-content">
                     <div>
                         <h1 class="text-4xl font-extrabold text-text-primary mb-2">Room Condition Requests</h1>
-                        <p class="text-text-muted">Monitor and manage room condition adjustment requests in real-time.</p>
+                        <p class="text-text-muted">Monitor and manage room condition adjustment requests in
+                            real-time.</p>
                     </div>
                     {% include 'components/notification_bell.html' %}
                 </div>
@@ -84,7 +85,8 @@
                             <button id="refresh-requests"
                                     class="btn bg-accent-blue hover:bg-accent-blue-hover text-white text-sm py-2 px-4 flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
                                 Refresh
                             </button>
@@ -101,7 +103,8 @@
             </div>
 
             <!-- Action Modal -->
-            <div id="action-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+            <div id="action-modal"
+                 class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
                 <div class="bg-secondary p-6 rounded-xl shadow-2xl w-full max-w-md border border-border">
                     <h3 id="modal-title" class="text-xl font-bold mb-3 text-text-primary">Process Request</h3>
                     <div id="modal-content" class="space-y-4">
@@ -265,30 +268,85 @@
         }
 
         /* Apply CSS Variables to Tailwind-like Utility Classes */
-        .bg-primary { background-color: var(--bg-primary); }
-        .bg-secondary { background-color: var(--bg-secondary); }
-        .bg-tertiary { background-color: var(--bg-tertiary); }
-        .bg-tertiary-hover:hover { background-color: var(--bg-tertiary-hover); }
+        .bg-primary {
+            background-color: var(--bg-primary);
+        }
 
-        .text-text-primary { color: var(--text-primary); }
-        .text-text-secondary { color: var(--text-secondary); }
-        .text-text-muted { color: var(--text-muted); }
+        .bg-secondary {
+            background-color: var(--bg-secondary);
+        }
 
-        .border-border { border-color: var(--border-color); }
+        .bg-tertiary {
+            background-color: var(--bg-tertiary);
+        }
 
-        .bg-accent-blue { background-color: var(--accent-blue); }
-        .bg-accent-blue-hover:hover { background-color: var(--accent-blue-hover); }
-        .bg-accent-green { background-color: var(--accent-green); }
-        .bg-accent-green-hover:hover { background-color: var(--accent-green-hover); }
-        .bg-accent-red { background-color: var(--accent-red); }
-        .bg-accent-red-hover:hover { background-color: var(--accent-red-hover); }
-        .bg-accent-yellow { background-color: var(--accent-yellow); }
-        .bg-accent-yellow-hover:hover { background-color: var(--accent-yellow-hover); }
+        .bg-tertiary-hover:hover {
+            background-color: var(--bg-tertiary-hover);
+        }
 
-        .border-accent-blue { border-color: var(--accent-blue); }
-        .border-accent-green { border-color: var(--accent-green); }
-        .border-accent-red { border-color: var(--accent-red); }
-        .border-accent-yellow { border-color: var(--accent-yellow); }
+        .text-text-primary {
+            color: var(--text-primary);
+        }
+
+        .text-text-secondary {
+            color: var(--text-secondary);
+        }
+
+        .text-text-muted {
+            color: var(--text-muted);
+        }
+
+        .border-border {
+            border-color: var(--border-color);
+        }
+
+        .bg-accent-blue {
+            background-color: var(--accent-blue);
+        }
+
+        .bg-accent-blue-hover:hover {
+            background-color: var(--accent-blue-hover);
+        }
+
+        .bg-accent-green {
+            background-color: var(--accent-green);
+        }
+
+        .bg-accent-green-hover:hover {
+            background-color: var(--accent-green-hover);
+        }
+
+        .bg-accent-red {
+            background-color: var(--accent-red);
+        }
+
+        .bg-accent-red-hover:hover {
+            background-color: var(--accent-red-hover);
+        }
+
+        .bg-accent-yellow {
+            background-color: var(--accent-yellow);
+        }
+
+        .bg-accent-yellow-hover:hover {
+            background-color: var(--accent-yellow-hover);
+        }
+
+        .border-accent-blue {
+            border-color: var(--accent-blue);
+        }
+
+        .border-accent-green {
+            border-color: var(--accent-green);
+        }
+
+        .border-accent-red {
+            border-color: var(--accent-red);
+        }
+
+        .border-accent-yellow {
+            border-color: var(--accent-yellow);
+        }
     </style>
 
     <script>
@@ -435,10 +493,10 @@
             requests.forEach(request => {
                 const cardHtml = `
                     <div class="request-card bg-secondary p-4 rounded-xl border-l-4 ${
-                        request.status === 'pending' ? 'border-accent-yellow' :
+                    request.status === 'pending' ? 'border-accent-yellow' :
                         request.status === 'viewed' ? 'border-accent-blue' :
-                        request.status === 'approved' ? 'border-accent-green' : 'border-accent-red'
-                    }">
+                            request.status === 'approved' ? 'border-accent-green' : 'border-accent-red'
+                }">
                         <div class="compact-grid">
                             <div class="request-main">
                                 <div class="flex items-start justify-between">
@@ -639,8 +697,8 @@
             const toast = document.createElement('div');
             toast.className = `fixed top-4 right-4 p-3 rounded-lg shadow-lg z-50 ${
                 type === 'success' ? 'bg-green-600 text-white' :
-                type === 'error' ? 'bg-red-600 text-white' :
-                'bg-blue-600 text-white'
+                    type === 'error' ? 'bg-red-600 text-white' :
+                        'bg-blue-600 text-white'
             }`;
             toast.innerHTML = `
                 <div class="flex items-center gap-2">
@@ -662,7 +720,7 @@
         }
 
         // Event listeners
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('DEBUG: Page loaded, starting to load requests...');
 
             // Load initial requests
@@ -674,7 +732,7 @@
             document.getElementById('type-filter').addEventListener('change', applyFilters);
 
             // Button event listeners
-            document.getElementById('clear-filters').addEventListener('click', function() {
+            document.getElementById('clear-filters').addEventListener('click', function () {
                 document.getElementById('status-filter').value = 'pending';
                 document.getElementById('user-filter').value = 'all';
                 document.getElementById('type-filter').value = 'all';
@@ -684,6 +742,159 @@
             document.getElementById('refresh-requests').addEventListener('click', loadRequests);
             document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
         });
+
+        function focusOnRequest(requestId) {
+            console.log('DEBUG: Focusing on request:', requestId);
+
+            // Find the request card and highlight it
+            const requestCard = document.querySelector(`[data-request-id="${requestId}"]`);
+            if (requestCard) {
+                // Scroll to the request
+                requestCard.scrollIntoView({behavior: 'smooth', block: 'center'});
+
+                // Add highlight animation
+                requestCard.style.transition = 'all 0.5s ease';
+                requestCard.style.boxShadow = '0 0 0 3px var(--accent-blue)';
+                requestCard.style.transform = 'scale(1.02)';
+
+                // Remove highlight after 3 seconds
+                setTimeout(() => {
+                    requestCard.style.boxShadow = '';
+                    requestCard.style.transform = '';
+                }, 3000);
+            } else {
+                console.log('DEBUG: Request card not found, might be filtered out');
+                // If request not visible, try to find it in the data and show appropriate filter
+                const request = allRequests.find(r => r.id == requestId);
+                if (request) {
+                    // Set filters to show this request
+                    document.getElementById('status-filter').value = request.status;
+                    document.getElementById('user-filter').value = request.username;
+                    document.getElementById('type-filter').value = request.request_type;
+                    applyFilters();
+
+                    // Try to focus again after a short delay
+                    setTimeout(() => focusOnRequest(requestId), 500);
+                }
+            }
+        }
+
+        // Update the renderRequests function to add data attributes
+        function renderRequests(requests) {
+            const listElement = document.getElementById('requests-list');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            if (loadingIndicator) loadingIndicator.classList.add('hidden');
+            listElement.innerHTML = '';
+
+            if (requests.length === 0) {
+                listElement.innerHTML = `
+            <div class="text-center p-8 bg-secondary text-text-muted rounded-xl border border-border">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+                    <path d="M12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                </svg>
+                <h2 class="text-lg font-semibold text-text-primary mb-1">No new requests found</h2>
+                <p class="text-sm">Try adjusting your filters to see more results.</p>
+            </div>
+        `;
+                return;
+            }
+
+            requests.forEach(request => {
+                const cardHtml = `
+            <div class="request-card bg-secondary p-4 rounded-xl border-l-4 ${
+                    request.status === 'pending' ? 'border-accent-yellow' :
+                        request.status === 'viewed' ? 'border-accent-blue' :
+                            request.status === 'approved' ? 'border-accent-green' : 'border-accent-red'
+                }" data-request-id="${request.id}">
+                <div class="compact-grid">
+                    <div class="request-main">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold text-text-primary mb-1 capitalize">
+                                    ${request.room_name} - ${request.request_type.replace(/_/g, ' ')}
+                                </h3>
+                                <div class="request-meta">
+                                    <span class="text-sm text-text-muted">
+                                        By: <span class="text-text-secondary font-medium">${request.username}</span>
+                                    </span>
+                                    <span class="text-sm text-text-muted">
+                                        ${new Date(request.created_at).toLocaleString()}
+                                    </span>
+                                    <span class="status-badge status-${request.status}">
+                                        ${request.status}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="request-details">
+                            ${request.request_type === 'temperature_change' && request.current_temperature && request.target_temperature ? `
+                                <div class="detail-item">
+                                    <div class="detail-label">Temperature Change</div>
+                                    <div class="detail-value">
+                                        ${request.current_temperature}°C → ${request.target_temperature}°C
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${request.request_type === 'fan_adjustment' && request.fan_level_request ? `
+                                <div class="detail-item">
+                                    <div class="detail-label">Airflow Request</div>
+                                    <div class="detail-value capitalize">
+                                        ${request.fan_level_request.replace(/_/g, ' ')}
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${request.user_notes ? `
+                                <div class="detail-item">
+                                    <div class="detail-label">User Notes</div>
+                                    <div class="detail-value text-sm">"${request.user_notes}"</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        ${request.status === 'pending' ? `
+                            <button onclick="markAsViewed('${request.id}')"
+                                class="btn-compact bg-accent-blue hover:bg-accent-blue-hover text-white font-semibold transition duration-150">
+                                Mark Viewed
+                            </button>
+                        ` : ''}
+                        <button onclick="showApproveModal('${request.id}')"
+                            class="btn-compact bg-accent-green hover:bg-accent-green-hover text-white font-semibold transition duration-150">
+                            Approve
+                        </button>
+                        <button onclick="showDenyModal('${request.id}')"
+                            class="btn-compact bg-accent-red hover:bg-accent-red-hover text-white font-semibold transition duration-150">
+                            Deny
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+                listElement.insertAdjacentHTML('beforeend', cardHtml);
+            });
+
+            // Check if we need to focus on a specific request
+            const urlParams = new URLSearchParams(window.location.search);
+            const focusRequestId = urlParams.get('request_id');
+            const shouldFocus = urlParams.get('focus') === 'true';
+
+            if (focusRequestId && shouldFocus) {
+                focusOnRequest(focusRequestId);
+
+                // Clean up URL
+                const newUrl = window.location.pathname + '?' + new URLSearchParams({
+                    ...Object.fromEntries(urlParams),
+                    focus: 'false' // Set focus to false so it doesn't trigger again on refresh
+                }).toString();
+                window.history.replaceState({}, '', newUrl);
+            }
+        }
     </script>
 {% endblock %}
 

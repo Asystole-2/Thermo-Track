@@ -1486,8 +1486,9 @@ def admin_room_requests():
     """Admin panel for managing room condition requests"""
     log.debug(f"Session data - user_id: {session.get('user_id')}, role: {session.get('role')}")
 
-    if not is_admin(session["user_id"]):
-        flash("Access denied. Admin privileges required.", "error")
+    # Allow both admins and technicians
+    if not (is_admin(session["user_id"]) or session.get('role') == 'technician'):
+        flash("Access denied. Admin or technician privileges required.", "error")
         return redirect(url_for("dashboard"))
 
     cursor = mysql.connection.cursor()
@@ -1520,8 +1521,9 @@ def admin_room_requests():
 @app.route("/api/admin/room-requests")
 @login_required
 def get_admin_room_requests():
-    """API endpoint to get all room requests for admin"""
-    if not is_admin(session["user_id"]):
+    """API endpoint to get all room requests for admin/technician"""
+    # Allow both admins and technicians
+    if not (is_admin(session["user_id"]) or session.get('role') == 'technician'):
         return jsonify([]), 403
 
     cursor = mysql.connection.cursor()
@@ -1571,8 +1573,8 @@ def get_admin_room_requests():
 @app.route('/api/admin/room-requests/<int:request_id>/view', methods=['POST'])
 @login_required
 def mark_request_viewed(request_id):
-    """Mark a request as viewed by admin"""
-    if not is_admin(session['user_id']):
+    """Mark a request as viewed by admin/technician"""
+    if not (is_admin(session['user_id']) or session.get('role') == 'technician'):
         return jsonify({'error': 'Unauthorized'}), 403
 
     cursor = mysql.connection.cursor()
@@ -1611,7 +1613,7 @@ def mark_request_viewed(request_id):
 @login_required
 def approve_room_request(request_id):
     """Approve a room request"""
-    if not is_admin(session['user_id']):
+    if not (is_admin(session['user_id']) or session.get('role') == 'technician'):
         return jsonify({'error': 'Unauthorized'}), 403
 
     data = request.json
@@ -1659,7 +1661,7 @@ def approve_room_request(request_id):
 @login_required
 def deny_room_request(request_id):
     """Deny a room request"""
-    if not is_admin(session['user_id']):
+    if not (is_admin(session['user_id']) or session.get('role') == 'technician'):
         return jsonify({'error': 'Unauthorized'}), 403
 
     data = request.json
@@ -2044,6 +2046,77 @@ def get_unread_notification_count():
         cursor.close()
 
 # =============================================================================
+# NEW API ROUTES FOR ADMIN NOTIFICATIONS
+# =============================================================================
+
+@app.route("/api/admin/pending-requests-count")
+@login_required
+def get_pending_requests_count():
+    """Get count of pending room requests for admin/technician notification bell"""
+    if session.get('role') not in ['admin', 'technician']:
+        return jsonify({"pending_count": 0})
+
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute("""
+            SELECT COUNT(*) as pending_count 
+            FROM room_condition_requests 
+            WHERE status = 'pending'
+        """)
+        result = cursor.fetchone()
+        return jsonify({"pending_count": result["pending_count"] if result else 0})
+    except Exception as e:
+        log.error(f"Error getting pending requests count: {e}")
+        return jsonify({"pending_count": 0})
+    finally:
+        cursor.close()
+
+@app.route("/api/admin/pending-room-requests")
+@login_required
+def get_pending_room_requests():
+    """Get pending room requests for admin/technician notification dropdown"""
+    if session.get('role') not in ['admin', 'technician']:
+        return jsonify([])
+
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute("""
+            SELECT r.*, u.username, rm.name as room_name
+            FROM room_condition_requests r
+            JOIN users u ON r.user_id = u.id
+            JOIN rooms rm ON r.room_id = rm.id
+            WHERE r.status = 'pending'
+            ORDER BY r.created_at DESC
+            LIMIT %s
+        """, (request.args.get('limit', 5, type=int),))
+
+        requests = []
+        for row in cursor.fetchall():
+            requests.append({
+                'id': row['id'],
+                'room_id': row['room_id'],
+                'user_id': row['user_id'],
+                'request_type': row['request_type'],
+                'current_temperature': float(row['current_temperature']) if row['current_temperature'] else None,
+                'target_temperature': float(row['target_temperature']) if row['target_temperature'] else None,
+                'fan_level_request': row['fan_level_request'],
+                'user_notes': row['user_notes'],
+                'status': row['status'],
+                'estimated_completion_time': row['estimated_completion_time'].isoformat() if row['estimated_completion_time'] else None,
+                'created_at': row['created_at'].isoformat(),
+                'username': row['username'],
+                'room_name': row['room_name']
+            })
+
+        return jsonify(requests)
+
+    except Exception as e:
+        log.error(f"Error getting pending room requests: {e}")
+        return jsonify([])
+    finally:
+        cursor.close()
+
+# =============================================================================
 # ROOM-SPECIFIC NOTIFICATION ROUTES
 # =============================================================================
 
@@ -2130,6 +2203,59 @@ def settings():
         rooms=get_user_rooms(session["user_id"]),
         active_page="settings",
     )
+
+# =============================================================================
+# change password route
+# =============================================================================
+@app.route("/change-password", methods=["GET", "POST"])
+def change_password():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        current_password = request.form.get("current_password")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        cursor = db_cursor()
+        cursor.execute("SELECT password FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            flash("User not found.", "error")
+            return redirect("/change-password")
+
+        # Validate current password
+        if not check_password_hash(user["password"], current_password):
+            flash("Current password is incorrect.", "error")
+            return redirect("/change-password")
+
+        # Check new passwords match
+        if new_password != confirm_password:
+            flash("New passwords do not match.", "error")
+            return redirect("/change-password")
+
+        # Update password
+        if not PWD_RE.match(new_password):
+            flash(
+                "Password must be at least 8 characters, include an uppercase letter, a number, and a special character.",
+                "error",
+            )
+            return redirect("/change-password")
+
+        hashed_pw = generate_password_hash(new_password)
+        cursor.execute(
+            "UPDATE users SET password = %s WHERE id = %s", (hashed_pw, user_id)
+        )
+        mysql.connection.commit()
+        cursor.close()
+
+        flash("Password changed successfully!", "success")
+        return redirect("/settings")
+
+    return render_template("change_password.html")
 
 
 # =============================================================================
