@@ -157,6 +157,14 @@ CREATE TABLE user_rooms (
     INDEX idx_user_rooms_room (room_id)
 ) ENGINE=InnoDB;
 
+-- Add new profile fields to users table
+ALTER TABLE users
+ADD COLUMN first_name VARCHAR(100) NULL,
+ADD COLUMN last_name VARCHAR(100) NULL,
+ADD COLUMN bio TEXT NULL,
+ADD COLUMN profile_picture VARCHAR(255) NULL,
+ADD COLUMN theme_preference VARCHAR(20) DEFAULT 'system';
+
 -- ============================================
 -- VIEW: latest reading per device
 -- ============================================
@@ -272,4 +280,6 @@ INSERT INTO user_notifications (user_id, request_id, title, message, type, is_re
 (2, 2, 'Request Submitted', 'Your fan adjustment request for Office Lab has been submitted.', 'info', 0, '2025-11-01 11:30:00'),
 (2, 3, 'Request Viewed', 'Your temperature change request for Studio is being reviewed.', 'info', 1, '2025-11-01 12:20:00');
 
+-- Update existing users to have created_at if not exists (for display purposes)
+UPDATE users SET created_at = NOW() WHERE created_at IS NULL;
 */

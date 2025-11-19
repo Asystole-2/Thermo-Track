@@ -1,4 +1,6 @@
-{% extends "layout.html" %} {% block body %}
+{% extends "layout.html" %}
+
+{% block body %}
 <div class="app-container">
   {% include 'components/menu.html' %}
 
@@ -13,154 +15,692 @@
             Configure user profile and management.
           </p>
         </div>
-        <!-- Right side: Notification bell -->
         {% include 'components/notification_bell.html' %}
       </div>
     </header>
 
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if
-    messages %}
-    <div class="mb-6">
-      {% for category, message in messages %}
-      <div class="flash {{ category }} rounded-lg text-sm" role="alert">
-        {{ message }}
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %} {% endwith %}
-    <a href="/change-password" class="text-blue-500 hover:underline">Change Password</a>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-6">
+          {% for category, message in messages %}
+            <div class="flash {{ category }} rounded-lg text-sm" role="alert">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
-
-    <!-- -------------------------------- -->
-    <!-- ADMIN/TECHNICIAN USER MANAGEMENT PANEL -->
-    <!-- -------------------------------- -->
-
+    <!-- Tab Navigation -->
     {% if session.get('role') in ['admin', 'technician'] %}
-    <section class="mt-10">
-      <h3 class="text-xl font-semibold mb-4 text-gray-300">User Management</h3>
+    <div class="mb-6">
+      <div class="border-b border-border">
+        <nav class="-mb-px flex space-x-8">
+          <button
+            id="profile-tab"
+            class="tab-button active py-4 px-1 border-b-2 border-accent-blue font-medium text-sm text-accent-blue"
+            onclick="switchTab('profile')"
+          >
+            <i class="fas fa-user mr-2"></i>My Profile
+          </button>
+          <button
+            id="users-tab"
+            class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-text-muted hover:text-text-primary hover:border-border"
+            onclick="switchTab('users')"
+          >
+            <i class="fas fa-users mr-2"></i>User Management
+          </button>
+        </nav>
+      </div>
+    </div>
+    {% endif %}
 
+    <!-- Profile Tab Content -->
+    <div id="profile-content" class="tab-content active">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Profile Picture & Basic Info -->
+        <div class="lg:col-span-1">
+          <div class="card p-6">
+            <h3 class="text-lg font-semibold text-text-primary mb-4">
+              Profile Picture
+            </h3>
+
+            <div class="flex flex-col items-center space-y-4">
+              <div class="relative">
+                {% if session.get('profile_picture') %}
+                  <img
+                    id="profile-preview"
+                    src="{{ url_for('static', filename='uploads/profiles/' + session.profile_picture) }}?v={{ range(1, 100000) | random }}"
+                    alt="Profile Picture"
+                    class="w-32 h-32 rounded-full object-cover border-4 border-border"
+                    onerror="this.src='{{ url_for('static', filename='images/default-avatar.png') }}'"
+                  />
+                {% else %}
+                  <img
+                    id="profile-preview"
+                    src="{{ url_for('static', filename='images/default-avatar.png') }}"
+                    alt="Profile Picture"
+                    class="w-32 h-32 rounded-full object-cover border-4 border-border"
+                  />
+                {% endif %}
+                <label for="profile-upload" class="absolute bottom-2 right-2 bg-accent-blue rounded-full p-2 cursor-pointer hover:bg-accent-blue-hover transition-colors">
+                  <i class="fas fa-camera text-white text-sm"></i>
+                </label>
+              </div>
+
+              <div class="text-center">
+                <h2 class="text-xl font-bold text-text-primary">
+                  {{ session.get('username', 'User') }}
+                </h2>
+                <p class="text-text-muted text-sm">
+                  {{ session.get('role', 'User')|title }}
+                </p>
+                <p class="text-text-muted text-sm mt-2">
+                  Member since {{ session.get('created_at', 'Unknown') }}
+                </p>
+              </div>
+
+              <input
+                type="file"
+                id="profile-upload"
+                accept="image/*"
+                class="hidden"
+              />
+              <button
+                onclick="document.getElementById('profile-upload').click()"
+                class="btn btn-secondary w-full"
+              >
+                <i class="fas fa-upload mr-2"></i>Upload Photo
+              </button>
+
+              {% if session.get('profile_picture') %}
+              <button
+                onclick="removeProfilePicture()"
+                class="btn btn-danger w-full"
+              >
+                <i class="fas fa-trash mr-2"></i>Remove Photo
+              </button>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Theme Settings -->
+          <div class="card p-6 mt-6">
+            <h3 class="text-lg font-semibold text-text-primary mb-4">
+              Theme Settings
+            </h3>
+
+            <div class="space-y-3">
+              <button
+                onclick="setTheme('light')"
+                class="theme-option w-full flex items-center justify-between p-3 rounded-lg border border-border hover:bg-tertiary transition-colors"
+                id="light-theme-btn"
+              >
+                <div class="flex items-center">
+                  <i class="fas fa-sun text-yellow-500 mr-3"></i>
+                  <span class="text-text-primary">Light Mode</span>
+                </div>
+                <i class="fas fa-check text-accent-blue hidden" id="light-check"></i>
+              </button>
+
+              <button
+                onclick="setTheme('dark')"
+                class="theme-option w-full flex items-center justify-between p-3 rounded-lg border border-border hover:bg-tertiary transition-colors"
+                id="dark-theme-btn"
+              >
+                <div class="flex items-center">
+                  <i class="fas fa-moon text-blue-400 mr-3"></i>
+                  <span class="text-text-primary">Dark Mode</span>
+                </div>
+                <i class="fas fa-check text-accent-blue hidden" id="dark-check"></i>
+              </button>
+
+              <button
+                onclick="setTheme('system')"
+                class="theme-option w-full flex items-center justify-between p-3 rounded-lg border border-border hover:bg-tertiary transition-colors"
+                id="system-theme-btn"
+              >
+                <div class="flex items-center">
+                  <i class="fas fa-desktop text-gray-500 mr-3"></i>
+                  <span class="text-text-primary">System Default</span>
+                </div>
+                <i class="fas fa-check text-accent-blue hidden" id="system-check"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Details & Password -->
+        <div class="lg:col-span-2">
+          <!-- Profile Information -->
+          <div class="card p-6 mb-6">
+            <h3 class="text-lg font-semibold text-text-primary mb-4">
+              Profile Information
+            </h3>
+
+            <form action="{{ url_for('update_profile') }}" method="post" class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label text-text-primary">Username</label>
+                  <input
+                    type="text"
+                    name="username"
+                    value="{{ session.get('username', '') }}"
+                    class="form-input"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="form-label text-text-primary">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value="{{ session.get('email', '') }}"
+                    class="form-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label text-text-primary">First Name</label>
+                  <input
+                    type="text"
+                    name="first_name"
+                    value="{{ session.get('first_name', '') }}"
+                    class="form-input"
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <label class="form-label text-text-primary">Last Name</label>
+                  <input
+                    type="text"
+                    name="last_name"
+                    value="{{ session.get('last_name', '') }}"
+                    class="form-input"
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label text-text-primary">Bio</label>
+                <textarea
+                  name="bio"
+                  rows="3"
+                  class="form-input"
+                  placeholder="Tell us a little about yourself..."
+                >{{ session.get('bio', '') }}</textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-2"></i>Update Profile
+              </button>
+            </form>
+          </div>
+
+          <!-- Change Password -->
+          <div class="card p-6">
+            <h3 class="text-lg font-semibold text-text-primary mb-4">
+              Change Password
+            </h3>
+
+            <form action="{{ url_for('change_password') }}" method="post" class="space-y-4">
+              <div>
+                <label class="form-label text-text-primary">Current Password</label>
+                <input
+                  type="password"
+                  name="current_password"
+                  class="form-input"
+                  required
+                />
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label text-text-primary">New Password</label>
+                  <input
+                    type="password"
+                    name="new_password"
+                    class="form-input"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="form-label text-text-primary">Confirm New Password</label>
+                  <input
+                    type="password"
+                    name="confirm_password"
+                    class="form-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="bg-blue-900 bg-opacity-20 border border-blue-500 rounded-lg p-3">
+                <p class="text-blue-300 text-sm">
+                  <i class="fas fa-info-circle mr-2"></i>
+                  Password must be at least 8 characters with uppercase, number, and symbol.
+                </p>
+              </div>
+
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-key mr-2"></i>Change Password
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Management Tab Content (Admin/Technician only) -->
+    {% if session.get('role') in ['admin', 'technician'] %}
+    <div id="users-content" class="tab-content hidden">
       <div class="card p-6 space-y-6">
-        <!-- Add New User (Available for Technicians and Admins) -->
-        {% if session.get('role') in ['admin', 'technician'] %}
+        <!-- Add New User -->
         <form
           action="{{ url_for('admin_create_user') }}"
           method="post"
           class="space-y-4"
         >
-          <h3 class="text-lg font-semibold text-gray-300">Add New User</h3>
+          <h3 class="text-lg font-semibold text-text-primary">Add New User</h3>
 
-          <input
-            type="text"
-            name="username"
-            class="form-input"
-            placeholder="Username"
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            class="form-input"
-            placeholder="Email"
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            class="form-input"
-            placeholder="Password"
-            required
-          />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              name="username"
+              class="form-input"
+              placeholder="Username"
+              required
+            />
+            <input
+              type="email"
+              name="email"
+              class="form-input"
+              placeholder="Email"
+              required
+            />
+          </div>
 
-          <label class="form-label">Role</label>
-          <select name="role" class="form-input" required>
-            <option value="technician">Technician</option>
-            <option value="user">User</option>
-            <option value="viewer">Viewer</option>
-          </select>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="password"
+              name="password"
+              class="form-input"
+              placeholder="Password"
+              required
+            />
 
-          <button class="btn btn-primary w-full">Create User</button>
+            <select name="role" class="form-input" required>
+              <option value="">Select Role</option>
+              {% if session.get('role') == 'admin' %}
+              <option value="admin">Admin</option>
+              {% endif %}
+              <option value="technician">Technician</option>
+              <option value="user">User</option>
+              <option value="viewer">Viewer</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary">
+            <i class="fas fa-user-plus mr-2"></i>Create User
+          </button>
         </form>
-        {% endif %}
 
- <!-- Existing Users (Viewable for Technicians and Admins) -->
-<div>
-    <h3 class="text-lg font-semibold text-gray-300 mb-3">
-        Existing Users
-    </h3>
+        <!-- Existing Users -->
+        <div>
+          <h3 class="text-lg font-semibold text-text-primary mb-4">
+            Existing Users
+          </h3>
 
-    <table class="table w-full">
-        <thead>
-            <tr>
-                <th class="text-left">Username</th>
-                <th class="text-left">Email</th>
-                <th class="text-left">Current Role</th>
-                {% if session.get('role') == 'technician' %}
-                <th class="text-left">Alter Role</th>
-                {% endif %}
-                <th class="text-right">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for u in users %}
-            {% if session.get('role') != 'technician' or u.role != 'technician' %}
-            <tr>
-                <td>{{ u.username }}</td>
-                <td>{{ u.email }}</td>
-                <td>
-                    <span class="px-2 py-1 rounded text-xs font-medium
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <thead>
+                <tr class="border-b border-border">
+                  <th class="text-left py-3 text-text-primary font-semibold">User</th>
+                  <th class="text-left py-3 text-text-primary font-semibold">Email</th>
+                  <th class="text-left py-3 text-text-primary font-semibold">Role</th>
+                  {% if session.get('role') in ['admin', 'technician'] %}
+                  <th class="text-left py-3 text-text-primary font-semibold">Alter Role</th>
+                  {% endif %}
+                  <th class="text-right py-3 text-text-primary font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in users %}
+                  {% if session.get('role') != 'technician' or u.role != 'technician' %}
+                  <tr class="border-b border-border hover:bg-tertiary transition-colors">
+                    <td class="py-3 text-text-primary">{{ u.username }}</td>
+                    <td class="py-3 text-text-secondary">{{ u.email }}</td>
+                    <td class="py-3">
+                      <span class="px-2 py-1 rounded text-xs font-medium
                         {% if u.role == 'admin' %}bg-purple-600 text-white
                         {% elif u.role == 'technician' %}bg-blue-600 text-white
                         {% elif u.role == 'user' %}bg-green-600 text-white
                         {% else %}bg-gray-600 text-white{% endif %}">
                         {{ u.role }}
-                    </span>
-                </td>
+                      </span>
+                    </td>
 
-                {% if session.get('role') == 'technician' %}
-                <td>
-                    <form action="{{ url_for('update_user_role', user_id=u.id) }}" method="post" class="inline">
-                        <select name="role" class="form-input text-sm py-1" onchange="this.form.submit()">
-                            <option value="admin" {% if u.role=='admin' %}selected{% endif %}>Admin</option>
-                            <option value="technician" {% if u.role=='technician' %}selected{% endif %}>Technician</option>
-                            <option value="user" {% if u.role=='user' %}selected{% endif %}>User</option>
-                            <option value="viewer" {% if u.role=='viewer' %}selected{% endif %}>Viewer</option>
+                    {% if session.get('role') in ['admin', 'technician'] %}
+                    <td class="py-3">
+                      <form action="{{ url_for('update_user_role', user_id=u.id) }}" method="post" class="inline" id="role-form-{{ u.id }}">
+                        <select name="role" class="form-input text-sm py-1" onchange="confirmRoleChange('{{ u.username }}', '{{ u.role }}', this.value, '{{ u.id }}')">
+                          {% if session.get('role') == 'admin' %}
+                          <option value="admin" {% if u.role=='admin' %}selected{% endif %}>Admin</option>
+                          <option value="technician" {% if u.role=='technician' %}selected{% endif %}>Technician</option>
+                          {% endif %}
+                          <option value="user" {% if u.role=='user' %}selected{% endif %}>User</option>
+                          <option value="viewer" {% if u.role=='viewer' %}selected{% endif %}>Viewer</option>
                         </select>
-                    </form>
-                </td>
-                {% endif %}
+                      </form>
+                    </td>
+                    {% endif %}
 
-                <td class="text-right">
-                    {% if u.role != 'admin' %}
-                    <!-- Technician is allowed to delete non-technician, non-admin users -->
-                    {% if u.role != 'technician' or session.get('role') == 'admin' %}
-                    <form
-                        action="{{ url_for('delete_user', user_id=u.id) }}"
-                        method="post"
-                        class="inline"
-                    >
-                        <button
-                            class="btn btn-danger btn-sm"
-                            onclick="return confirm('Delete user {{ u.username }}?')"
+                    <td class="py-3 text-right">
+                      {% if u.role != 'admin' %}
+                        <!-- Technician is allowed to delete non-technician, non-admin users -->
+                        {% if u.role != 'technician' or session.get('role') == 'admin' %}
+                        <form
+                          action="{{ url_for('delete_user', user_id=u.id) }}"
+                          method="post"
+                          class="inline"
                         >
-                            Delete
-                        </button>
-                    </form>
-                    {% else %}
-                    <span class="text-gray-600 text-sm">protected</span>
-                    {% endif %}
-                    {% else %}
-                    <span class="text-gray-600 text-sm">protected</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endif %}
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+                          <button
+                            class="btn btn-danger btn-sm"
+                            onclick="return confirm('Are you sure you want to delete user {{ u.username }}? This action cannot be undone.')"
+                          >
+                            <i class="fas fa-trash mr-1"></i>Delete
+                          </button>
+                        </form>
+                        {% else %}
+                        <span class="text-text-muted text-sm">protected</span>
+                        {% endif %}
+                      {% else %}
+                      <span class="text-text-muted text-sm">protected</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
     {% endif %}
   </main>
 </div>
+
+<style>
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.tab-button.active {
+  border-bottom-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.theme-option {
+  transition: all 0.2s ease-in-out;
+  background-color: var(--bg-primary);
+}
+
+.theme-option:hover {
+  transform: translateY(-1px);
+  background-color: var(--bg-tertiary);
+}
+
+.theme-option.active {
+  background-color: var(--accent-blue);
+  background-opacity: 0.2;
+  border-color: var(--accent-blue);
+}
+</style>
+
+<script>
+// Simple Theme Functions (No dependency on ThemeManager)
+function setTheme(theme) {
+  console.log('Setting theme to:', theme);
+
+  // Apply theme directly
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+
+  // Update UI
+  updateThemeButtons(theme);
+  updateSidebarIcons(theme);
+
+  // Show success message
+  showToast(`Theme changed to ${theme} mode`, 'success');
+
+  // If ThemeManager exists, sync with it
+  if (window.ThemeManager && typeof window.ThemeManager.applyTheme === 'function') {
+    window.ThemeManager.applyTheme(theme);
+  }
+}
+
+function updateThemeButtons(theme) {
+  console.log('Updating theme buttons for:', theme);
+
+  // Remove active styles from all buttons
+  document.querySelectorAll('.theme-option').forEach(option => {
+    option.classList.remove('bg-accent-blue', 'bg-opacity-20', 'border-accent-blue');
+  });
+
+  // Hide all checkmarks
+  document.querySelectorAll('.theme-option .fa-check').forEach(check => {
+    check.classList.add('hidden');
+  });
+
+  // Add active styles to selected theme
+  const selectedButton = document.getElementById(`${theme}-theme-btn`);
+  const selectedCheck = document.getElementById(`${theme}-check`);
+
+  if (selectedButton && selectedCheck) {
+    selectedButton.classList.add('bg-accent-blue', 'bg-opacity-20', 'border-accent-blue');
+    selectedCheck.classList.remove('hidden');
+    console.log('Updated button for theme:', theme);
+  }
+}
+
+function updateSidebarIcons(theme) {
+  const sidebarSunIcon = document.getElementById('sidebar-sun-icon');
+  const sidebarMoonIcon = document.getElementById('sidebar-moon-icon');
+
+  if (sidebarSunIcon && sidebarMoonIcon) {
+    const isDark = theme === 'dark';
+    sidebarSunIcon.classList.toggle('hidden', !isDark);
+    sidebarMoonIcon.classList.toggle('hidden', isDark);
+  }
+}
+
+function getCurrentTheme() {
+  // Get theme from localStorage, or default to system
+  const storedTheme = localStorage.getItem('theme');
+  if (storedTheme) {
+    return storedTheme;
+  }
+
+  // Check system preference
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+
+  return 'light';
+}
+
+// Tab Functions
+function switchTab(tabName) {
+  console.log('Switching to tab:', tabName);
+
+  // Hide all tab contents
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+    tab.classList.add('hidden');
+  });
+
+  // Remove active class from all tab buttons
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.classList.remove('active', 'border-accent-blue', 'text-accent-blue');
+    button.classList.add('border-transparent', 'text-text-muted');
+  });
+
+  // Show selected tab content
+  const selectedTab = document.getElementById(`${tabName}-content`);
+  if (selectedTab) {
+    selectedTab.classList.add('active');
+    selectedTab.classList.remove('hidden');
+    console.log('Showing tab content:', tabName);
+  }
+
+  // Activate selected tab button
+  const selectedButton = document.getElementById(`${tabName}-tab`);
+  if (selectedButton) {
+    selectedButton.classList.add('active', 'border-accent-blue', 'text-accent-blue');
+    selectedButton.classList.remove('border-transparent', 'text-text-muted');
+  }
+}
+
+// Role Change Confirmation
+function confirmRoleChange(username, currentRole, newRole, userId) {
+  if (currentRole === newRole) {
+    return; // No change needed
+  }
+
+  const action = newRole === 'admin' ? 'promote' :
+                 currentRole === 'admin' ? 'demote' :
+                 newRole > currentRole ? 'promote' : 'demote';
+
+  const message = `Are you sure you want to ${action} ${username} from ${currentRole} to ${newRole}?`;
+
+  if (confirm(message)) {
+    document.getElementById(`role-form-${userId}`).submit();
+  } else {
+    // Reset the select to original value
+    const select = document.querySelector(`#role-form-${userId} select`);
+    select.value = currentRole;
+  }
+}
+
+// Profile Picture Functions
+document.getElementById('profile-upload')?.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('profile-preview').src = e.target.result;
+      uploadProfilePicture(file);
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+function uploadProfilePicture(file) {
+  const formData = new FormData();
+  formData.append('profile_picture', file);
+
+  fetch('/api/upload-profile-picture', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showToast('Profile picture updated successfully!', 'success');
+      if (data.url) {
+        document.getElementById('profile-preview').src = data.url + '?v=' + new Date().getTime();
+      }
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      showToast('Failed to upload profile picture: ' + data.error, 'error');
+      document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
+    }
+  })
+  .catch(error => {
+    console.error('Error uploading profile picture:', error);
+    showToast('Error uploading profile picture.', 'error');
+    document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
+  });
+}
+
+function removeProfilePicture() {
+  if (confirm('Are you sure you want to remove your profile picture?')) {
+    fetch('/api/remove-profile-picture', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Profile picture removed successfully!', 'success');
+        document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        showToast('Failed to remove profile picture.', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error removing profile picture:', error);
+      showToast('Error removing profile picture.', 'error');
+    });
+  }
+}
+
+// Utility Functions
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+    type === 'success' ? 'bg-green-600' :
+    type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+  } text-white`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Settings page loaded');
+
+  // Initialize theme buttons
+  const currentTheme = getCurrentTheme();
+  console.log('Current theme:', currentTheme);
+  updateThemeButtons(currentTheme);
+
+  // Set initial tab based on user role
+  const userRole = '{{ session.get("role", "user") }}';
+  console.log('User role:', userRole);
+
+  if (userRole === 'user') {
+    switchTab('profile');
+  }
+});
+
+// Listen for theme changes from sidebar
+window.addEventListener('themeChange', function(event) {
+  console.log('Theme change detected:', event.detail.theme);
+  updateThemeButtons(event.detail.theme);
+});
+</script>
 {% endblock %}

@@ -13,7 +13,7 @@
             <div class="p-4 border-b border-border">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-text-primary">Notifications</h3>
-                    <a href="{{ url_for('notifications') }}" class="text-accent-blue hover:text-accent-blue-hover text-sm transition-colors duration-200">View All</a>
+                    <a id="view-all-link" href="{{ url_for('notifications') }}" class="text-accent-blue hover:text-accent-blue-hover text-sm transition-colors duration-200">View All</a>
                 </div>
             </div>
             <div id="notification-list" class="max-h-96 overflow-y-auto">
@@ -27,6 +27,20 @@
         </div>
     </div>
 </div>
+
+<script>
+// Set the correct "View All" link based on user role
+document.addEventListener('DOMContentLoaded', function() {
+    const viewAllLink = document.getElementById('view-all-link');
+    const userRole = '{{ session.get("role", "user") }}';
+
+    if (userRole === 'admin' || userRole === 'technician') {
+        viewAllLink.href = "{{ url_for('admin_room_requests') }}";
+    } else {
+        viewAllLink.href = "{{ url_for('notifications') }}";
+    }
+});
+</script>
 
 <!-- Notification Bell CSS -->
 <style>
