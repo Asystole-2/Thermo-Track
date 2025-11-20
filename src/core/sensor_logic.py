@@ -1,5 +1,6 @@
 import time
 from typing import Optional
+from hardware_controller import hardware_controller
 
 # --- Hardware Libraries ---
 try:
@@ -10,12 +11,18 @@ except ImportError:
         PUD_DOWN, PUD_UP = 5, 6
 
         def setmode(self, mode): print(f"Mock GPIO: Set mode {mode}")
-        def setup(self, pin, mode, initial=None, pull_up_down=None): 
+
+        def setup(self, pin, mode, initial=None, pull_up_down=None):
             print(f"Mock GPIO: Setup pin {pin} as {mode}")
+
         def output(self, pin, value): print(f"Mock GPIO: Pin {pin} → {'HIGH' if value else 'LOW'}")
+
         def input(self, pin): return 0
+
         def cleanup(self): print("Mock GPIO: Cleanup")
+
         def setwarnings(self, flag): print(f"Mock GPIO: Warnings {flag}")
+
 
     GPIO = MockGPIO()
 
@@ -33,6 +40,7 @@ try:
 except ImportError:
     print("Warning: Could not import pubnub_client. Using fallback.")
 
+
     def publish_data(payload):
         print(f"[PubNub Fallback] Would publish: {payload}")
 
@@ -40,13 +48,13 @@ except ImportError:
 # --- PIN CONFIGURATION (BCM numbering) ---
 class PinConfig:
     # Inputs
-    PIR_PIN = 6       # BCM 6  (BOARD 31)
-    DHT_PIN = 4       # BCM 4  (BOARD 7)
+    PIR_PIN = 6  # BCM 6  (BOARD 31)
+    DHT_PIN = 4  # BCM 4  (BOARD 7)
 
     # Outputs
     BUZZER_PIN = 27  # BCM 27 (BOARD 13)
-    LED_PIN = 22     # BCM 22 (BOARD 15)
-    FAN_PIN = 14     # BCM 14 (BOARD 8)
+    LED_PIN = 22  # BCM 22 (BOARD 15)
+    FAN_PIN = 14  # BCM 14 (BOARD 8)
 
 
 # --- LOGIC THRESHOLDS ---
@@ -115,22 +123,17 @@ class SmartHomeMonitor:
     def _control_actuators(self, temp_c: Optional[float], motion_detected: bool):
         """Control actuators based on sensor readings."""
 
-        # Motion
+        # Motion - control LED and buzzer
         if motion_detected:
             self._gpio.output(PinConfig.LED_PIN, self._gpio.HIGH)
-            self._beep_buzzer()
+            hardware_controller.buzzer_beep()  # Use hardware controller for buzzer
             print("  [Actuator] Motion detected: LED ON, Buzzer beeped")
         else:
             self._gpio.output(PinConfig.LED_PIN, self._gpio.LOW)
 
-        # Temperature/Fan
+        # Temperature/Fan - use hardware controller
         if temp_c is not None:
-            if temp_c > TEMP_THRESHOLD_C:
-                self._gpio.output(PinConfig.FAN_PIN, self._gpio.HIGH)
-                print(f"  [Actuator] Temp {temp_c:.1f}°C > {TEMP_THRESHOLD_C}°C: Fan ON")
-            else:
-                self._gpio.output(PinConfig.FAN_PIN, self._gpio.LOW)
-                print(f"  [Actuator] Temp {temp_c:.1f}°C ≤ {TEMP_THRESHOLD_C}°C: Fan OFF")
+            hardware_controller.control_fan_based_on_temp(temp_c)
 
     def run(self):
         """Main monitoring loop."""
@@ -175,7 +178,8 @@ class SmartHomeMonitor:
                 current_pir_state = self._gpio.input(PinConfig.PIR_PIN)
                 motion_detected = False
 
-                print(f"[PIR] Current state: {'HIGH' if current_pir_state else 'LOW'}, Last state: {'HIGH' if last_motion_state else 'LOW'}")
+                print(
+                    f"[PIR] Current state: {'HIGH' if current_pir_state else 'LOW'}, Last state: {'HIGH' if last_motion_state else 'LOW'}")
 
                 # Motion start
                 if current_pir_state == self._gpio.HIGH and last_motion_state == self._gpio.LOW:

@@ -1,10 +1,12 @@
 import os
 import re
+import atexit
 import logging
 import secrets
 from decimal import Decimal
 from functools import wraps
 from datetime import datetime, date
+from src.core.hardware_controller import hardware_controller
 
 from flask import (
     Flask,
@@ -3030,10 +3032,128 @@ def inject_theme():
 #         flash(f"Theme changed to {theme} mode", "success")
 #     return redirect(request.referrer or url_for("dashboard"))
 
+# =============================================================================
+# Hardware Control Routes
+# =============================================================================
+
+@app.route("/api/hardware/status")
+@login_required
+def get_hardware_status():
+    """Get current hardware status"""
+    try:
+        status = hardware_controller.get_status()
+        return jsonify({"success": True, "status": status})
+    except Exception as e:
+        log.error(f"Error getting hardware status: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/hardware/fan", methods=["POST"])
+@login_required
+@role_required("admin", "technician")
+def control_fan():
+    """Control fan manually (admin/technician only)"""
+    try:
+        data = request.get_json()
+        state = data.get("state")
+
+        if state is None:
+            return jsonify({"success": False, "error": "State parameter required"}), 400
+
+        hardware_controller.set_fan_state(state)
+        return jsonify({"success": True, "message": f"Fan turned {'ON' if state else 'OFF'}"})
+
+    except Exception as e:
+        log.error(f"Error controlling fan: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/hardware/fan/auto", methods=["POST"])
+@login_required
+@role_required("admin", "technician")
+def set_fan_auto_mode():
+    """Set fan auto mode (admin/technician only)"""
+    try:
+        data = request.get_json()
+        auto_mode = data.get("auto_mode")
+
+        if auto_mode is None:
+            return jsonify({"success": False, "error": "auto_mode parameter required"}), 400
+
+        hardware_controller.set_fan_auto_mode(auto_mode)
+        return jsonify({"success": True, "message": f"Fan auto mode {'enabled' if auto_mode else 'disabled'}"})
+
+    except Exception as e:
+        log.error(f"Error setting fan auto mode: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/hardware/fan/threshold", methods=["POST"])
+@login_required
+@role_required("admin", "technician")
+def set_temperature_threshold():
+    """Set temperature threshold for auto fan (admin/technician only)"""
+    try:
+        data = request.get_json()
+        threshold = data.get("threshold")
+
+        if threshold is None:
+            return jsonify({"success": False, "error": "threshold parameter required"}), 400
+
+        hardware_controller.set_temperature_threshold(threshold)
+        return jsonify({"success": True, "message": f"Temperature threshold set to {threshold}°C"})
+
+    except Exception as e:
+        log.error(f"Error setting temperature threshold: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/hardware/buzzer", methods=["POST"])
+@login_required
+@role_required("admin", "technician")
+def control_buzzer():
+    """Control buzzer manually (admin/technician only)"""
+    try:
+        data = request.get_json()
+        state = data.get("state")
+
+        if state is None:
+            return jsonify({"success": False, "error": "State parameter required"}), 400
+
+        hardware_controller.set_buzzer_state(state)
+        return jsonify({"success": True, "message": f"Buzzer {'activated' if state else 'deactivated'}"})
+
+    except Exception as e:
+        log.error(f"Error controlling buzzer: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/hardware/preset", methods=["POST"])
+@login_required
+def apply_preset():
+    """Apply a hardware preset"""
+    try:
+        data = request.get_json()
+        preset_name = data.get("preset")
+
+        if not preset_name:
+            return jsonify({"success": False, "error": "preset parameter required"}), 400
+
+        success = hardware_controller.apply_preset(preset_name)
+
+        if success:
+            return jsonify({"success": True, "message": f"Preset '{preset_name}' applied"})
+        else:
+            return jsonify({"success": False, "error": "Unknown preset"}), 400
+
+    except Exception as e:
+        log.error(f"Error applying preset: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # =============================================================================
 # APPLICATION ENTRY POINT
 # =============================================================================
+atexit.register(hardware_controller.cleanup)
 
 if __name__ == "__main__":
     app.run(debug=True)
