@@ -286,8 +286,6 @@
     <script>
         console.log('Debug: Page loaded');
         console.log('User role:', '{{ session.role }}');
-        console.log('Filter buttons found:', document.querySelectorAll('.filter-btn').length);
-        console.log('Search input found:', document.getElementById('searchInput') !== null);
 
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('searchInput');
@@ -295,14 +293,28 @@
             const searchResults = document.getElementById('searchResults');
             const resultsCount = document.getElementById('resultsCount');
             const filterButtons = document.querySelectorAll('.filter-btn');
+            const statusFilter = document.getElementById('statusFilter');
             const roomsSection = document.getElementById('roomsSection');
             const readingsSection = document.getElementById('readingsSection');
             const noResults = document.getElementById('noResults');
 
             let currentFilter = 'rooms';
+            let currentStatusFilter = 'all';
 
             // Check if user is admin/technician
             const isAdminOrTechnician = '{{ session.role }}' === 'admin' || '{{ session.role }}' === 'technician';
+
+            function getRoomStatus(roomCard) {
+                // Extract status from the room card's status badge
+                const statusBadge = roomCard.querySelector('.inline-flex.items-center');
+                if (statusBadge) {
+                    const statusText = statusBadge.textContent.trim().toLowerCase();
+                    if (statusText.includes('normal')) return 'normal';
+                    if (statusText.includes('warning')) return 'warning';
+                    if (statusText.includes('critical')) return 'critical';
+                }
+                return 'no-data';
+            }
 
             function updateVisibility() {
                 const searchTerm = searchInput.value.toLowerCase();
@@ -331,7 +343,14 @@
                             humidity.includes(searchTerm) ||
                             (isAdminOrTechnician && owner.includes(searchTerm));
 
-                        if (matchesSearch && (currentFilter === 'rooms' || currentFilter === 'all')) {
+                        // Check status filter for admin/technician
+                        let matchesStatus = true;
+                        if (isAdminOrTechnician && currentStatusFilter !== 'all') {
+                            const roomStatus = getRoomStatus(card);
+                            matchesStatus = roomStatus === currentStatusFilter;
+                        }
+
+                        if (matchesSearch && matchesStatus && (currentFilter === 'rooms' || currentFilter === 'all')) {
                             card.style.display = 'block';
                             visibleRooms++;
                             totalVisible++;
@@ -342,6 +361,16 @@
 
                     hasVisibleRooms = visibleRooms > 0;
                     roomsSection.style.display = hasVisibleRooms ? 'block' : 'none';
+
+                    // Update room count display
+                    const roomCount = document.querySelector('.room-count');
+                    if (roomCount) {
+                        const totalRooms = roomCards.length;
+                        const displayText = (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) ?
+                            `${visibleRooms}/${totalRooms} rooms` :
+                            `${totalRooms} room${totalRooms !== 1 ? 's' : ''}`;
+                        roomCount.textContent = displayText;
+                    }
                 }
 
                 // Filter readings
@@ -380,10 +409,20 @@
 
                     hasVisibleReadings = visibleReadings > 0;
                     readingsSection.style.display = hasVisibleReadings ? 'block' : 'none';
+
+                    // Update readings count display
+                    const readingsCount = document.querySelector('.readings-count');
+                    if (readingsCount) {
+                        const totalReadings = readingRows.length;
+                        const displayText = searchTerm ?
+                            `${visibleReadings}/${totalReadings} readings` :
+                            `${totalReadings} reading${totalReadings !== 1 ? 's' : ''}`;
+                        readingsCount.textContent = displayText;
+                    }
                 }
 
                 // Show/hide no results message
-                if (totalVisible === 0 && searchTerm) {
+                if (totalVisible === 0 && (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all'))) {
                     noResults.classList.remove('hidden');
                     if (roomsSection) roomsSection.style.display = 'none';
                     if (readingsSection) readingsSection.style.display = 'none';
@@ -392,9 +431,25 @@
                 }
 
                 // Update search results count
-                if (searchTerm) {
+                if (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) {
                     searchResults.classList.remove('hidden');
                     resultsCount.textContent = totalVisible;
+
+                    // Update status summary
+                    const statusSummary = document.getElementById('statusSummary');
+                    if (statusSummary && isAdminOrTechnician) {
+                        if (currentStatusFilter === 'all') {
+                            statusSummary.textContent = `• ${totalVisible} rooms`;
+                        } else {
+                            const statusLabels = {
+                                'normal': 'Normal',
+                                'warning': 'Warning',
+                                'critical': 'Critical',
+                                'no-data': 'No Data'
+                            };
+                            statusSummary.textContent = `• ${statusLabels[currentStatusFilter]} (${totalVisible})`;
+                        }
+                    }
                 } else {
                     searchResults.classList.add('hidden');
                 }
@@ -416,8 +471,19 @@
             if (clearSearch) {
                 clearSearch.addEventListener('click', function () {
                     searchInput.value = '';
+                    if (statusFilter) statusFilter.value = 'all';
+                    currentStatusFilter = 'all';
                     updateVisibility();
                     searchInput.focus();
+                });
+            }
+
+            // Status filter event (admin/technician only)
+            if (statusFilter) {
+                statusFilter.addEventListener('change', function () {
+                    currentStatusFilter = this.value;
+                    console.log('Status filter changed to:', currentStatusFilter);
+                    updateVisibility();
                 });
             }
 
@@ -448,7 +514,6 @@
             console.log('Admin/Technician mode:', isAdminOrTechnician);
         });
     </script>
-
     <style>
         /* CSS Variables for Theme Support */
         :root {
