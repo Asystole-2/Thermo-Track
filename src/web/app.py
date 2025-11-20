@@ -1675,7 +1675,6 @@ def debug_request_details(request_id):
 
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-
 # =============================================================================
 # ADMIN ROOM REQUESTS ROUTES
 # =============================================================================
@@ -2426,6 +2425,16 @@ def settings():
         users = cur.fetchall()
         cur.close()
 
+        if session.get("role") in ["admin", "technician"]:
+            cur = db_cursor()
+            cur.execute("""
+                        SELECT id, username, email, role, profile_picture, first_name, last_name
+                        FROM users
+                        ORDER BY id ASC
+                        """)
+            users = cur.fetchall()
+            cur.close()
+
     return render_template(
         "settings.html",
         users=users,
@@ -2602,6 +2611,75 @@ def remove_profile_picture():
         log.error(f"Error removing profile picture: {e}")
         return jsonify({"success": False, "error": "Failed to remove profile picture"}), 500
 
+
+@app.route("/api/user/<int:user_id>/profile")
+@login_required
+@role_required("admin", "technician")
+def get_user_profile(user_id):
+    """Get detailed user profile information for admin/technician view"""
+    cursor = mysql.connection.cursor()
+    try:
+        # Get basic user info
+        cursor.execute("""
+                       SELECT username,
+                              email,
+                              role,
+                              profile_picture,
+                              first_name,
+                              last_name,
+                              bio,
+                              created_at
+                       FROM users
+                       WHERE id = %s
+                       """, (user_id,))
+        user_data = cursor.fetchone()
+
+        if not user_data:
+            return jsonify({"error": "User not found"}), 404
+
+        # Get owned rooms count
+        cursor.execute("SELECT COUNT(*) as count FROM rooms WHERE user_id = %s", (user_id,))
+        owned_rooms = cursor.fetchone()['count']
+
+        # Get active requests count
+        cursor.execute("""
+                       SELECT COUNT(*) as count
+                       FROM room_condition_requests
+                       WHERE user_id = %s AND status IN ('pending', 'viewed', 'approved')
+                       """, (user_id,))
+        active_requests = cursor.fetchone()['count']
+
+        # Get recent activity (last 5 actions)
+        cursor.execute("""
+                       SELECT action, created_at
+                       FROM audit_log
+                       WHERE user_id = %s
+                       ORDER BY created_at DESC
+                           LIMIT 5
+                       """, (user_id,))
+        recent_activity = cursor.fetchall()
+
+        # Format the response
+        profile_data = {
+            **user_data,
+            'owned_rooms_count': owned_rooms,
+            'active_requests_count': active_requests,
+            'recent_activity': [
+                {
+                    'action': activity['action'],
+                    'time': activity['created_at'].strftime('%Y-%m-%d %H:%M')
+                }
+                for activity in recent_activity
+            ]
+        }
+
+        return jsonify(profile_data)
+
+    except Exception as e:
+        log.error(f"Error getting user profile: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+    finally:
+        cursor.close()
 
 @app.route("/set-theme/<theme>")
 @login_required

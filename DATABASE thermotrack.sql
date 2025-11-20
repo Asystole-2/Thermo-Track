@@ -282,4 +282,7 @@ INSERT INTO user_notifications (user_id, request_id, title, message, type, is_re
 
 -- Update existing users to have created_at if not exists (for display purposes)
 UPDATE users SET created_at = NOW() WHERE created_at IS NULL;
+
+-- Update rooms column to accept empty columns. From now on admins and technicians won't own rooms on creation. Keep them empty for users
+ALTER TABLE rooms MODIFY user_id INT NULL;
 */

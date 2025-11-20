@@ -179,7 +179,7 @@
                                         <th class="text-center p-3 text-text-primary font-medium">
                                             <i class="fas fa-tint mr-2"></i>Avg Humidity
                                         </th>
-                                        <th class="text-right p-3 text-text-primary font-medium">Actions</th>
+                                        <th class="text-center p-3 text-text-primary font-medium">Actions</th>
                                     </tr>
                                     </thead>
                                     <tbody id="myRoomsTable">
@@ -270,11 +270,11 @@
                             Available Rooms
                         </h3>
                         <span class="text-xs text-text-muted room-count flex items-center gap-1">
-                            <i class="fas fa-hashtag"></i>
-                            Showing <span
+                <i class="fas fa-hashtag"></i>
+                Showing <span
                                 id="availableRoomsCount">{{ available_rooms|length }}</span> of {{ available_rooms|length }} room
                             {% if available_rooms|length != 1 %}s{% endif %} available
-                        </span>
+            </span>
                     </div>
 
                     {% if available_rooms and available_rooms|length > 0 %}
@@ -298,7 +298,7 @@
                                         <th class="text-center p-3 text-text-primary font-medium">
                                             <i class="fas fa-tint mr-2"></i>Avg Humidity
                                         </th>
-                                        <th class="text-right p-3 text-text-primary font-medium">Actions</th>
+                                        <th class="text-center p-3 text-text-primary font-medium">Actions</th>
                                     </tr>
                                     </thead>
                                     <tbody id="availableRoomsTable">
@@ -318,31 +318,31 @@
                                                 {{ r.location or '—' }}
                                             </td>
                                             <td class="text-center p-3">
-                                                <span class="inline-flex items-center gap-1">
-                                                    <i class="fas fa-microchip text-text-muted"></i>
-                                                    {{ r.devices_count or 0 }}
-                                                </span>
+                                    <span class="inline-flex items-center gap-1">
+                                        <i class="fas fa-microchip text-text-muted"></i>
+                                        {{ r.devices_count or 0 }}
+                                    </span>
                                             </td>
                                             <td class="text-center p-3">
                                                 {% if r.avg_temp is not none %}
                                                     <span class="inline-flex items-center gap-1">
-                                                        <i class="fas fa-thermometer-half text-accent-red"></i>
-                                                        {{ '%.1f'|format(r.avg_temp) }}°C
-                                                    </span>
+                                            <i class="fas fa-thermometer-half text-accent-red"></i>
+                                            {{ '%.1f'|format(r.avg_temp) }}°C
+                                        </span>
                                                 {% else %}—{% endif %}
                                             </td>
                                             <td class="text-center p-3">
                                                 {% if r.avg_humidity is not none %}
                                                     <span class="inline-flex items-center gap-1">
-                                                        <i class="fas fa-tint text-accent-blue"></i>
-                                                        {{ '%.1f'|format(r.avg_humidity) }}%
-                                                    </span>
+                                            <i class="fas fa-tint text-accent-blue"></i>
+                                            {{ '%.1f'|format(r.avg_humidity) }}%
+                                        </span>
                                                 {% else %}—{% endif %}
                                             </td>
-                                            <td class="text-right p-3">
+                                            <td class="text-center p-3">
                                                 <form action="{{ url_for('dashboard_add_room', room_id=r.id) }}"
                                                       method="post"
-                                                      class="inline">
+                                                      class="flex justify-center">
                                                     <button type="submit"
                                                             class="btn bg-accent-green hover:bg-accent-green-hover text-white btn-sm flex items-center gap-2">
                                                         <i class="fas fa-plus"></i>
@@ -411,7 +411,7 @@
                                             <i class="fas fa-clock mr-2"></i>Last Update
                                         </th>
                                         <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-user mr-2"></i>Owner
+                                            <i class="fas fa-user mr-2"></i>Owners
                                         </th>
                                         {% if session.role == 'admin' %}
                                             <th class="text-right p-3 text-text-primary font-medium">Actions</th>
@@ -818,133 +818,7 @@
             }
         });
     </script>
-    document.addEventListener('DOMContentLoaded', function () {
-    // Only initialize for regular users
-    {% if session.role not in ['admin', 'technician'] %}
-        console.log('Initializing setup page for regular user');
 
-        const filterButtons = document.querySelectorAll('.filter-room-btn');
-        const roomSections = document.querySelectorAll('.room-section');
-        const searchInput = document.getElementById('roomSearchInput');
-
-        function showSection(sectionType) {
-        console.log('Switching to section type:', sectionType);
-
-        const sectionId = sectionType === 'my-rooms' ? 'myRoomsSection' : 'availableRoomsSection';
-        const targetSection = document.getElementById(sectionId);
-
-        // Hide all room sections
-        roomSections.forEach(section => {
-        section.classList.add('hidden');
-        });
-
-        // Show selected section
-        if (targetSection) {
-        targetSection.classList.remove('hidden');
-        console.log('Section displayed:', targetSection.id);
-        updateRoomCount(targetSection);
-        }
-
-        // Update button states
-        filterButtons.forEach(btn => {
-        if (btn.dataset.filter === sectionType) {
-        btn.classList.remove('inactive', 'bg-tertiary', 'text-text-secondary');
-        btn.classList.add('active', 'bg-accent-blue', 'text-white');
-        } else {
-        btn.classList.remove('active', 'bg-accent-blue', 'text-white');
-        btn.classList.add('inactive', 'bg-tertiary', 'text-text-secondary');
-        }
-        });
-
-        // Apply search filter
-        if (searchInput && searchInput.value.trim()) {
-        filterRooms(searchInput.value.trim());
-        }
-        }
-
-        function updateRoomCount(section) {
-        const rows = section.querySelectorAll('.room-row');
-        const visibleRows = Array.from(rows).filter(row => !row.classList.contains('hidden'));
-        const countElement = section.querySelector('.room-count span');
-
-        console.log(`Updating count: ${visibleRows.length} visible rows`);
-
-        if (countElement) {
-        countElement.textContent = visibleRows.length;
-        }
-        }
-
-        function filterRooms(searchTerm) {
-        const activeSection = document.querySelector('.room-section:not(.hidden)');
-        if (!activeSection) {
-        console.log('No active section found');
-        return;
-        }
-
-        console.log(`Filtering rooms with: "${searchTerm}"`);
-        const rows = activeSection.querySelectorAll('.room-row');
-        console.log(`Total rows to filter: ${rows.length}`);
-
-        let visibleCount = 0;
-
-        rows.forEach((row, index) => {
-        const roomName = row.dataset.roomName || '';
-        const location = row.dataset.location || '';
-        const devices = row.dataset.devices || '';
-
-        console.log(`Row ${index}:`, {roomName, location, devices});
-
-        const searchLower = searchTerm.toLowerCase();
-        const matches = !searchTerm ||
-        roomName.includes(searchLower) ||
-        location.includes(searchLower) ||
-        devices.includes(searchLower);
-
-        console.log(`Row ${index} matches:`, matches);
-
-        if (matches) {
-        row.classList.remove('hidden');
-        visibleCount++;
-        } else {
-        row.classList.add('hidden');
-        }
-        });
-
-        updateRoomCount(activeSection);
-        console.log(`Filter complete: ${visibleCount} rooms match "${searchTerm}"`);
-        }
-
-        // Add event listeners
-        filterButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-        const filterType = this.getAttribute('data-filter');
-        showSection(filterType);
-        });
-        });
-
-        if (searchInput) {
-        searchInput.addEventListener('input', function () {
-        const searchTerm = this.value.trim();
-        console.log('Search input:', searchTerm);
-        if (searchTerm) {
-        filterRooms(searchTerm);
-        } else {
-        // Clear search - show all rows
-        const activeSection = document.querySelector('.room-section:not(.hidden)');
-        if (activeSection) {
-        const rows = activeSection.querySelectorAll('.room-row');
-        rows.forEach(row => row.classList.remove('hidden'));
-        updateRoomCount(activeSection);
-        }
-        }
-        });
-        }
-
-        // Initialize
-        showSection('my-rooms');
-    {% endif %}
-    });
-    </script>
     <!-- Modal Script -->
     <script>
         (function () {
@@ -1017,4 +891,5 @@
             padding: 0.25rem 0.75rem;
             font-size: 0.875rem;
         }
-    </style>{% endblock %}
+    </style>
+{% endblock %}
