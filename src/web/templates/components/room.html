@@ -36,7 +36,7 @@
 
                 <div class="xl:col-span-2 space-y-4">
 
-                    <!-- AI RECOMMENDATION (Visible to all roles - MOVED TO TOP) -->
+                    <!-- AI RECOMMENDATION (Visible to all roles) -->
                     <div class="card p-4 border-l-4 border-purple-500 bg-secondary">
                         <div class="flex items-center justify-between mb-3">
                             <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
@@ -159,8 +159,7 @@
                                             Type of Adjustment:
                                         </label>
                                         <select id="request_type" name="request_type"
-                                                class="form-input text-xs py-1 bg-secondary border-border w-full tt_voiceable"
-                                                data-voice-mode="replace"
+                                                class="form-input text-xs py-1 bg-secondary border-border "
                                                 onchange="toggleRequestFields()">
                                             <option value="temperature_change" selected>Temperature Change</option>
                                             <option value="fan_adjustment">Airflow/Fan Adjustment</option>
@@ -184,10 +183,10 @@
                                                     value="{{ format_temperature(recommendations.target_temperature, room.temperature_unit) | replace('°C', '') | replace('°F', '') | replace('K', '') | trim }}"
                                                     min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"
                                                     max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"
-                                                    step="0.1"
+                                                    step="0.5"
                                                     required
                                             >
-                                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-xs"
+                                            <span class="absolute right-1 top-1/2 -translate-y-1/2 text-text-muted text-xs"
                                                   id="target-temp-unit">
                                         {{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}
                                     </span>
@@ -223,8 +222,8 @@
                                             Airflow Request:
                                         </label>
                                         <select id="fan_level" name="fan_level"
-                                                class="form-input text-xs py-1 bg-secondary border-border w-full tt_voiceable"
-                                                data-voice-mode="replace">
+                                                class="form-input text-xs py-1 bg-secondary border-border w-full "
+                                        >
                                             <option value="more_air">More Air (Too Stuffy/Humid)</option>
                                             <option value="less_air">Less Air (Too Drafty/Dry)</option>
                                         </select>
@@ -320,55 +319,175 @@
                                 </form>
                             </div>
 
-                            <form action="/room/{{ room.id }}/setpoint" method="post" class="space-y-3">
-                                <div class="flex items-center gap-3">
-                                    <label for="temp_setpoint"
-                                           class="text-text-secondary text-sm w-1/4 flex items-center gap-2">
-                                        <i class="fas fa-bullseye"></i>
-                                        Setpoint:
-                                    </label>
-                                    <div class="relative w-3/4">
-                                        <input
-                                                type="number"
-                                                id="temp_setpoint_input"
-                                                name="temp_setpoint"
-                                                class="form-input text-xl font-bold bg-primary pr-10 text-text-primary"
-                                                value="{{ convert_temperature(room.current_setpoint, 'celsius', room.temperature_unit) | round(1) }}"
-                                                min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"
-                                                max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"
-                                                step="0.5"
-                                                required
-                                        >
-                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm"
-                                              id="setpoint-unit">
-                                        {{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}
-                                    </span>
+                            {#                            <form action="/room/{{ room.id }}/setpoint" method="post" class="space-y-3">#}
+                            {#                                <div class="flex items-center gap-3">#}
+                            {#                                    <label for="temp_setpoint"#}
+                            {#                                           class="text-text-secondary text-sm w-1/4 flex items-center gap-2">#}
+                            {#                                        <i class="fas fa-bullseye"></i>#}
+                            {#                                        Setpoint:#}
+                            {#                                    </label>#}
+                            {#                                    <div class="relative w-3/4">#}
+                            {#                                        <input#}
+                            {#                                                type="number"#}
+                            {#                                                id="temp_setpoint_input"#}
+                            {#                                                name="temp_setpoint"#}
+                            {#                                                class="form-input text-xl font-bold bg-primary pr-10 text-text-primary"#}
+                            {#                                                value="{{ convert_temperature(room.current_setpoint, 'celsius', room.temperature_unit) | round(1) }}"#}
+                            {#                                                min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"#}
+                            {#                                                max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"#}
+                            {#                                                step="0.5"#}
+                            {#                                                required#}
+                            {#                                        >#}
+                            {#                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm"#}
+                            {#                                              id="setpoint-unit">#}
+                            {#                                        {{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}#}
+                            {#                                    </span>#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {##}
+                            {#                                <div class="pt-1">#}
+                            {#                                    <input#}
+                            {#                                            type="range"#}
+                            {#                                            id="temp_setpoint_slider"#}
+                            {#                                            class="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer range-lg range-blue slider-track"#}
+                            {#                                            min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"#}
+                            {#                                            max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"#}
+                            {#                                            step="0.5"#}
+                            {#                                            value="{{ convert_temperature(room.current_setpoint, 'celsius', room.temperature_unit) | round(1) }}"#}
+                            {#                                            oninput="document.getElementById('temp_setpoint_input').value = this.value"#}
+                            {#                                    >#}
+                            {#                                    <div class="flex justify-between text-xs text-text-muted mt-1">#}
+                            {#                                        <span id="setpoint-min">{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>#}
+                            {#                                        <span id="setpoint-max">{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {##}
+                            {#                                <button type="submit"#}
+                            {#                                        class="btn btn-blue w-full mt-3 flex items-center justify-center gap-2 text-sm py-2">#}
+                            {#                                    <i class="fas fa-check-circle"></i>#}
+                            {#                                    Apply Setpoint#}
+                            {#                                </button>#}
+                            {#                            </form>#}
+                            <!-- ADMIN/TECHNICIAN-ONLY: HARDWARE CONTROL -->
+                            {% if session.get('role') in ['admin', 'technician'] %}
+                                <div class="card p-4 bg-secondary">
+                                    <h3 class="text-lg font-semibold text-text-primary mb-3 flex items-center gap-2">
+                                        <i class="fas fa-microchip text-accent-blue"></i>
+                                        Hardware Control
+                                    </h3>
+
+                                    <!-- Real-time Status -->
+                                    <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                                        <h4 class="text-md font-semibold text-text-primary mb-2 flex items-center gap-2">
+                                            <i class="fas fa-info-circle"></i>
+                                            Current Status
+                                        </h4>
+                                        <div id="hardware-status" class="space-y-2">
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-text-muted">Fan:</span>
+                                                <span id="fan-status" class="font-medium">Loading...</span>
+                                            </div>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-text-muted">Mode:</span>
+                                                <span id="fan-mode" class="font-medium">Loading...</span>
+                                            </div>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-text-muted">Buzzer:</span>
+                                                <span id="buzzer-status" class="font-medium">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Fan Control -->
+                                    <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                                        <h4 class="text-md font-semibold text-text-primary mb-3 flex items-center gap-2">
+                                            <i class="fas fa-fan text-accent-blue"></i>
+                                            Fan Control
+                                        </h4>
+
+                                        <!-- Manual/Auto Toggle -->
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-text-secondary">Auto Mode:</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" id="fan-auto-toggle" class="sr-only peer">
+                                                <div class="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Temperature Threshold -->
+                                        <div class="mb-3">
+                                            <label for="temp-threshold" class="block text-sm text-text-secondary mb-1">
+                                                Auto Fan Temperature Threshold:
+                                            </label>
+                                            <div class="flex gap-2">
+                                                <input type="number" id="temp-threshold" min="16" max="30" step="0.5"
+                                                       class="form-input flex-1 text-sm" placeholder="22.0">
+                                                <span class="text-text-muted text-sm flex items-center">°C</span>
+                                                <button onclick="updateTemperatureThreshold()"
+                                                        class="btn btn-blue text-sm px-3 py-1">
+                                                    Set
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Manual Control -->
+                                        <div class="flex gap-2">
+                                            <button onclick="controlFan(true)"
+                                                    class="btn bg-green-600 hover:bg-green-700 text-white flex-1 text-sm py-2">
+                                                <i class="fas fa-play mr-1"></i> Turn Fan ON
+                                            </button>
+                                            <button onclick="controlFan(false)"
+                                                    class="btn bg-red-600 hover:bg-red-700 text-white flex-1 text-sm py-2">
+                                                <i class="fas fa-stop mr-1"></i> Turn Fan OFF
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Buzzer Control -->
+                                    <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                                        <h4 class="text-md font-semibold text-text-primary mb-3 flex items-center gap-2">
+                                            <i class="fas fa-bell text-accent-yellow"></i>
+                                            Buzzer Control
+                                        </h4>
+                                        <div class="flex gap-2">
+                                            <button onclick="controlBuzzer(true)"
+                                                    class="btn bg-yellow-600 hover:bg-yellow-700 text-white flex-1 text-sm py-2">
+                                                <i class="fas fa-bell mr-1"></i> Test Buzzer
+                                            </button>
+                                            <button onclick="controlBuzzer(false)"
+                                                    class="btn bg-gray-600 hover:bg-gray-700 text-white flex-1 text-sm py-2">
+                                                <i class="fas fa-bell-slash mr-1"></i> Silence
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Presets -->
+                                    <div class="p-3 bg-tertiary rounded-lg">
+                                        <h4 class="text-md font-semibold text-text-primary mb-3 flex items-center gap-2">
+                                            <i class="fas fa-sliders-h text-purple-400"></i>
+                                            Quick Presets
+                                        </h4>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <button onclick="applyPreset('comfort')"
+                                                    class="btn bg-blue-600 hover:bg-blue-700 text-white text-sm py-2">
+                                                <i class="fas fa-couch mr-1"></i> Comfort
+                                            </button>
+                                            <button onclick="applyPreset('energy_saver')"
+                                                    class="btn bg-green-600 hover:bg-green-700 text-white text-sm py-2">
+                                                <i class="fas fa-leaf mr-1"></i> Energy Saver
+                                            </button>
+                                            <button onclick="applyPreset('manual')"
+                                                    class="btn bg-purple-600 hover:bg-purple-700 text-white text-sm py-2">
+                                                <i class="fas fa-hand-paper mr-1"></i> Manual
+                                            </button>
+                                            <button onclick="applyPreset('away')"
+                                                    class="btn bg-gray-600 hover:bg-gray-700 text-white text-sm py-2">
+                                                <i class="fas fa-home mr-1"></i> Away
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <div class="pt-1">
-                                    <input
-                                            type="range"
-                                            id="temp_setpoint_slider"
-                                            class="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer range-lg range-blue slider-track"
-                                            min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"
-                                            max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"
-                                            step="0.5"
-                                            value="{{ convert_temperature(room.current_setpoint, 'celsius', room.temperature_unit) | round(1) }}"
-                                            oninput="document.getElementById('temp_setpoint_input').value = this.value"
-                                    >
-                                    <div class="flex justify-between text-xs text-text-muted mt-1">
-                                        <span id="setpoint-min">{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>
-                                        <span id="setpoint-max">{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}{{ '°C' if room.temperature_unit == 'celsius' else '°F' if room.temperature_unit == 'fahrenheit' else 'K' }}</span>
-                                    </div>
-                                </div>
-
-                                <button type="submit"
-                                        class="btn btn-blue w-full mt-3 flex items-center justify-center gap-2 text-sm py-2">
-                                    <i class="fas fa-check-circle"></i>
-                                    Apply Setpoint
-                                </button>
-                            </form>
+                            {% endif %}
                         </div>
                     {% endif %}
 
@@ -893,6 +1012,26 @@
             cursor: pointer;
             border: none;
         }
+
+        .tt_voiceable {
+            margin-right: -50px !important;
+            padding-right: 50px !important;
+        }
+
+        /* Voice button animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .listening {
+            animation: pulse 1s infinite;
+        }
+
     </style>
 
     <script src="{{ url_for('static', filename='js/voice-recognition.js') }}"></script>
@@ -997,16 +1136,19 @@
             });
 
             // Update unit symbols
-            document.querySelectorAll('#setpoint-unit, #target-temp-unit').forEach(element => {
+            document.querySelectorAll('#setpoint-unit, #target-temp-unit, #threshold-unit').forEach(element => {
                 element.textContent = getUnitSymbol(newUnit);
             });
 
             // Update slider ranges and labels (always convert from Celsius base values)
             updateTemperatureRanges(newUnit);
+
+            // Update hardware threshold display
+            loadHardwareStatus();
         }
 
         function updateTemperatureRanges(newUnit) {
-            const minCelsius = 16;
+            const minCelsius = 10;
             const maxCelsius = 28;
 
             // Always convert from Celsius base values
@@ -1065,6 +1207,28 @@
                 // Update slider labels
                 document.getElementById('target-temp-min').textContent = `${minConverted.toFixed(1)}${getUnitSymbol(newUnit)}`;
                 document.getElementById('target-temp-max').textContent = `${maxConverted.toFixed(1)}${getUnitSymbol(newUnit)}`;
+            }
+
+            // Update hardware threshold controls
+            const thresholdSlider = document.getElementById('temp-threshold-slider');
+            const thresholdInput = document.getElementById('temp-threshold-input');
+
+            if (thresholdSlider && thresholdInput) {
+                // Get the current Celsius value from data attribute
+                const currentCelsiusValue = parseFloat(thresholdInput.getAttribute('data-celsius-value') || convertToCelsius(parseFloat(thresholdInput.value), newUnit));
+                if (!isNaN(currentCelsiusValue)) {
+                    const convertedValue = convertFromCelsius(currentCelsiusValue, newUnit);
+                    console.log(`Threshold: ${currentCelsiusValue}°C -> ${convertedValue} ${newUnit}`);
+                    thresholdInput.value = convertedValue.toFixed(1);
+                    thresholdSlider.value = convertedValue.toFixed(1);
+                    // Store the Celsius value for future conversions
+                    thresholdInput.setAttribute('data-celsius-value', currentCelsiusValue);
+                }
+
+                thresholdInput.min = minConverted.toFixed(1);
+                thresholdInput.max = maxConverted.toFixed(1);
+                thresholdSlider.min = minConverted.toFixed(1);
+                thresholdSlider.max = maxConverted.toFixed(1);
             }
         }
 
@@ -1358,6 +1522,344 @@
             }
         }
 
+        // Hardware Control Functions
+        function loadHardwareStatus() {
+            fetch('/api/hardware/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateHardwareDisplay(data.status);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading hardware status:', error);
+                });
+        }
+
+        function updateHardwareDisplay(status) {
+            // Update status display
+            document.getElementById('fan-status').textContent = status.fan_state ? 'ON' : 'OFF';
+            document.getElementById('fan-status').className = `font-medium ${status.fan_state ? 'text-green-400' : 'text-red-400'}`;
+
+            document.getElementById('fan-mode').textContent = status.fan_auto_mode ? 'Auto' : 'Manual';
+            document.getElementById('buzzer-status').textContent = status.buzzer_state ? 'Active' : 'Inactive';
+            document.getElementById('buzzer-status').className = `font-medium ${status.buzzer_state ? 'text-yellow-400' : 'text-gray-400'}`;
+
+            // Update auto mode toggle
+            const autoToggle = document.getElementById('fan-auto-toggle');
+            if (autoToggle) {
+                autoToggle.checked = status.fan_auto_mode;
+            }
+
+            // Update temperature threshold with unit conversion
+            const currentUnit = '{{ room.temperature_unit }}' || 'celsius';
+            const displayThreshold = convertFromCelsius(status.temp_threshold, currentUnit);
+
+            const input = document.getElementById('temp-threshold-input');
+            const slider = document.getElementById('temp-threshold-slider');
+
+            if (input && slider) {
+                input.value = displayThreshold.toFixed(1);
+                slider.value = displayThreshold.toFixed(1);
+                updateThresholdDisplay(displayThreshold);
+            }
+        }
+
+        function controlFan(state) {
+            fetch('/api/hardware/fan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({state: state})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showVoiceFeedback(data.message, 'success');
+                        loadHardwareStatus();
+                    } else {
+                        showVoiceFeedback(data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error controlling fan:', error);
+                    showVoiceFeedback('Failed to control fan', 'error');
+                });
+        }
+
+        function setFanAutoMode(autoMode) {
+            fetch('/api/hardware/fan/auto', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({auto_mode: autoMode})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showVoiceFeedback(data.message, 'success');
+                        loadHardwareStatus();
+                    } else {
+                        showVoiceFeedback(data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error setting fan auto mode:', error);
+                    showVoiceFeedback('Failed to set fan mode', 'error');
+                });
+        }
+
+        // Temperature Threshold Functions
+        function updateThresholdFromSlider(value) {
+            const input = document.getElementById('temp-threshold-input');
+            const display = document.getElementById('threshold-display');
+
+            if (input && display) {
+                input.value = value;
+                updateThresholdDisplay(value);
+            }
+        }
+
+        function updateThresholdFromInput(value) {
+            const slider = document.getElementById('temp-threshold-slider');
+            const display = document.getElementById('threshold-display');
+
+            if (slider && display) {
+                slider.value = value;
+                updateThresholdDisplay(value);
+            }
+        }
+
+        function updateThresholdDisplay(value) {
+            const display = document.getElementById('threshold-display');
+            const unit = document.getElementById('threshold-unit');
+
+            if (display && unit) {
+                const currentUnit = '{{ room.temperature_unit }}' || 'celsius';
+                const convertedValue = convertFromCelsius(parseFloat(value), currentUnit);
+                const formattedValue = formatTemperatureForDisplay(convertedValue, currentUnit);
+
+                display.textContent = formattedValue;
+            }
+        }
+
+        function updateTemperatureThreshold() {
+            const input = document.getElementById('temp-threshold-input');
+            const slider = document.getElementById('temp-threshold-slider');
+
+            if (!input || !slider) {
+                showVoiceFeedback('Threshold elements not found', 'error');
+                return;
+            }
+
+            const thresholdValue = parseFloat(input.value);
+
+            if (isNaN(thresholdValue)) {
+                showVoiceFeedback('Please enter a valid temperature', 'warning');
+                return;
+            }
+
+            // Convert back to Celsius for the hardware controller
+            const currentUnit = '{{ room.temperature_unit }}' || 'celsius';
+            const celsiusThreshold = convertToCelsius(thresholdValue, currentUnit);
+
+            fetch('/api/hardware/fan/threshold', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({threshold: celsiusThreshold})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const displayValue = formatTemperatureForDisplay(thresholdValue, currentUnit);
+                        showVoiceFeedback(`Temperature threshold set to ${displayValue}`, 'success');
+                        loadHardwareStatus();
+                    } else {
+                        showVoiceFeedback(data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error setting temperature threshold:', error);
+                    showVoiceFeedback('Failed to set temperature threshold', 'error');
+                });
+        }
+
+        function controlBuzzer(state) {
+            fetch('/api/hardware/buzzer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({state: state})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showVoiceFeedback(data.message, 'success');
+                        loadHardwareStatus();
+                    } else {
+                        showVoiceFeedback(data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error controlling buzzer:', error);
+                    showVoiceFeedback('Failed to control buzzer', 'error');
+                });
+        }
+
+        function applyPreset(presetName) {
+            fetch('/api/hardware/preset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({preset: presetName})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showVoiceFeedback(data.message, 'success');
+                        loadHardwareStatus();
+                    } else {
+                        showVoiceFeedback(data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error applying preset:', error);
+                    showVoiceFeedback('Failed to apply preset', 'error');
+                });
+        }
+
+        // Voice Recognition for Temperature Threshold
+        function startVoiceRecognitionForThreshold() {
+            const voiceBtn = document.getElementById('voice-threshold-btn');
+            const voiceStatus = document.getElementById('voice-threshold-status');
+
+            if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+                showVoiceFeedback('Voice recognition not supported in this browser', 'error');
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            // Update UI to show listening state
+            voiceBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+            voiceBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+            voiceBtn.classList.add('bg-red-600', 'hover:bg-red-700', 'listening');
+            voiceStatus.classList.remove('hidden');
+
+            recognition.start();
+
+            recognition.onresult = function (event) {
+                const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                console.log('Voice transcript:', transcript);
+
+                // Parse temperature from speech
+                const temperature = parseTemperatureFromSpeech(transcript);
+
+                if (temperature !== null) {
+                    const input = document.getElementById('temp-threshold-input');
+                    const slider = document.getElementById('temp-threshold-slider');
+                    const currentUnit = '{{ room.temperature_unit }}' || 'celsius';
+
+                    if (input && slider) {
+                        // Convert to display unit if needed
+                        let displayValue = temperature;
+                        if (transcript.includes('fahrenheit') || transcript.includes('f')) {
+                            // If user specified Fahrenheit, convert to current display unit
+                            displayValue = convertFromCelsius(convertToCelsius(temperature, 'fahrenheit'), currentUnit);
+                        } else if (transcript.includes('celsius') || transcript.includes('c')) {
+                            // If user specified Celsius, convert to current display unit
+                            displayValue = convertFromCelsius(temperature, currentUnit);
+                        }
+
+                        input.value = displayValue.toFixed(1);
+                        slider.value = displayValue.toFixed(1);
+                        updateThresholdDisplay(displayValue);
+
+                        showVoiceFeedback(`Set to ${formatTemperatureForDisplay(displayValue, currentUnit)}`, 'success');
+                    }
+                } else {
+                    showVoiceFeedback('Could not understand temperature. Please try again.', 'warning');
+                }
+            };
+
+            recognition.onerror = function (event) {
+                console.error('Speech recognition error:', event.error);
+                showVoiceFeedback('Voice recognition error: ' + event.error, 'error');
+                resetVoiceButton();
+            };
+
+            recognition.onend = function () {
+                resetVoiceButton();
+            };
+
+            function resetVoiceButton() {
+                voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                voiceBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'listening');
+                voiceBtn.classList.add('bg-purple-600', 'hover:bg-purple-700');
+                voiceStatus.classList.add('hidden');
+            }
+        }
+
+        function parseTemperatureFromSpeech(transcript) {
+            // Match patterns like "22 degrees", "22.5", "seventy two", etc.
+            const patterns = [
+                /(\d+\.?\d*)\s*(degrees?|°)?\s*(celsius|fahrenheit|c|f)?/i,
+                /(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:\s*(one|two|three|four|five|six|seven|eight|nine))?/i,
+                /set.*?(\d+\.?\d*)/i,
+                /temperature.*?(\d+\.?\d*)/i
+            ];
+
+            for (const pattern of patterns) {
+                const match = transcript.match(pattern);
+                if (match) {
+                    // Handle numeric temperatures
+                    if (match[1] && !isNaN(parseFloat(match[1]))) {
+                        return parseFloat(match[1]);
+                    }
+
+                    // Handle word-based temperatures (basic implementation)
+                    const wordTemp = parseWordTemperature(match[0]);
+                    if (wordTemp !== null) {
+                        return wordTemp;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function parseWordTemperature(words) {
+            // Basic word to number conversion
+            const numberWords = {
+                'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50,
+                'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
+                'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+                'six': 6, 'seven': 7, 'eight': 8, 'nine': 9
+            };
+
+            const wordList = words.toLowerCase().split(/\s+/);
+            let temperature = 0;
+
+            for (const word of wordList) {
+                if (numberWords[word]) {
+                    temperature += numberWords[word];
+                }
+            }
+
+            return temperature > 0 ? temperature : null;
+        }
+
         // FIXED: DOMContentLoaded with error handling
         document.addEventListener('DOMContentLoaded', function () {
             console.log('DOM loaded - initializing room page');
@@ -1388,6 +1890,36 @@
                             setpointSlider.value = this.value;
                         });
                     }
+
+                    // Initialize hardware threshold slider
+                    const thresholdSlider = document.getElementById('temp-threshold-slider');
+                    const thresholdInput = document.getElementById('temp-threshold-input');
+                    if (thresholdSlider && thresholdInput) {
+                        thresholdSlider.addEventListener('input', function () {
+                            thresholdInput.value = this.value;
+                            updateThresholdDisplay(this.value);
+                        });
+                        thresholdInput.addEventListener('input', function () {
+                            thresholdSlider.value = this.value;
+                            updateThresholdDisplay(this.value);
+                        });
+                    }
+
+                    // Load hardware status for admin/technician
+                    {% if session.get('role') in ['admin', 'technician'] %}
+                        loadHardwareStatus();
+
+                        // Set up auto refresh for hardware status
+                        setInterval(loadHardwareStatus, 5000);
+
+                        // Fan auto mode toggle
+                        const autoToggle = document.getElementById('fan-auto-toggle');
+                        if (autoToggle) {
+                            autoToggle.addEventListener('change', function () {
+                                setFanAutoMode(this.checked);
+                            });
+                        }
+                    {% endif %}
 
                 } catch (error) {
                     console.error('Error during page initialization:', error);
