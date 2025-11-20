@@ -25,7 +25,7 @@ class WeatherAIAnalyzer:
 
             # Default to a major city if no specific location is provided
             params = {
-                'q': 'London,UK',  # Default location
+                'q': 'Ireland,DUBLIN',  # Default location
                 'appid': self.weather_api_key,
                 'units': 'metric'
             }

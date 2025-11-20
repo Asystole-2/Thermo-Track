@@ -1121,20 +1121,32 @@ def room(room_id):
 def set_temperature_unit(room_id):
     unit = request.form.get("temperature_unit")
     user_id = session.get("user_id")
+    user_role = session.get("role")
 
     if unit not in ["celsius", "fahrenheit", "kelvin"]:
         flash("Invalid temperature unit.", "error")
         return redirect(url_for("room", room_id=room_id))
 
+    cur = db_cursor()
     try:
-        changed = update_room(room_id, temperature_unit=unit, user_id=user_id)
-        if changed:
+        # Simple update without user_id check for now
+        cur.execute(
+            "UPDATE rooms SET temperature_unit = %s WHERE id = %s",
+            (unit, room_id)
+        )
+        mysql.connection.commit()
+
+        if cur.rowcount > 0:
             flash(f"Temperature unit changed to {unit}.", "success")
         else:
-            flash("Room not found or no changes applied.", "warning")
+            flash("Room not found.", "warning")
+
     except Exception as e:
+        mysql.connection.rollback()
         log.exception("Error changing temperature unit: %s", e)
         flash("Could not change temperature unit.", "error")
+    finally:
+        cur.close()
 
     return redirect(url_for("room", room_id=room_id))
 
