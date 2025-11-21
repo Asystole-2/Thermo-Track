@@ -264,6 +264,31 @@ def get_rooms_summary(user_id=None, user_role=None):
     c.close()
     return rows
 
+def get_all_devices():
+    """Get all devices with room information"""
+    c = db_cursor()
+    try:
+        query = """
+            SELECT d.*, 
+                   r.name as room_name, 
+                   r.location as room_location,
+                   r.id as room_id,
+                   lr.temperature as last_temperature,
+                   lr.humidity as last_humidity,
+                   lr.recorded_at as last_reading_time
+            FROM devices d
+            LEFT JOIN rooms r ON d.room_id = r.id
+            LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+            ORDER BY d.name
+        """
+        c.execute(query)
+        devices = c.fetchall()
+        return devices
+    except Exception as e:
+        log.error(f"Error getting all devices: {e}")
+        return []
+    finally:
+        c.close()
 
 def get_recent_readings(limit=50, offset=0, user_id=None, user_role=None):
     limit = max(1, min(int(limit or 50), 500))
@@ -1008,9 +1033,12 @@ def setup():
 
         if user_role in ["admin", "technician"]:
             all_rooms = get_all_rooms_with_stats()
+            all_devices = get_all_devices()
+
             return render_template(
                 "setup.html",
                 all_rooms=all_rooms,
+                devices=all_devices,
                 user_role=user_role,
                 user_rooms=[],
                 available_rooms=[],
@@ -1024,6 +1052,7 @@ def setup():
                 available_rooms=available_rooms,
                 user_role=user_role,
                 all_rooms=[],
+                devices=[],
             )
 
     except Exception as e:
@@ -1034,6 +1063,7 @@ def setup():
             return render_template(
                 "setup.html",
                 all_rooms=[],
+                devices=[],
                 user_role=user_role,
                 user_rooms=[],
                 available_rooms=[],
@@ -1046,6 +1076,7 @@ def setup():
                 available_rooms=[],
                 user_role=user_role,
                 all_rooms=[],
+                devices=[],
                 error="Failed to load room data",
             )
 
@@ -1288,6 +1319,40 @@ def setuprooms_delete(room_id):
         flash("Could not delete room.", "error")
 
     return redirect(url_for("setup"))
+
+@app.route("/setup/rooms/<int:room_id>/delete", methods=["POST"])
+@login_required
+@role_required("admin", "technician")
+def delete_room_admin(room_id):
+    """Delete a room (admin and technician)"""
+    try:
+        cursor = db_cursor()
+        cursor.execute("DELETE FROM rooms WHERE id = %s", (room_id,))
+        mysql.connection.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error deleting room: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        cursor.close()
+
+@app.route("/setup/devices/<int:device_id>/delete", methods=["DELETE"])
+@login_required
+@role_required("admin", "technician")
+def delete_device(device_id):
+    """Delete a device (admin and technician)"""
+    try:
+        cursor = db_cursor()
+        cursor.execute("DELETE FROM devices WHERE id = %s", (device_id,))
+        mysql.connection.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error deleting device: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        cursor.close()
 
 
 @app.post("/setuprooms/<int:room_id>/update")
