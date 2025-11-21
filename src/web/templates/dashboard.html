@@ -23,8 +23,33 @@
                     </div>
                     <div class="flex items-center gap-3">
                         {% if session.get('role') in ['admin', 'technician'] %}
-                            <a href="/api/rooms" class="btn p-2 hover:bg-gray-700 text-sm">Rooms JSON</a>
-                            <a href="/api/readings" class="btn p-2 hover:bg-gray-700 text-sm">Readings JSON</a>
+                            <!-- Download Buttons -->
+                            <div class="flex items-center gap-2">
+                                <button onclick="previewSensorLogs()"
+                                        class="btn p-2 hover:bg-gray-700 text-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Sensor Logs
+                                </button>
+                                <button onclick="previewRoomsJSON()"
+                                        class="btn p-2 hover:bg-gray-700 text-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Rooms JSON
+                                </button>
+                                <button onclick="previewReadingsJSON()"
+                                        class="btn p-2 hover:bg-gray-700 text-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Readings JSON
+                                </button>
+                            </div>
                         {% endif %}
                         <!-- Right side: Notification bell -->
                         {% include 'components/notification_bell.html' %}
@@ -32,8 +57,46 @@
                 </div>
             </header>
 
+            <!-- Data Preview Modal -->
+            <div id="dataPreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                <div class="bg-secondary rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                    <div class="flex items-center justify-between p-6 border-b border-border">
+                        <h3 id="modalTitle" class="text-xl font-bold text-text-primary">Data Preview</h3>
+                        <div class="flex items-center gap-2">
+                            <button id="downloadBtn" class="btn bg-accent-blue hover:bg-accent-blue-hover text-white text-sm py-2 px-4 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Download
+                            </button>
+                            <button onclick="closePreviewModal()" class="bg-tertiary hover:bg-tertiary-hover text-text-primary text-sm py-2 px-4 rounded-lg">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <div id="modalContent" class="h-full overflow-auto p-6">
+                            <!-- Content will be populated dynamically -->
+                            <div class="text-center text-text-muted py-8">
+                                <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <p>Loading preview...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-border bg-tertiary text-sm text-text-muted flex justify-between items-center">
+                        <span id="dataStats">Preparing data...</span>
+                        <span id="fileInfo"></span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Search Bar -->
             {% include 'components/search_bar.html' %}
+
             <!-- ===================== ROOMS ===================== -->
             {% if rooms and rooms|length > 0 %}
                 <section class="mt-4" id="roomsSection">
@@ -282,8 +345,270 @@
         </main>
     </div>
 
+    <!-- Data Preview and Download Functions -->
+    <script>
+        let currentPreviewData = null;
+        let currentPreviewType = null;
+        let currentPreviewFilename = null;
+
+        function previewSensorLogs() {
+            showLoadingPreview();
+            currentPreviewType = 'sensor_logs';
+            currentPreviewFilename = 'sensor_logs.csv';
+
+            // Create CSV content from the readings table
+            const rows = document.querySelectorAll('.reading-row');
+            let csvContent = 'Device Name,Device UID,Device Type,Room,Owner,Temperature (°C),Humidity (%),Motion,Recorded At\n';
+
+            rows.forEach(row => {
+                const device = row.querySelector('.reading-device').textContent;
+                const uid = row.querySelector('.reading-uid').textContent;
+                const type = row.querySelector('.reading-type').textContent;
+                const room = row.querySelector('.reading-room') ? row.querySelector('.reading-room').textContent.trim() : '—';
+                const owner = row.querySelector('.reading-owner') ? row.querySelector('.reading-owner').textContent : '—';
+                const temp = row.querySelector('.reading-temp').textContent;
+                const humidity = row.querySelector('.reading-humidity').textContent;
+                const motion = row.querySelector('.reading-motion').textContent;
+                const time = row.querySelector('.reading-time').textContent;
+
+                csvContent += `"${device}","${uid}","${type}","${room}","${owner}","${temp}","${humidity}","${motion}","${time}"\n`;
+            });
+
+            currentPreviewData = csvContent;
+            showPreviewModal('Sensor Logs Preview', formatCSVPreview(csvContent), 'CSV', rows.length);
+        }
+
+        function previewRoomsJSON() {
+            showLoadingPreview();
+            currentPreviewType = 'rooms_json';
+            currentPreviewFilename = 'rooms_data.json';
+
+            fetch('/api/rooms')
+                .then(response => response.json())
+                .then(data => {
+                    const jsonContent = JSON.stringify(data, null, 2);
+                    currentPreviewData = jsonContent;
+                    showPreviewModal('Rooms Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
+                })
+                .catch(error => {
+                    console.error('Error fetching rooms JSON:', error);
+                    showPreviewError('Failed to load rooms data. Please try again.');
+                });
+        }
+
+        function previewReadingsJSON() {
+            showLoadingPreview();
+            currentPreviewType = 'readings_json';
+            currentPreviewFilename = 'readings_data.json';
+
+            fetch('/api/readings?limit=1000')
+                .then(response => response.json())
+                .then(data => {
+                    const jsonContent = JSON.stringify(data, null, 2);
+                    currentPreviewData = jsonContent;
+                    showPreviewModal('Readings Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
+                })
+                .catch(error => {
+                    console.error('Error fetching readings JSON:', error);
+                    showPreviewError('Failed to load readings data. Please try again.');
+                });
+        }
+
+        function showPreviewModal(title, content, format, recordCount) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('dataStats').textContent = `${recordCount} records • ${format} format`;
+            document.getElementById('fileInfo').textContent = `File: ${currentPreviewFilename}`;
+
+            // Update download button
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.onclick = downloadCurrentPreview;
+            downloadBtn.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Download ${currentPreviewFilename}
+            `;
+
+            document.getElementById('dataPreviewModal').classList.remove('hidden');
+        }
+
+        function showLoadingPreview() {
+            document.getElementById('modalContent').innerHTML = `
+                <div class="text-center text-text-muted py-8">
+                    <svg class="w-12 h-12 mx-auto mb-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <p>Loading data preview...</p>
+                </div>
+            `;
+            document.getElementById('dataPreviewModal').classList.remove('hidden');
+        }
+
+        function showPreviewError(message) {
+            document.getElementById('modalContent').innerHTML = `
+                <div class="text-center text-red-400 py-8">
+                    <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-lg font-semibold mb-2">Error</p>
+                    <p>${message}</p>
+                </div>
+            `;
+            document.getElementById('downloadBtn').style.display = 'none';
+        }
+
+        function formatCSVPreview(csvContent) {
+            const lines = csvContent.split('\n').slice(0, 101); // Show first 100 records + header
+            const isTruncated = lines.length > 100;
+            const displayLines = isTruncated ? lines.slice(0, 100) : lines;
+
+            let html = `
+                <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                    <div class="flex items-center gap-2 text-sm text-text-muted">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Preview showing ${displayLines.length - 1} records${isTruncated ? ' (first 100)' : ''}
+                    </div>
+                </div>
+                <div class="bg-primary border border-border rounded-lg overflow-hidden">
+                    <pre class="text-sm p-4 overflow-auto max-h-96">${displayLines.join('\n')}</pre>
+                </div>
+            `;
+
+            if (isTruncated) {
+                html += `
+                    <div class="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                        <div class="flex items-center gap-2 text-yellow-400 text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            </svg>
+                            Preview truncated. Full download will include all ${lines.length - 1} records.
+                        </div>
+                    </div>
+                `;
+            }
+
+            return html;
+        }
+
+        function formatJSONPreview(jsonContent) {
+            const data = JSON.parse(jsonContent);
+            const previewData = data.slice(0, 10); // Show first 10 records
+            const isTruncated = data.length > 10;
+
+            let html = `
+                <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                    <div class="flex items-center gap-2 text-sm text-text-muted">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Preview showing ${previewData.length} records${isTruncated ? ' (first 10)' : ''}
+                    </div>
+                </div>
+                <div class="bg-primary border border-border rounded-lg overflow-hidden">
+                    <pre class="text-sm p-4 overflow-auto max-h-96">${JSON.stringify(previewData, null, 2)}</pre>
+                </div>
+            `;
+
+            if (isTruncated) {
+                html += `
+                    <div class="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                        <div class="flex items-center gap-2 text-yellow-400 text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            </svg>
+                            Preview truncated. Full download will include all ${data.length} records.
+                        </div>
+                    </div>
+                `;
+            }
+
+            return html;
+        }
+
+        function downloadCurrentPreview() {
+            if (!currentPreviewData) return;
+
+            const contentType = currentPreviewType.includes('json') ? 'application/json' : 'text/csv';
+            downloadFile(currentPreviewData, currentPreviewFilename, contentType);
+            closePreviewModal();
+            showDownloadFeedback(`${currentPreviewFilename} downloaded successfully`, 'success');
+        }
+
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        function closePreviewModal() {
+            document.getElementById('dataPreviewModal').classList.add('hidden');
+            currentPreviewData = null;
+            currentPreviewType = null;
+            currentPreviewFilename = null;
+            document.getElementById('downloadBtn').style.display = 'flex';
+        }
+
+        function showDownloadFeedback(message, type = 'info') {
+            const feedback = document.createElement('div');
+            feedback.className = `fixed top-4 right-4 p-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-600 text-white' :
+                type === 'error' ? 'bg-red-600 text-white' :
+                'bg-blue-600 text-white'
+            }`;
+            feedback.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="text-sm">${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(feedback);
+
+            setTimeout(() => {
+                if (feedback.parentElement) {
+                    feedback.remove();
+                }
+            }, 5000);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('dataPreviewModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePreviewModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePreviewModal();
+            }
+        });
+    </script>
+
     <!-- Enhanced Search Script with Admin/Technician Support -->
     <script>
+        // ... (keep the existing search script exactly as it was)
         console.log('Debug: Page loaded');
         console.log('User role:', '{{ session.role }}');
 
