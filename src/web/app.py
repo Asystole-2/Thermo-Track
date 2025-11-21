@@ -22,7 +22,7 @@ from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from MySQLdb._exceptions import IntegrityError, Error
-from utils.weather_gemini import WeatherAIAnalyzer
+from .utils.weather_gemini import WeatherAIAnalyzer
 
 # Google OAuth (Authlib)
 try:
@@ -264,6 +264,31 @@ def get_rooms_summary(user_id=None, user_role=None):
     c.close()
     return rows
 
+def get_all_devices():
+    """Get all devices with room information"""
+    c = db_cursor()
+    try:
+        query = """
+            SELECT d.*, 
+                   r.name as room_name, 
+                   r.location as room_location,
+                   r.id as room_id,
+                   lr.temperature as last_temperature,
+                   lr.humidity as last_humidity,
+                   lr.recorded_at as last_reading_time
+            FROM devices d
+            LEFT JOIN rooms r ON d.room_id = r.id
+            LEFT JOIN v_latest_device_reading lr ON lr.device_id = d.id
+            ORDER BY d.name
+        """
+        c.execute(query)
+        devices = c.fetchall()
+        return devices
+    except Exception as e:
+        log.error(f"Error getting all devices: {e}")
+        return []
+    finally:
+        c.close()
 
 def get_recent_readings(limit=50, offset=0, user_id=None, user_role=None):
     limit = max(1, min(int(limit or 50), 500))
@@ -488,16 +513,16 @@ def get_all_rooms_with_stats():
     try:
         query = """
                 SELECT r.id, \
-                       r.name                                                                                        as room_name, \
+                       r.name                                as room_name, \
                        r.location, \
-                       u.username                                                                                    as owner_username, \
-                       COUNT(DISTINCT d.id)                                                                          as devices_count, \
+                       u.username                            as owner_username, \
+                       COUNT(DISTINCT d.id)                  as devices_count, \
                        COUNT(DISTINCT CASE \
                                           WHEN lr.temperature IS NOT NULL OR lr.humidity IS NOT NULL \
-                                              THEN d.id END)                                                         as devices_with_readings, \
-                       ROUND(AVG(lr.temperature), 1)                                                                 as avg_temp, \
-                       ROUND(AVG(lr.humidity), 1)                                                                    as avg_humidity, \
-                       MAX(lr.recorded_at)                                                                           as last_update
+                                              THEN d.id END) as devices_with_readings, \
+                       ROUND(AVG(lr.temperature), 1)         as avg_temp, \
+                       ROUND(AVG(lr.humidity), 1)            as avg_humidity, \
+                       MAX(lr.recorded_at)                   as last_update
                 FROM rooms r
                          LEFT JOIN users u ON r.user_id = u.id
                          LEFT JOIN devices d ON d.room_id = r.id
@@ -691,7 +716,7 @@ def role_required(*roles):
 def after_request(response):
     # Ensure API routes return JSON even on errors
     if request.path.startswith("/api/") or (
-        request.path.startswith("/room/") and "/request_adjustment" in request.path
+            request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         if response.status_code >= 400 and not response.is_json:
             data = {
@@ -714,7 +739,7 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     if request.path.startswith("/api/") or (
-        request.path.startswith("/room/") and "/request_adjustment" in request.path
+            request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         return jsonify({"success": False, "error": "Internal server error"}), 500
     return error
@@ -1008,9 +1033,12 @@ def setup():
 
         if user_role in ["admin", "technician"]:
             all_rooms = get_all_rooms_with_stats()
+            all_devices = get_all_devices()
+
             return render_template(
                 "setup.html",
                 all_rooms=all_rooms,
+                devices=all_devices,
                 user_role=user_role,
                 user_rooms=[],
                 available_rooms=[],
@@ -1024,6 +1052,7 @@ def setup():
                 available_rooms=available_rooms,
                 user_role=user_role,
                 all_rooms=[],
+                devices=[],
             )
 
     except Exception as e:
@@ -1034,6 +1063,7 @@ def setup():
             return render_template(
                 "setup.html",
                 all_rooms=[],
+                devices=[],
                 user_role=user_role,
                 user_rooms=[],
                 available_rooms=[],
@@ -1046,6 +1076,7 @@ def setup():
                 available_rooms=[],
                 user_role=user_role,
                 all_rooms=[],
+                devices=[],
                 error="Failed to load room data",
             )
 
@@ -1289,6 +1320,40 @@ def setuprooms_delete(room_id):
 
     return redirect(url_for("setup"))
 
+@app.route("/setup/rooms/<int:room_id>/delete", methods=["POST"])
+@login_required
+@role_required("admin", "technician")
+def delete_room_admin(room_id):
+    """Delete a room (admin and technician)"""
+    try:
+        cursor = db_cursor()
+        cursor.execute("DELETE FROM rooms WHERE id = %s", (room_id,))
+        mysql.connection.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error deleting room: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        cursor.close()
+
+@app.route("/setup/devices/<int:device_id>/delete", methods=["DELETE"])
+@login_required
+@role_required("admin", "technician")
+def delete_device(device_id):
+    """Delete a device (admin and technician)"""
+    try:
+        cursor = db_cursor()
+        cursor.execute("DELETE FROM devices WHERE id = %s", (device_id,))
+        mysql.connection.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error deleting device: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        cursor.close()
+
 
 @app.post("/setuprooms/<int:room_id>/update")
 @login_required
@@ -1512,6 +1577,59 @@ def request_room_adjustment(room_id):
             cursor.close()
 
 
+@app.route("/api/user/notifications/<int:notification_id>", methods=["DELETE"])
+@login_required
+def delete_notification(notification_id):
+    """Soft delete a single notification"""
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE user_notifications
+            SET deleted_at = NOW()
+            WHERE id = %s
+              AND user_id = %s
+            """,
+            (notification_id, session["user_id"]),
+        )
+
+        mysql.connection.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error deleting notification: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        cursor.close()
+
+
+@app.route("/api/user/notifications/delete-all-read", methods=["DELETE"])
+@login_required
+def delete_all_read_notifications():
+    """Soft delete all read notifications for the current user"""
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE user_notifications
+            SET deleted_at = NOW()
+            WHERE user_id = %s
+              AND is_read = TRUE
+              AND deleted_at IS NULL
+            """,
+            (session["user_id"],),
+        )
+
+        mysql.connection.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error deleting all read notifications: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        cursor.close()
+
+
 # =============================================================================
 # REQUEST STATUS API ROUTES
 # =============================================================================
@@ -1527,7 +1645,7 @@ def get_user_room_requests():
             """
             SELECT r.*, rm.name as room_name, rm.id as room_id
             FROM room_condition_requests r
-            JOIN rooms rm ON r.room_id = rm.id
+                     JOIN rooms rm ON r.room_id = rm.id
             WHERE r.user_id = %s
             ORDER BY r.created_at DESC
             """,
@@ -1602,7 +1720,7 @@ def get_request_details(request_id):
             FROM room_condition_requests
             WHERE id = %s
               AND user_id = %s
-        """,
+            """,
             (request_id, session["user_id"]),
         )
 
@@ -1655,7 +1773,7 @@ def get_request_details(request_id):
         # Convert datetime objects and Decimal objects
         for date_field in ["created_at", "updated_at", "estimated_completion_time"]:
             if request_dict.get(date_field) and hasattr(
-                request_dict[date_field], "isoformat"
+                    request_dict[date_field], "isoformat"
             ):
                 request_dict[date_field] = request_dict[date_field].isoformat()
 
@@ -1773,11 +1891,11 @@ def debug_request_details(request_id):
             # Check all requests for the current user
             cursor.execute(
                 """
-                           SELECT id, room_id, request_type, status, created_at
-                           FROM room_condition_requests
-                           WHERE user_id = %s
-                           ORDER BY created_at DESC
-                           """,
+                SELECT id, room_id, request_type, status, created_at
+                FROM room_condition_requests
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+                """,
                 (session["user_id"],),
             )
 
@@ -1786,10 +1904,10 @@ def debug_request_details(request_id):
             # Check all requests in the entire table
             cursor.execute(
                 """
-                           SELECT id, user_id, room_id, request_type, status, created_at
-                           FROM room_condition_requests
-                           ORDER BY created_at DESC LIMIT 10
-                           """
+                SELECT id, user_id, room_id, request_type, status, created_at
+                FROM room_condition_requests
+                ORDER BY created_at DESC LIMIT 10
+                """
             )
 
             all_requests = cursor.fetchall()
@@ -1939,10 +2057,10 @@ def mark_request_viewed(request_id):
         cursor.execute(
             """
             UPDATE room_condition_requests
-            SET status = 'viewed',
+            SET status     = 'viewed',
                 updated_at = NOW()
             WHERE id = %s
-        """,
+            """,
             (request_id,),
         )
 
@@ -1958,7 +2076,7 @@ def mark_request_viewed(request_id):
                 """
                 INSERT INTO user_notifications (user_id, request_id, title, message, type)
                 VALUES (%s, %s, 'Request Viewed', 'An admin is now reviewing your room adjustment request.', 'info')
-            """,
+                """,
                 (user_id, request_id),
             )
 
@@ -1987,11 +2105,11 @@ def approve_room_request(request_id):
         cursor.execute(
             """
             UPDATE room_condition_requests
-            SET status = 'approved',
+            SET status                    = 'approved',
                 estimated_completion_time = %s,
-                updated_at = NOW()
+                updated_at                = NOW()
             WHERE id = %s
-        """,
+            """,
             (data.get("estimated_completion_time"), request_id),
         )
 
@@ -2001,7 +2119,7 @@ def approve_room_request(request_id):
             SELECT r.user_id, r.request_type, r.room_id, r.target_temperature
             FROM room_condition_requests r
             WHERE id = %s
-        """,
+            """,
             (request_id,),
         )
         req_data = cursor.fetchone()
@@ -2016,7 +2134,7 @@ def approve_room_request(request_id):
                 """
                 INSERT INTO user_notifications (user_id, request_id, title, message, type)
                 VALUES (%s, %s, 'Request Approved', %s, 'success')
-            """,
+                """,
                 (req_data["user_id"], request_id, message),
             )
 
@@ -2045,10 +2163,10 @@ def deny_room_request(request_id):
         cursor.execute(
             """
             UPDATE room_condition_requests
-            SET status = 'denied',
+            SET status     = 'denied',
                 updated_at = NOW()
             WHERE id = %s
-        """,
+            """,
             (request_id,),
         )
 
@@ -2065,7 +2183,7 @@ def deny_room_request(request_id):
                 """
                 INSERT INTO user_notifications (user_id, request_id, title, message, type)
                 VALUES (%s, %s, 'Request Denied', %s, 'error')
-            """,
+                """,
                 (user_id, request_id, f"Your request was denied. Reason: {reason}"),
             )
 
@@ -2318,7 +2436,7 @@ def notifications():
 @app.route("/api/user/notifications")
 @login_required
 def get_user_notifications():
-    """Get all notifications for the current user"""
+    """Get all notifications for the current user (excluding deleted ones)"""
     cursor = mysql.connection.cursor()
     try:
         cursor.execute(
@@ -2337,6 +2455,7 @@ def get_user_notifications():
                      LEFT JOIN room_condition_requests r ON n.request_id = r.id
                      LEFT JOIN rooms rm ON r.room_id = rm.id
             WHERE n.user_id = %s
+              AND n.deleted_at IS NULL
             ORDER BY n.created_at DESC LIMIT 50
             """,
             (session["user_id"],),
@@ -2429,7 +2548,7 @@ def mark_all_notifications_read():
 @app.route("/api/user/notifications/unread-count")
 @login_required
 def get_unread_notification_count():
-    """Get count of unread notifications for the bell"""
+    """Get count of unread notifications for the bell (excluding deleted ones)"""
     cursor = mysql.connection.cursor()
     try:
         cursor.execute(
@@ -2438,6 +2557,7 @@ def get_unread_notification_count():
             FROM user_notifications
             WHERE user_id = %s
               AND is_read = FALSE
+              AND deleted_at IS NULL
             """,
             (session["user_id"],),
         )
@@ -2467,10 +2587,10 @@ def get_pending_requests_count():
     try:
         cursor.execute(
             """
-            SELECT COUNT(*) as pending_count 
-            FROM room_condition_requests 
+            SELECT COUNT(*) as pending_count
+            FROM room_condition_requests
             WHERE status = 'pending'
-        """
+            """
         )
         result = cursor.fetchone()
         return jsonify({"pending_count": result["pending_count"] if result else 0})
@@ -2494,12 +2614,12 @@ def get_pending_room_requests():
             """
             SELECT r.*, u.username, rm.name as room_name
             FROM room_condition_requests r
-            JOIN users u ON r.user_id = u.id
-            JOIN rooms rm ON r.room_id = rm.id
+                     JOIN users u ON r.user_id = u.id
+                     JOIN rooms rm ON r.room_id = rm.id
             WHERE r.status = 'pending'
             ORDER BY r.created_at DESC
-            LIMIT %s
-        """,
+                LIMIT %s
+            """,
             (request.args.get("limit", 5, type=int),),
         )
 
@@ -2664,10 +2784,10 @@ def settings():
             cur = db_cursor()
             cur.execute(
                 """
-                        SELECT id, username, email, role, profile_picture, first_name, last_name
-                        FROM users
-                        ORDER BY id ASC
-                        """
+                SELECT id, username, email, role, profile_picture, first_name, last_name
+                FROM users
+                ORDER BY id ASC
+                """
             )
             users = cur.fetchall()
             cur.close()
@@ -2765,8 +2885,8 @@ def upload_profile_picture():
     # Validate file type
     allowed_extensions = {"png", "jpg", "jpeg", "gif"}
     if not (
-        "." in file.filename
-        and file.filename.rsplit(".", 1)[1].lower() in allowed_extensions
+            "." in file.filename
+            and file.filename.rsplit(".", 1)[1].lower() in allowed_extensions
     ):
         return jsonify({"success": False, "error": "Invalid file type"}), 400
 
@@ -2866,17 +2986,17 @@ def get_user_profile(user_id):
         # Get basic user info
         cursor.execute(
             """
-                       SELECT username,
-                              email,
-                              role,
-                              profile_picture,
-                              first_name,
-                              last_name,
-                              bio,
-                              created_at
-                       FROM users
-                       WHERE id = %s
-                       """,
+            SELECT username,
+                   email,
+                   role,
+                   profile_picture,
+                   first_name,
+                   last_name,
+                   bio,
+                   created_at
+            FROM users
+            WHERE id = %s
+            """,
             (user_id,),
         )
         user_data = cursor.fetchone()
@@ -2893,10 +3013,10 @@ def get_user_profile(user_id):
         # Get active requests count
         cursor.execute(
             """
-                       SELECT COUNT(*) as count
-                       FROM room_condition_requests
-                       WHERE user_id = %s AND status IN ('pending', 'viewed', 'approved')
-                       """,
+            SELECT COUNT(*) as count
+            FROM room_condition_requests
+            WHERE user_id = %s AND status IN ('pending', 'viewed', 'approved')
+            """,
             (user_id,),
         )
         active_requests = cursor.fetchone()["count"]
@@ -2904,12 +3024,12 @@ def get_user_profile(user_id):
         # Get recent activity (last 5 actions)
         cursor.execute(
             """
-                       SELECT action, created_at
-                       FROM audit_log
-                       WHERE user_id = %s
-                       ORDER BY created_at DESC
-                           LIMIT 5
-                       """,
+            SELECT action, created_at
+            FROM audit_log
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+                LIMIT 5
+            """,
             (user_id,),
         )
         recent_activity = cursor.fetchall()
@@ -3149,6 +3269,7 @@ def apply_preset():
     except Exception as e:
         log.error(f"Error applying preset: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 # =============================================================================
 # APPLICATION ENTRY POINT

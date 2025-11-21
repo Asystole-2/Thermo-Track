@@ -15,7 +15,7 @@
                                 Complete system-wide overview of all rooms and sensor data.
                             {% else %}
                                 Overview of your assigned rooms and devices.
-                                <span class="ml-2 inline-block px-2 py-0.5 rounded bg-blue-900/40 text-blue-200 text-xs align-middle">
+                                <span class="ml-2 inline-block px-2 py-0.5 rounded bg-accent-blue text-white text-xs align-middle">
                                    Your readings only
                                </span>
                             {% endif %}
@@ -23,18 +23,75 @@
                     </div>
                     <div class="flex items-center gap-3">
                         {% if session.get('role') in ['admin', 'technician'] %}
-                            <a href="/api/rooms" class="btn p-2 hover:bg-gray-700 text-sm">Rooms JSON</a>
-                            <a href="/api/readings" class="btn p-2 hover:bg-gray-700 text-sm">Readings JSON</a>
+                            <div class="flex items-center gap-2">
+                                <button onclick="previewSensorLogs()"
+                                        class="btn p-2 bg-tertiary hover:bg-tertiary-hover text-text-secondary text-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Sensor Logs
+                                </button>
+                                <button onclick="previewRoomsJSON()"
+                                        class="btn p-2 bg-tertiary hover:bg-tertiary-hover text-text-secondary text-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Rooms JSON
+                                </button>
+                                <button onclick="previewReadingsJSON()"
+                                        class="btn p-2 bg-tertiary hover:bg-tertiary-hover text-text-secondary text-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Readings JSON
+                                </button>
+                            </div>
                         {% endif %}
-                        <!-- Right side: Notification bell -->
                         {% include 'components/notification_bell.html' %}
                     </div>
                 </div>
             </header>
 
-            <!-- Search Bar -->
+            <div id="dataPreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                <div class="bg-secondary rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                    <div class="flex items-center justify-between p-6 border-b border-border">
+                        <h3 id="modalTitle" class="text-xl font-bold text-text-primary">Data Preview</h3>
+                        <div class="flex items-center gap-2">
+                            <button id="downloadBtn" class="btn bg-accent-blue hover:bg-accent-blue-hover text-white text-sm py-2 px-4 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Download
+                            </button>
+                            <button onclick="closePreviewModal()" class="bg-tertiary hover:bg-tertiary-hover text-text-primary text-sm py-2 px-4 rounded-lg">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <div id="modalContent" class="h-full overflow-auto p-6">
+                            <div class="text-center text-text-muted py-8">
+                                <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <p>Loading preview...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-border bg-tertiary text-sm text-text-muted flex justify-between items-center">
+                        <span id="dataStats">Preparing data...</span>
+                        <span id="fileInfo"></span>
+                    </div>
+                </div>
+            </div>
+
             {% include 'components/search_bar.html' %}
-            <!-- ===================== ROOMS ===================== -->
+
             {% if rooms and rooms|length > 0 %}
                 <section class="mt-4" id="roomsSection">
                     <div class="flex items-center justify-between mb-4">
@@ -46,15 +103,15 @@
                             {% endif %}
                         </h3>
                         <span class="text-xs text-text-muted room-count">
-                {{ rooms|length }} room{% if rooms|length != 1 %}s{% endif %}
+                            {{ rooms|length }} room{% if rooms|length != 1 %}s{% endif %}
                             {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
-            </span>
+                        </span>
                     </div>
 
                     <div class="grid-cards" id="roomsGrid">
                         {% for r in rooms %}
                             <a href="{{ url_for('room', room_id=r.id) }}"
-                               class="card hover:ring-2 hover:ring-accent-blue/50 transition duration-150 ease-in-out room-card bg-secondary"
+                               class="card hover:ring-2 hover:ring-accent-blue/50 transition duration-150 ease-in-out room-card"
                                data-room-name="{{ r.room_name.lower() }}"
                                data-location="{{ (r.location or '').lower() }}"
                                data-devices="{{ r.devices_count }}"
@@ -101,12 +158,12 @@
                                     {% endif %}
 
                                     <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ status_class }}">
-                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                            </svg>
-                            {{ status_label }}
-                        </span>
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                        </svg>
+                                        {{ status_label }}
+                                    </span>
                                 </div>
 
                                 <div class="mt-4 grid grid-cols-3 gap-4 border-t border-border pt-3">
@@ -157,26 +214,25 @@
                 </section>
             {% endif %}
 
-            <!-- ===================== RECENT READINGS ===================== -->
             {% if rows and rows|length > 0 %}
                 <section class="mt-8" id="readingsSection">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-gray-300">
+                        <h3 class="text-xl font-semibold text-text-secondary">
                             {% if session.role in ['admin', 'technician'] %}
                                 All Recent Sensor Readings
                             {% else %}
                                 Your Recent Readings
                             {% endif %}
                         </h3>
-                        <span class="text-xs text-gray-400 readings-count">
-                    {{ rows|length }} reading{% if rows|length != 1 %}s{% endif %}
+                        <span class="text-xs text-text-muted readings-count">
+                            {{ rows|length }} reading{% if rows|length != 1 %}s{% endif %}
                             {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
-                </span>
+                        </span>
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="min-w-full border border-gray-700 text-gray-300">
-                            <thead class="bg-gray-800">
+                        <table class="min-w-full border border-border text-text-secondary bg-secondary">
+                            <thead class="bg-tertiary">
                             <tr>
                                 <th class="p-2 text-left">Device</th>
                                 <th class="p-2 text-left">UID</th>
@@ -193,7 +249,7 @@
                             </thead>
                             <tbody id="readingsTable">
                             {% for r in rows %}
-                                <tr class="hover:bg-gray-700/40 transition reading-row"
+                                <tr class="hover:bg-tertiary/40 transition reading-row"
                                     data-device-name="{{ (r.device_name or 'N/A').lower() }}"
                                     data-device-uid="{{ (r.device_uid or '').lower() }}"
                                     data-device-type="{{ ((r.device_type if r.device_type is defined else r.type) or '').lower() }}"
@@ -205,32 +261,32 @@
                                     data-owner="{{ (r.room_owner or '').lower() }}"
                                         {% endif %}
                                 >
-                                    <td class="p-2 reading-device">{{ r.device_name or 'N/A' }}</td>
-                                    <td class="p-2 text-gray-400 reading-uid">{{ r.device_uid or '—' }}</td>
-                                    <td class="p-2 reading-type">
+                                    <td class="p-2 reading-device text-text-primary">{{ r.device_name or 'N/A' }}</td>
+                                    <td class="p-2 text-text-muted reading-uid">{{ r.device_uid or '—' }}</td>
+                                    <td class="p-2 reading-type text-text-secondary">
                                         {{ r.device_type if r.device_type is defined else (r.type or '—') }}
                                     </td>
                                     {% if session.role in ['admin', 'technician'] %}
                                         <td class="p-2 reading-room">
                                             <a href="{{ url_for('room', room_id=r.room_id) }}"
-                                               class="text-blue-400 hover:text-blue-300">
+                                               class="text-accent-blue hover:text-accent-blue-hover">
                                                 {{ r.room_name or '—' }}
                                             </a>
                                         </td>
-                                        <td class="p-2 reading-owner">{{ r.room_owner or '—' }}</td>
+                                        <td class="p-2 reading-owner text-text-secondary">{{ r.room_owner or '—' }}</td>
                                     {% endif %}
-                                    <td class="p-2 reading-temp">{{ r.temperature if r.temperature is not none else '—' }}</td>
-                                    <td class="p-2 reading-humidity">{{ r.humidity if r.humidity is not none else '—' }}</td>
+                                    <td class="p-2 reading-temp text-text-secondary">{{ r.temperature if r.temperature is not none else '—' }}</td>
+                                    <td class="p-2 reading-humidity text-text-secondary">{{ r.humidity if r.humidity is not none else '—' }}</td>
                                     <td class="p-2 reading-motion">
                                         {% if r.motion_detected == 1 %}
-                                            <span class="text-green-400 font-semibold">Yes</span>
+                                            <span class="text-accent-green font-semibold">Yes</span>
                                         {% elif r.motion_detected == 0 %}
-                                            <span class="text-red-400">No</span>
+                                            <span class="text-accent-red">No</span>
                                         {% else %}
                                             —
                                         {% endif %}
                                     </td>
-                                    <td class="p-2 whitespace-nowrap reading-time">
+                                    <td class="p-2 whitespace-nowrap reading-time text-text-muted">
                                         {% if r.recorded_at %}{{ (r.recorded_at|string).replace('T',' ') }}{% else %}
                                             —{% endif %}
                                     </td>
@@ -242,28 +298,26 @@
                 </section>
             {% endif %}
 
-            <!-- ===================== EMPTY STATE ===================== -->
             <div id="noResults" class="hidden">
                 <div class="card text-center py-12">
-                    <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor"
+                    <svg class="w-16 h-16 text-text-muted mx-auto mb-4" fill="none" stroke="currentColor"
                          viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
-                    <h3 class="text-lg font-semibold text-gray-300 mb-2">No results found</h3>
-                    <p class="text-gray-400 text-sm">
+                    <h3 class="text-lg font-semibold text-text-primary mb-2">No results found</h3>
+                    <p class="text-text-muted text-sm">
                         Try adjusting your search terms or filters to find what you're looking for.
                     </p>
                 </div>
             </div>
 
-            <!-- Original empty state (when no data at all) -->
             {% if (not rooms or rooms|length == 0) and (not rows or rows|length == 0) %}
                 <section class="mt-4">
                     <div class="grid-cards">
                         <div class="card">
-                            <h4 class="text-lg font-bold text-gray-300 mb-2">No Data Found</h4>
-                            <p class="text-sm text-muted mb-4">
+                            <h4 class="text-lg font-bold text-text-primary mb-2">No Data Found</h4>
+                            <p class="text-sm text-text-muted mb-4">
                                 {% if session.role in ['admin', 'technician'] %}
                                     No rooms or sensor readings found in the system.
                                 {% else %}
@@ -282,7 +336,268 @@
         </main>
     </div>
 
-    <!-- Enhanced Search Script with Admin/Technician Support -->
+    <script>
+        let currentPreviewData = null;
+        let currentPreviewType = null;
+        let currentPreviewFilename = null;
+
+        function previewSensorLogs() {
+            showLoadingPreview();
+            currentPreviewType = 'sensor_logs';
+            currentPreviewFilename = 'sensor_logs.csv';
+
+            const rows = document.querySelectorAll('.reading-row');
+            let csvContent = 'Device Name,Device UID,Device Type,Room,Owner,Temperature (°C),Humidity (%),Motion,Recorded At\n';
+
+            rows.forEach(function (row) {
+                const device = row.querySelector('.reading-device').textContent;
+                const uid = row.querySelector('.reading-uid').textContent;
+                const type = row.querySelector('.reading-type').textContent;
+                const room = row.querySelector('.reading-room') ? row.querySelector('.reading-room').textContent.trim() : '—';
+                const owner = row.querySelector('.reading-owner') ? row.querySelector('.reading-owner').textContent : '—';
+                const temp = row.querySelector('.reading-temp').textContent;
+                const humidity = row.querySelector('.reading-humidity').textContent;
+                const motion = row.querySelector('.reading-motion').textContent;
+                const time = row.querySelector('.reading-time').textContent;
+
+                csvContent += '"' + device + '","' + uid + '","' + type + '","' + room + '","' +
+                    owner + '","' + temp + '","' + humidity + '","' + motion + '","' + time + '"\n';
+            });
+
+            currentPreviewData = csvContent;
+            showPreviewModal('Sensor Logs Preview', formatCSVPreview(csvContent), 'CSV', rows.length);
+        }
+
+        function previewRoomsJSON() {
+            showLoadingPreview();
+            currentPreviewType = 'rooms_json';
+            currentPreviewFilename = 'rooms_data.json';
+
+            fetch('/api/rooms')
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    const jsonContent = JSON.stringify(data, null, 2);
+                    currentPreviewData = jsonContent;
+                    showPreviewModal('Rooms Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
+                })
+                .catch(function (error) {
+                    console.error('Error fetching rooms JSON:', error);
+                    showPreviewError('Failed to load rooms data. Please try again.');
+                });
+        }
+
+        function previewReadingsJSON() {
+            showLoadingPreview();
+            currentPreviewType = 'readings_json';
+            currentPreviewFilename = 'readings_data.json';
+
+            fetch('/api/readings?limit=1000')
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    const jsonContent = JSON.stringify(data, null, 2);
+                    currentPreviewData = jsonContent;
+                    showPreviewModal('Readings Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
+                })
+                .catch(function (error) {
+                    console.error('Error fetching readings JSON:', error);
+                    showPreviewError('Failed to load readings data. Please try again.');
+                });
+        }
+
+        function showPreviewModal(title, content, format, recordCount) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('dataStats').textContent = recordCount + ' records • ' + format + ' format';
+            document.getElementById('fileInfo').textContent = 'File: ' + currentPreviewFilename;
+
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.onclick = downloadCurrentPreview;
+            downloadBtn.innerHTML =
+                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                          'd="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>' +
+                '</svg>' +
+                '<span class="ml-1">Download ' + currentPreviewFilename + '</span>';
+
+            document.getElementById('dataPreviewModal').classList.remove('hidden');
+        }
+
+        function showLoadingPreview() {
+            document.getElementById('modalContent').innerHTML =
+                '<div class="text-center text-text-muted py-8">' +
+                    '<svg class="w-12 h-12 mx-auto mb-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                              'd="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>' +
+                    '</svg>' +
+                    '<p>Loading data preview...</p>' +
+                '</div>';
+            document.getElementById('dataPreviewModal').classList.remove('hidden');
+        }
+
+        function showPreviewError(message) {
+            document.getElementById('modalContent').innerHTML =
+                '<div class="text-center text-accent-red py-8">' +
+                    '<svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                              'd="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>' +
+                    '</svg>' +
+                    '<p class="text-lg font-semibold mb-2">Error</p>' +
+                    '<p>' + message + '</p>' +
+                '</div>';
+            document.getElementById('downloadBtn').style.display = 'none';
+        }
+
+        function formatCSVPreview(csvContent) {
+            const lines = csvContent.split('\n').slice(0, 101);
+            const isTruncated = lines.length > 100;
+            const displayLines = isTruncated ? lines.slice(0, 100) : lines;
+
+            let html = '' +
+                '<div class="mb-4 p-3 bg-tertiary rounded-lg">' +
+                    '<div class="flex items-center gap-2 text-sm text-text-muted">' +
+                        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                                  'd="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>' +
+                        '</svg>' +
+                        '<span>Preview showing ' + (displayLines.length - 1) + ' records' +
+                        (isTruncated ? ' (first 100)' : '') + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="bg-primary border border-border rounded-lg overflow-hidden">' +
+                    '<pre class="text-sm p-4 overflow-auto max-h-96">' + displayLines.join('\n') + '</pre>' +
+                '</div>';
+
+            if (isTruncated) {
+                html += '' +
+                    '<div class="mt-3 p-3 bg-accent-yellow/20 border border-accent-yellow/30 rounded-lg">' +
+                        '<div class="flex items-center gap-2 text-accent-yellow text-sm">' +
+                            '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                                      'd="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>' +
+                            '</svg>' +
+                            '<span>Preview truncated. Full download will include all ' + (lines.length - 1) + ' records.</span>' +
+                        '</div>' +
+                    '</div>';
+            }
+
+            return html;
+        }
+
+        function formatJSONPreview(jsonContent) {
+            const data = JSON.parse(jsonContent);
+            const previewData = data.slice(0, 10);
+            const isTruncated = data.length > 10;
+
+            let html = '' +
+                '<div class="mb-4 p-3 bg-tertiary rounded-lg">' +
+                    '<div class="flex items-center gap-2 text-sm text-text-muted">' +
+                        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                                  'd="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>' +
+                        '</svg>' +
+                        '<span>Preview showing ' + previewData.length + ' records' +
+                        (isTruncated ? ' (first 10)' : '') + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="bg-primary border border-border rounded-lg overflow-hidden">' +
+                    '<pre class="text-sm p-4 overflow-auto max-h-96">' +
+                        JSON.stringify(previewData, null, 2) +
+                    '</pre>' +
+                '</div>';
+
+            if (isTruncated) {
+                html += '' +
+                    '<div class="mt-3 p-3 bg-accent-yellow/20 border border-accent-yellow/30 rounded-lg">' +
+                        '<div class="flex items-center gap-2 text-accent-yellow text-sm">' +
+                            '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                                      'd="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>' +
+                            '</svg>' +
+                            '<span>Preview truncated. Full download will include all ' + data.length + ' records.</span>' +
+                        '</div>' +
+                    '</div>';
+            }
+
+            return html;
+        }
+
+        function downloadCurrentPreview() {
+            if (!currentPreviewData) return;
+
+            const contentType = currentPreviewType.indexOf('json') !== -1 ? 'application/json' : 'text/csv';
+            downloadFile(currentPreviewData, currentPreviewFilename, contentType);
+            closePreviewModal();
+            showDownloadFeedback(currentPreviewFilename + ' downloaded successfully', 'success');
+        }
+
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        function closePreviewModal() {
+            document.getElementById('dataPreviewModal').classList.add('hidden');
+            currentPreviewData = null;
+            currentPreviewType = null;
+            currentPreviewFilename = null;
+            document.getElementById('downloadBtn').style.display = 'flex';
+        }
+
+        function showDownloadFeedback(message, type) {
+            if (!type) type = 'info';
+            const feedback = document.createElement('div');
+            let className = 'fixed top-4 right-4 p-3 rounded-lg shadow-lg z-50 ';
+
+            if (type === 'success') {
+                className += 'bg-green-600 text-white';
+            } else if (type === 'error') {
+                className += 'bg-red-600 text-white';
+            } else {
+                className += 'bg-blue-600 text-white';
+            }
+
+            feedback.className = className;
+            feedback.innerHTML =
+                '<div class="flex items-center gap-2">' +
+                    '<span class="text-sm">' + message + '</span>' +
+                    '<button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200">' +
+                        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                                  'd="M6 18L18 6M6 6l12 12"></path>' +
+                        '</svg>' +
+                    '</button>' +
+                '</div>';
+
+            document.body.appendChild(feedback);
+
+            setTimeout(function () {
+                if (feedback.parentElement) {
+                    feedback.remove();
+                }
+            }, 5000);
+        }
+
+        document.getElementById('dataPreviewModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closePreviewModal();
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closePreviewModal();
+            }
+        });
+    </script>
+
     <script>
         console.log('Debug: Page loaded');
         console.log('User role:', '{{ session.role }}');
@@ -301,33 +616,28 @@
             let currentFilter = 'rooms';
             let currentStatusFilter = 'all';
 
-            // Check if user is admin/technician
             const isAdminOrTechnician = '{{ session.role }}' === 'admin' || '{{ session.role }}' === 'technician';
 
             function getRoomStatus(roomCard) {
-                // Extract status from the room card's status badge
                 const statusBadge = roomCard.querySelector('.inline-flex.items-center');
                 if (statusBadge) {
                     const statusText = statusBadge.textContent.trim().toLowerCase();
-                    if (statusText.includes('normal')) return 'normal';
-                    if (statusText.includes('warning')) return 'warning';
-                    if (statusText.includes('critical')) return 'critical';
+                    if (statusText.indexOf('normal') !== -1) return 'normal';
+                    if (statusText.indexOf('warning') !== -1) return 'warning';
+                    if (statusText.indexOf('critical') !== -1) return 'critical';
                 }
                 return 'no-data';
             }
 
             function updateVisibility() {
-                const searchTerm = searchInput.value.toLowerCase();
+                const searchTerm = (searchInput ? searchInput.value : '').toLowerCase();
                 let totalVisible = 0;
-                let hasVisibleRooms = false;
-                let hasVisibleReadings = false;
 
-                // Filter rooms
                 if (roomsSection) {
                     const roomCards = roomsSection.querySelectorAll('.room-card');
                     let visibleRooms = 0;
 
-                    roomCards.forEach(card => {
+                    roomCards.forEach(function (card) {
                         const roomName = card.dataset.roomName || '';
                         const location = card.dataset.location || '';
                         const devices = card.dataset.devices || '';
@@ -336,14 +646,13 @@
                         const owner = card.dataset.owner || '';
 
                         const matchesSearch = !searchTerm ||
-                            roomName.includes(searchTerm) ||
-                            location.includes(searchTerm) ||
-                            devices.includes(searchTerm) ||
-                            temp.includes(searchTerm) ||
-                            humidity.includes(searchTerm) ||
-                            (isAdminOrTechnician && owner.includes(searchTerm));
+                            roomName.indexOf(searchTerm) !== -1 ||
+                            location.indexOf(searchTerm) !== -1 ||
+                            devices.indexOf(searchTerm) !== -1 ||
+                            temp.indexOf(searchTerm) !== -1 ||
+                            humidity.indexOf(searchTerm) !== -1 ||
+                            (isAdminOrTechnician && owner.indexOf(searchTerm) !== -1);
 
-                        // Check status filter for admin/technician
                         let matchesStatus = true;
                         if (isAdminOrTechnician && currentStatusFilter !== 'all') {
                             const roomStatus = getRoomStatus(card);
@@ -359,26 +668,21 @@
                         }
                     });
 
-                    hasVisibleRooms = visibleRooms > 0;
-                    roomsSection.style.display = hasVisibleRooms ? 'block' : 'none';
-
-                    // Update room count display
                     const roomCount = document.querySelector('.room-count');
                     if (roomCount) {
-                        const totalRooms = roomCards.length;
+                        const totalRooms = roomsSection.querySelectorAll('.room-card').length;
                         const displayText = (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) ?
-                            `${visibleRooms}/${totalRooms} rooms` :
-                            `${totalRooms} room${totalRooms !== 1 ? 's' : ''}`;
+                            (visibleRooms + '/' + totalRooms + ' rooms') :
+                            (totalRooms + ' room' + (totalRooms !== 1 ? 's' : ''));
                         roomCount.textContent = displayText;
                     }
                 }
 
-                // Filter readings
                 if (readingsSection) {
                     const readingRows = readingsSection.querySelectorAll('.reading-row');
                     let visibleReadings = 0;
 
-                    readingRows.forEach(row => {
+                    readingRows.forEach(function (row) {
                         const deviceName = row.dataset.deviceName || '';
                         const deviceUid = row.dataset.deviceUid || '';
                         const deviceType = row.dataset.deviceType || '';
@@ -389,14 +693,14 @@
                         const owner = row.dataset.owner || '';
 
                         const matchesSearch = !searchTerm ||
-                            deviceName.includes(searchTerm) ||
-                            deviceUid.includes(searchTerm) ||
-                            deviceType.includes(searchTerm) ||
-                            temp.includes(searchTerm) ||
-                            humidity.includes(searchTerm) ||
-                            motion.includes(searchTerm) ||
-                            (isAdminOrTechnician && roomName.includes(searchTerm)) ||
-                            (isAdminOrTechnician && owner.includes(searchTerm));
+                            deviceName.indexOf(searchTerm) !== -1 ||
+                            deviceUid.indexOf(searchTerm) !== -1 ||
+                            deviceType.indexOf(searchTerm) !== -1 ||
+                            temp.indexOf(searchTerm) !== -1 ||
+                            humidity.indexOf(searchTerm) !== -1 ||
+                            motion.indexOf(searchTerm) !== -1 ||
+                            (isAdminOrTechnician && roomName.indexOf(searchTerm) !== -1) ||
+                            (isAdminOrTechnician && owner.indexOf(searchTerm) !== -1);
 
                         if (matchesSearch && (currentFilter === 'readings' || currentFilter === 'all')) {
                             row.style.display = '';
@@ -407,67 +711,52 @@
                         }
                     });
 
-                    hasVisibleReadings = visibleReadings > 0;
-                    readingsSection.style.display = hasVisibleReadings ? 'block' : 'none';
-
-                    // Update readings count display
                     const readingsCount = document.querySelector('.readings-count');
                     if (readingsCount) {
-                        const totalReadings = readingRows.length;
+                        const totalReadings = readingsSection.querySelectorAll('.reading-row').length;
                         const displayText = searchTerm ?
-                            `${visibleReadings}/${totalReadings} readings` :
-                            `${totalReadings} reading${totalReadings !== 1 ? 's' : ''}`;
+                            (visibleReadings + '/' + totalReadings + ' readings') :
+                            (totalReadings + ' reading' + (totalReadings !== 1 ? 's' : ''));
                         readingsCount.textContent = displayText;
                     }
                 }
 
-                // Show/hide no results message
                 if (totalVisible === 0 && (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all'))) {
                     noResults.classList.remove('hidden');
                     if (roomsSection) roomsSection.style.display = 'none';
                     if (readingsSection) readingsSection.style.display = 'none';
                 } else {
                     noResults.classList.add('hidden');
+                    if (roomsSection && roomsSection.querySelectorAll('.room-card').length > 0) {
+                        roomsSection.style.display = '';
+                    }
+                    if (readingsSection && readingsSection.querySelectorAll('.reading-row').length > 0) {
+                        readingsSection.style.display = '';
+                    }
                 }
 
-                // Update search results count
                 if (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) {
-                    searchResults.classList.remove('hidden');
-                    resultsCount.textContent = totalVisible;
-
-                    // Update status summary
-                    const statusSummary = document.getElementById('statusSummary');
-                    if (statusSummary && isAdminOrTechnician) {
-                        if (currentStatusFilter === 'all') {
-                            statusSummary.textContent = `• ${totalVisible} rooms`;
-                        } else {
-                            const statusLabels = {
-                                'normal': 'Normal',
-                                'warning': 'Warning',
-                                'critical': 'Critical',
-                                'no-data': 'No Data'
-                            };
-                            statusSummary.textContent = `• ${statusLabels[currentStatusFilter]} (${totalVisible})`;
-                        }
+                    if (searchResults) {
+                        searchResults.classList.remove('hidden');
+                        resultsCount.textContent = totalVisible;
                     }
-                } else {
+                } else if (searchResults) {
                     searchResults.classList.add('hidden');
                 }
 
-                // Show/hide clear button
-                if (searchTerm) {
-                    clearSearch.classList.remove('hidden');
-                } else {
-                    clearSearch.classList.add('hidden');
+                if (clearSearch) {
+                    if (searchTerm) {
+                        clearSearch.classList.remove('hidden');
+                    } else {
+                        clearSearch.classList.add('hidden');
+                    }
                 }
             }
 
-            // Search input event
             if (searchInput) {
                 searchInput.addEventListener('input', updateVisibility);
             }
 
-            // Clear search event
             if (clearSearch) {
                 clearSearch.addEventListener('click', function () {
                     searchInput.value = '';
@@ -478,23 +767,19 @@
                 });
             }
 
-            // Status filter event (admin/technician only)
             if (statusFilter) {
                 statusFilter.addEventListener('change', function () {
                     currentStatusFilter = this.value;
-                    console.log('Status filter changed to:', currentStatusFilter);
                     updateVisibility();
                 });
             }
 
-            // Filter button events
-            filterButtons.forEach(btn => {
+            filterButtons.forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     currentFilter = this.dataset.filter;
 
-                    // Update button states
-                    filterButtons.forEach(b => {
-                        if (b === this) {
+                    filterButtons.forEach(function (b) {
+                        if (b === btn) {
                             b.classList.remove('inactive', 'bg-gray-600', 'text-gray-300');
                             b.classList.add('active', 'bg-blue-600', 'text-white');
                         } else {
@@ -507,181 +792,10 @@
                 });
             });
 
-            // Initial visibility update
             updateVisibility();
 
             console.log('Search and filter system initialized');
             console.log('Admin/Technician mode:', isAdminOrTechnician);
         });
     </script>
-    <style>
-        /* CSS Variables for Theme Support */
-        :root {
-            /* Light Mode Colors */
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8fafc;
-            --bg-tertiary: #e2e8f0;
-            --bg-tertiary-hover: #cbd5e0;
-            --text-primary: #1a202c;
-            --text-secondary: #4a5568;
-            --text-muted: #718096;
-            --accent-blue: #3b82f6;
-            --accent-blue-hover: #2563eb;
-            --accent-green: #10b981;
-            --accent-green-hover: #059669;
-            --accent-red: #ef4444;
-            --accent-red-hover: #dc2626;
-            --accent-yellow: #f59e0b;
-            --accent-yellow-hover: #d97706;
-            --border-color: #cbd5e0;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .dark {
-            /* Dark Mode Colors */
-            --bg-primary: #0d1117;
-            --bg-secondary: #1f2937;
-            --bg-tertiary: #374151;
-            --bg-tertiary-hover: #4b5563;
-            --text-primary: #ffffff;
-            --text-secondary: #d1d5db;
-            --text-muted: #9ca3af;
-            --accent-blue: #3b82f6;
-            --accent-blue-hover: #2563eb;
-            --accent-green: #10b981;
-            --accent-green-hover: #059669;
-            --accent-red: #ef4444;
-            --accent-red-hover: #dc2626;
-            --accent-yellow: #f59e0b;
-            --accent-yellow-hover: #d97706;
-            --border-color: #374151;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Apply CSS Variables to Utility Classes */
-        .bg-primary {
-            background-color: var(--bg-primary);
-        }
-
-        .bg-secondary {
-            background-color: var(--bg-secondary);
-        }
-
-        .bg-tertiary {
-            background-color: var(--bg-tertiary);
-        }
-
-        .bg-tertiary-hover:hover {
-            background-color: var(--bg-tertiary-hover);
-        }
-
-        .text-text-primary {
-            color: var(--text-primary);
-        }
-
-        .text-text-secondary {
-            color: var(--text-secondary);
-        }
-
-        .text-text-muted {
-            color: var(--text-muted);
-        }
-
-        .border-border {
-            border-color: var(--border-color);
-        }
-
-        .bg-accent-blue {
-            background-color: var(--accent-blue);
-        }
-
-        .bg-accent-blue-hover:hover {
-            background-color: var(--accent-blue-hover);
-        }
-
-        .bg-accent-green {
-            background-color: var(--accent-green);
-        }
-
-        .bg-accent-green-hover:hover {
-            background-color: var(--accent-green-hover);
-        }
-
-        .bg-accent-red {
-            background-color: var(--accent-red);
-        }
-
-        .bg-accent-red-hover:hover {
-            background-color: var(--accent-red-hover);
-        }
-
-        .bg-accent-yellow {
-            background-color: var(--accent-yellow);
-        }
-
-        .bg-accent-yellow-hover:hover {
-            background-color: var(--accent-yellow-hover);
-        }
-
-        .text-accent-blue {
-            color: var(--accent-blue);
-        }
-
-        .text-accent-blue-hover:hover {
-            color: var(--accent-blue-hover);
-        }
-
-        .text-accent-green {
-            color: var(--accent-green);
-        }
-
-        .text-accent-green-hover:hover {
-            color: var(--accent-green-hover);
-        }
-
-        .text-accent-red {
-            color: var(--accent-red);
-        }
-
-        .text-accent-red-hover:hover {
-            color: var(--accent-red-hover);
-        }
-
-        .text-accent-yellow {
-            color: var(--accent-yellow);
-        }
-
-        .text-accent-yellow-hover:hover {
-            color: var(--accent-yellow-hover);
-        }
-
-        /* Card specific styles */
-        .card {
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            transition: all 0.2s ease;
-            box-shadow: var(--card-shadow);
-        }
-
-        .card:hover {
-            box-shadow: var(--shadow);
-            transform: translateY(-1px);
-        }
-
-        .grid-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1rem;
-        }
-
-        @media (max-width: 768px) {
-            .grid-cards {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 {% endblock %}
