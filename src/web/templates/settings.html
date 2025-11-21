@@ -121,7 +121,7 @@
 
                                 {% if session.get('profile_picture') %}
                                     <button
-                                            onclick="removeProfilePicture()"
+                                            onclick="showDeleteProfilePictureConfirm()"
                                             class="btn btn-danger w-full"
                                     >
                                         <i class="fas fa-trash mr-2"></i>Remove Photo
@@ -184,7 +184,7 @@
                                 Profile Information
                             </h3>
 
-                            <form action="{{ url_for('update_profile') }}" method="post" class="space-y-4">
+                            <form id="profileForm" action="{{ url_for('update_profile') }}" method="post" class="space-y-4">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="form-label text-text-primary">Username</label>
@@ -243,7 +243,7 @@
                                     >{{ session.get('bio', '') }}</textarea>
                                 </div>
 
-                                <button type="submit" class="btn btn-primary">
+                                <button type="button" onclick="showUpdateProfileConfirm()" class="btn btn-primary">
                                     <i class="fas fa-save mr-2"></i>Update Profile
                                 </button>
                             </form>
@@ -255,7 +255,7 @@
                                 Change Password
                             </h3>
 
-                            <form action="{{ url_for('change_password') }}" method="post" class="space-y-4">
+                            <form id="passwordForm" action="{{ url_for('change_password') }}" method="post" class="space-y-4">
                                 <div>
                                     <label class="form-label text-text-primary">Current Password</label>
                                     <input
@@ -295,7 +295,7 @@
                                     </p>
                                 </div>
 
-                                <button type="submit" class="btn btn-primary">
+                                <button type="button" onclick="showChangePasswordConfirm()" class="btn btn-primary">
                                     <i class="fas fa-key mr-2"></i>Change Password
                                 </button>
                             </form>
@@ -476,19 +476,13 @@
                                                         {% if u.role != 'admin' %}
                                                             <!-- Technician is allowed to delete non-technician, non-admin users -->
                                                             {% if u.role != 'technician' or session.get('role') == 'admin' %}
-                                                                <form
-                                                                        action="{{ url_for('delete_user', user_id=u.id) }}"
-                                                                        method="post"
-                                                                        class="inline"
+                                                                <button
+                                                                        class="btn btn-danger btn-sm flex items-center gap-1"
+                                                                        onclick="showDeleteUserConfirm('{{ u.username }}', {{ u.id }})"
+                                                                        title="Delete User"
                                                                 >
-                                                                    <button
-                                                                            class="btn btn-danger btn-sm flex items-center gap-1"
-                                                                            onclick="return confirm('Are you sure you want to delete user {{ u.username }}? This action cannot be undone.')"
-                                                                            title="Delete User"
-                                                                    >
-                                                                        <i class="fas fa-trash"></i>
-                                                                    </button>
-                                                                </form>
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
                                                             {% else %}
                                                                 <span class="text-text-muted text-sm">protected</span>
                                                             {% endif %}
@@ -506,111 +500,142 @@
                         </div>
                     </div>
                 </div>
+            {% endif %}
+        </main>
+    </div>
 
-<!-- User Profile Modal -->
-<div id="userProfileModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4">
-    <div class="bg-secondary rounded-xl shadow-xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] overflow-hidden border border-border mx-2 sm:mx-0">
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between p-4 sm:p-6 border-b border-border">
-            <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
-                <i class="fas fa-user-circle text-accent-blue"></i>
-                <span class="text-sm sm:text-base">User Profile</span>
-            </h3>
-            <button id="closeUserProfileModal" class="text-text-muted hover:text-text-primary text-xl transition-colors">
-                &times;
-            </button>
-        </div>
+    <!-- User Profile Modal -->
+    <div id="userProfileModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4">
+        <div class="bg-secondary rounded-xl shadow-xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] overflow-hidden border border-border mx-2 sm:mx-0">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-4 sm:p-6 border-b border-border">
+                <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
+                    <i class="fas fa-user-circle text-accent-blue"></i>
+                    <span class="text-sm sm:text-base">User Profile</span>
+                </h3>
+                <button id="closeUserProfileModal" class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                    &times;
+                </button>
+            </div>
 
-        <!-- Modal Content -->
-        <div class="p-3 sm:p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-140px)] sm:max-h-[calc(85vh-140px)]">
-            <div id="userProfileContent">
-                <!-- Loading will be inserted here temporarily -->
+            <!-- Modal Content -->
+            <div class="p-3 sm:p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-140px)] sm:max-h-[calc(85vh-140px)]">
+                <div id="userProfileContent">
+                    <!-- Loading will be inserted here temporarily -->
 
-                <!-- Main Content (initially hidden) -->
-                <div id="modalMainContent" class="space-y-4 sm:space-y-6">
-                    <!-- Profile Header -->
-                    <div class="text-center">
-                        <!-- Profile Image/Icon -->
-                        <div class="relative mx-auto mb-3 sm:mb-4">
-                            <img id="modalProfileImage"
-                                 src=""
-                                 alt="Profile Picture"
-                                 class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full object-cover border-4 border-border mx-auto hidden">
-                            <div id="modalProfileIcon"
-                                 class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center border-4 border-border mx-auto text-xl sm:text-2xl hidden">
-                                <i class="fas fa-user"></i>
+                    <!-- Main Content (initially hidden) -->
+                    <div id="modalMainContent" class="space-y-4 sm:space-y-6">
+                        <!-- Profile Header -->
+                        <div class="text-center">
+                            <!-- Profile Image/Icon -->
+                            <div class="relative mx-auto mb-3 sm:mb-4">
+                                <img id="modalProfileImage"
+                                     src=""
+                                     alt="Profile Picture"
+                                     class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full object-cover border-4 border-border mx-auto hidden">
+                                <div id="modalProfileIcon"
+                                     class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center border-4 border-border mx-auto text-xl sm:text-2xl hidden">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </div>
+
+                            <!-- Username and Role -->
+                            <h2 id="modalUsername" class="text-lg sm:text-xl font-bold text-text-primary mb-1 truncate px-2"></h2>
+                            <div id="modalUserRole" class="inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium mb-2">
+                                <i class="fas fa-user text-xs"></i>
+                                <span class="truncate">User</span>
+                            </div>
+                            <p id="modalUserEmail" class="text-text-muted text-xs sm:text-sm truncate px-2"></p>
+                        </div>
+
+                        <!-- Personal Information -->
+                        <div class="bg-tertiary rounded-lg p-3 sm:p-4">
+                            <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Personal Information</h4>
+                            <div class="space-y-2 text-xs sm:text-sm">
+                                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                                    <span class="text-text-muted font-medium">Full Name:</span>
+                                    <span id="modalFullName" class="text-text-primary text-right truncate">—</span>
+                                </div>
+                                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                                    <span class="text-text-muted font-medium">Member Since:</span>
+                                    <span id="modalMemberSince" class="text-text-primary text-right">—</span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Username and Role -->
-                        <h2 id="modalUsername" class="text-lg sm:text-xl font-bold text-text-primary mb-1 truncate px-2"></h2>
-                        <div id="modalUserRole" class="inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium mb-2">
-                            <i class="fas fa-user text-xs"></i>
-                            <span class="truncate">User</span>
-                        </div>
-                        <p id="modalUserEmail" class="text-text-muted text-xs sm:text-sm truncate px-2"></p>
-                    </div>
-
-                    <!-- Personal Information -->
-                    <div class="bg-tertiary rounded-lg p-3 sm:p-4">
-                        <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Personal Information</h4>
-                        <div class="space-y-2 text-xs sm:text-sm">
-                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                                <span class="text-text-muted font-medium">Full Name:</span>
-                                <span id="modalFullName" class="text-text-primary text-right truncate">—</span>
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                                <span class="text-text-muted font-medium">Member Since:</span>
-                                <span id="modalMemberSince" class="text-text-primary text-right">—</span>
+                        <!-- Statistics -->
+                        <div class="bg-tertiary rounded-lg p-3 sm:p-4">
+                            <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Statistics</h4>
+                            <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                                <div class="bg-secondary rounded-lg p-2 sm:p-3 text-center">
+                                    <div id="modalOwnedRooms" class="text-lg sm:text-xl md:text-2xl font-bold text-accent-blue">0</div>
+                                    <div class="text-text-muted text-xs">Owned Rooms</div>
+                                </div>
+                                <div class="bg-secondary rounded-lg p-2 sm:p-3 text-center">
+                                    <div id="modalActiveRequests" class="text-lg sm:text-xl md:text-2xl font-bold text-accent-blue">0</div>
+                                    <div class="text-text-muted text-xs">Active Requests</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Statistics -->
-                    <div class="bg-tertiary rounded-lg p-3 sm:p-4">
-                        <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Statistics</h4>
-                        <div class="grid grid-cols-2 gap-3 sm:gap-4">
-                            <div class="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                                <div id="modalOwnedRooms" class="text-lg sm:text-xl md:text-2xl font-bold text-accent-blue">0</div>
-                                <div class="text-text-muted text-xs">Owned Rooms</div>
-                            </div>
-                            <div class="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                                <div id="modalActiveRequests" class="text-lg sm:text-xl md:text-2xl font-bold text-accent-blue">0</div>
-                                <div class="text-text-muted text-xs">Active Requests</div>
-                            </div>
+                        <!-- Bio -->
+                        <div class="bg-tertiary rounded-lg p-3 sm:p-4">
+                            <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2">Bio</h4>
+                            <p id="modalUserBio" class="text-text-primary text-xs sm:text-sm bg-secondary rounded-lg p-2 sm:p-3 min-h-[50px] sm:min-h-[60px] max-h-[100px] overflow-y-auto">
+                                No bio provided
+                            </p>
                         </div>
-                    </div>
 
-                    <!-- Bio -->
-                    <div class="bg-tertiary rounded-lg p-3 sm:p-4">
-                        <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2">Bio</h4>
-                        <p id="modalUserBio" class="text-text-primary text-xs sm:text-sm bg-secondary rounded-lg p-2 sm:p-3 min-h-[50px] sm:min-h-[60px] max-h-[100px] overflow-y-auto">
-                            No bio provided
-                        </p>
-                    </div>
-
-                    <!-- Recent Activity -->
-                    <div class="bg-tertiary rounded-lg p-3 sm:p-4">
-                        <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Recent Activity</h4>
-                        <div id="modalRecentActivity" class="space-y-2 text-xs sm:text-sm">
-                            <div class="text-text-muted italic text-center py-2">No recent activity</div>
+                        <!-- Recent Activity -->
+                        <div class="bg-tertiary rounded-lg p-3 sm:p-4">
+                            <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Recent Activity</h4>
+                            <div id="modalRecentActivity" class="space-y-2 text-xs sm:text-sm">
+                                <div class="text-text-muted italic text-center py-2">No recent activity</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="flex justify-end p-3 sm:p-4 md:p-6 border-t border-border">
-{#            <button id="closeUserProfileBtn" class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center">#}
-{#                <i class="fas fa-times"></i>#}
-{#                Close#}
-{#            </button>#}
+            <div class="flex justify-end p-3 sm:p-4 md:p-6 border-t border-border">
+                <!-- Close button removed as per original -->
+            </div>
         </div>
     </div>
-</div>
-            {% endif %}
-        </main>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4">
+        <div class="bg-secondary rounded-xl shadow-xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] overflow-hidden border border-border mx-2 sm:mx-0">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-4 sm:p-6 border-b border-border">
+                <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
+                    <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                    <span class="text-sm sm:text-base" id="confirmModalTitle">Confirm Action</span>
+                </h3>
+                <button id="closeConfirmModal" class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                    &times;
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-4 sm:p-6 overflow-y-auto">
+                <p class="text-text-primary mb-4 text-sm sm:text-base" id="confirmModalMessage">
+                    Are you sure you want to perform this action?
+                </p>
+                <div class="flex flex-col sm:flex-row gap-3 justify-end">
+                    <button id="cancelConfirm"
+                            class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary px-4 py-2 text-sm sm:text-base order-2 sm:order-1 w-full sm:w-auto">
+                        Cancel
+                    </button>
+                    <button id="proceedConfirm"
+                            class="btn px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto"
+                            data-action=""
+                            data-form-id="">
+                        Proceed
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <style>
@@ -642,9 +667,220 @@
             background-opacity: 0.2;
             border-color: var(--accent-blue);
         }
+
+        /* Confirmation Modal Styles */
+        #confirmModal {
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        #confirmModal > div {
+            animation: modalSlideIn 0.3s ease-out;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
     </style>
 
     <script>
+        // Confirmation Modal State
+        window.confirmState = {
+            pendingAction: null,
+            isModalOpen: false
+        };
+
+        // Show confirmation modal for deleting user
+        function showDeleteUserConfirm(username, userId) {
+            window.confirmState.pendingAction = 'delete-user';
+            window.confirmState.userId = userId;
+
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('confirmModalTitle');
+            const message = document.getElementById('confirmModalMessage');
+            const proceedBtn = document.getElementById('proceedConfirm');
+
+            title.textContent = 'Delete User';
+            message.textContent = `Are you sure you want to delete user "${username}"? This action cannot be undone. All user data including rooms and preferences will be permanently removed.`;
+
+            proceedBtn.textContent = 'Delete User';
+            proceedBtn.className = 'btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
+            proceedBtn.dataset.action = 'delete-user';
+            proceedBtn.dataset.userId = userId;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Show confirmation modal for updating profile
+        function showUpdateProfileConfirm() {
+            window.confirmState.pendingAction = 'update-profile';
+
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('confirmModalTitle');
+            const message = document.getElementById('confirmModalMessage');
+            const proceedBtn = document.getElementById('proceedConfirm');
+
+            title.textContent = 'Update Profile';
+            message.textContent = 'Are you sure you want to update your profile information? These changes will be applied immediately.';
+
+            proceedBtn.textContent = 'Update Profile';
+            proceedBtn.className = 'btn bg-accent-blue hover:bg-accent-blue-hover text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
+            proceedBtn.dataset.action = 'update-profile';
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Show confirmation modal for changing password
+        function showChangePasswordConfirm() {
+            window.confirmState.pendingAction = 'change-password';
+
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('confirmModalTitle');
+            const message = document.getElementById('confirmModalMessage');
+            const proceedBtn = document.getElementById('proceedConfirm');
+
+            title.textContent = 'Change Password';
+            message.textContent = 'Are you sure you want to change your password? You will need to use your new password for all future logins.';
+
+            proceedBtn.textContent = 'Change Password';
+            proceedBtn.className = 'btn bg-accent-blue hover:bg-accent-blue-hover text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
+            proceedBtn.dataset.action = 'change-password';
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Show confirmation modal for deleting profile picture
+        function showDeleteProfilePictureConfirm() {
+            window.confirmState.pendingAction = 'delete-profile-picture';
+
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('confirmModalTitle');
+            const message = document.getElementById('confirmModalMessage');
+            const proceedBtn = document.getElementById('proceedConfirm');
+
+            title.textContent = 'Remove Profile Picture';
+            message.textContent = 'Are you sure you want to remove your profile picture? This action cannot be undone.';
+
+            proceedBtn.textContent = 'Remove Picture';
+            proceedBtn.className = 'btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
+            proceedBtn.dataset.action = 'delete-profile-picture';
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Hide confirmation modal
+        function hideConfirmModal() {
+            const modal = document.getElementById('confirmModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            document.body.style.overflow = '';
+            window.confirmState.pendingAction = null;
+            window.confirmState.userId = null;
+        }
+
+        // Perform the confirmed action
+        function performConfirmedAction() {
+            const action = document.getElementById('proceedConfirm').dataset.action;
+            const userId = document.getElementById('proceedConfirm').dataset.userId;
+
+            switch (action) {
+                case 'delete-user':
+                    deleteUser(userId);
+                    break;
+                case 'update-profile':
+                    document.getElementById('profileForm').submit();
+                    break;
+                case 'change-password':
+                    document.getElementById('passwordForm').submit();
+                    break;
+                case 'delete-profile-picture':
+                    removeProfilePicture();
+                    break;
+            }
+
+            hideConfirmModal();
+        }
+
+        // Delete user function
+        function deleteUser(userId) {
+            fetch(`/admin/users/${userId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    showToast('User deleted successfully', 'success');
+                    // Reload the page to reflect changes
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    throw new Error('Failed to delete user');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting user:', error);
+                showToast('Failed to delete user', 'error');
+            });
+        }
+
+        // Initialize confirmation modal
+        function initConfirmModal() {
+            const closeModal = document.getElementById('closeConfirmModal');
+            const cancelBtn = document.getElementById('cancelConfirm');
+            const proceedBtn = document.getElementById('proceedConfirm');
+
+            if (closeModal) closeModal.addEventListener('click', hideConfirmModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', hideConfirmModal);
+            if (proceedBtn) proceedBtn.addEventListener('click', performConfirmedAction);
+
+            // ESC key support
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    const confirmModal = document.getElementById('confirmModal');
+                    if (confirmModal && !confirmModal.classList.contains('hidden')) {
+                        hideConfirmModal();
+                    }
+                }
+            });
+
+            // Click outside to close
+            const confirmModal = document.getElementById('confirmModal');
+            if (confirmModal) {
+                confirmModal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        hideConfirmModal();
+                    }
+                });
+            }
+        }
+
+        // Rest of your existing JavaScript functions remain the same...
         // Debug function to check if modal elements exist
         function debugModalElements() {
             const elements = [
@@ -1122,30 +1358,28 @@
         }
 
         function removeProfilePicture() {
-            if (confirm('Are you sure you want to remove your profile picture?')) {
-                fetch('/api/remove-profile-picture', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
+            fetch('/api/remove-profile-picture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Profile picture removed successfully!', 'success');
+                        document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showToast('Failed to remove profile picture.', 'error');
                     }
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            showToast('Profile picture removed successfully!', 'success');
-                            document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1000);
-                        } else {
-                            showToast('Failed to remove profile picture.', 'error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error removing profile picture:', error);
-                        showToast('Error removing profile picture.', 'error');
-                    });
-            }
+                .catch(error => {
+                    console.error('Error removing profile picture:', error);
+                    showToast('Error removing profile picture.', 'error');
+                });
         }
 
         // Initialize on page load
@@ -1159,6 +1393,9 @@
 
             // Initialize user profile modal
             initUserProfileModal();
+
+            // Initialize confirmation modal
+            initConfirmModal();
 
             // Set initial tab based on user role
             const userRole = '{{ session.get("role", "user") }}';
