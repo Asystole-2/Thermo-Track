@@ -45,6 +45,10 @@
                                 class="btn bg-accent-blue hover:bg-accent-blue-hover text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg text-sm">
                             Mark All as Read
                         </button>
+                        <button onclick="window.deleteAllRead()"
+                                class="btn bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg text-sm">
+                            Delete All Read
+                        </button>
                         <button onclick="loadNotifications()"
                                 class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg text-sm flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,19 +101,21 @@
         <!-- Request Details Modal -->
         <div id="requestDetailsModal"
              class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4">
-            <div class="bg-secondary rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden border border-border mx-2 sm:mx-0">
+            <div class="bg-secondary rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden border border-border mx-2 sm:mx-0">
+                <!-- Modal Header -->
                 <div class="flex items-center justify-between p-4 sm:p-6 border-b border-border">
                     <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
                         <i class="fas fa-info-circle text-accent-blue"></i>
-                        Request Details
+                        <span class="text-sm sm:text-base">Request Details</span>
                     </h3>
                     <button id="closeRequestDetailsModal"
-                            class="text-text-muted hover:text-text-primary text-2xl sm:text-xl p-1">
+                            class="text-text-muted hover:text-text-primary text-xl transition-colors">
                         &times;
                     </button>
                 </div>
 
-                <div class="p-4 sm:p-6 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                <!-- Modal Content -->
+                <div class="p-4 sm:p-6 overflow-y-auto" style="max-height: calc(85vh - 140px);">
                     <div id="requestDetailsContent">
                         <!-- Dynamic content will be loaded here -->
                         <div class="text-center py-8">
@@ -119,273 +125,563 @@
                     </div>
                 </div>
 
+                <!-- Modal Footer -->
                 <div class="flex flex-col sm:flex-row justify-end gap-2 p-4 sm:p-6 border-t border-border">
                     <button id="closeRequestDetailsBtn"
-                            class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary flex items-center justify-center gap-2 w-full sm:w-auto order-2 sm:order-1">
+                            class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary flex items-center justify-center gap-2 w-full sm:w-auto order-2 sm:order-1 text-sm sm:text-base">
                         <i class="fas fa-times"></i>
                         Close
                     </button>
                 </div>
             </div>
         </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteConfirmModal"
+             class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4">
+            <div class="bg-secondary rounded-xl shadow-xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] overflow-hidden border border-border mx-2 sm:mx-0">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-4 sm:p-6 border-b border-border">
+                    <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
+                        <i class="fas fa-exclamation-triangle text-red-500"></i>
+                        <span class="text-sm sm:text-base">Confirm Deletion</span>
+                    </h3>
+                    <button onclick="window.hideDeleteConfirm()"
+                            class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                        &times;
+                    </button>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="p-4 sm:p-6 overflow-y-auto">
+                    <p class="text-text-primary mb-4 text-sm sm:text-base" id="deleteMessage">
+                        Are you sure you want to delete this notification?
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3 justify-end">
+                        <button onclick="window.hideDeleteConfirm()"
+                                class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary px-4 py-2 text-sm sm:text-base order-2 sm:order-1 w-full sm:w-auto">
+                            Cancel
+                        </button>
+                        <button onclick="window.confirmDeleteAction()"
+                                class="btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script>
-// Load notifications on page load and set up auto-refresh
-document.addEventListener('DOMContentLoaded', function () {
-    // Initial load
-    loadNotifications();
-    initializeModalListeners();
-
-    // Set up visibility change listener for auto-refresh when tab becomes active
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            // Page became visible, refresh notifications
-            console.log('Page became visible - refreshing notifications...');
-            loadNotifications();
-        }
-    });
-
-    // Auto-refresh every 60 seconds when page is active
+<script>
+    // Track if listeners are already set up
+    let listenersInitialized = false;
     let refreshInterval;
+    let isRefreshing = false;
+    const ongoingRequests = new Set();
 
-    function startAutoRefresh() {
-        refreshInterval = setInterval(() => {
-            if (!document.hidden) {
-                console.log('Auto-refreshing notifications...');
-                loadNotifications();
-            }
-        }, 60000); // 60 seconds
-    }
-
-    function stopAutoRefresh() {
-        if (refreshInterval) {
-            clearInterval(refreshInterval);
+    // Load notifications on page load and set up auto-refresh
+    document.addEventListener('DOMContentLoaded', function () {
+        if (listenersInitialized) {
+            console.log('Listeners already initialized, skipping...');
+            return;
         }
-    }
 
-    // Start auto-refresh when page is visible
-    if (!document.hidden) {
-        startAutoRefresh();
-    }
+        listenersInitialized = true;
+        console.log('Initializing notification listeners...');
 
-    // Manage auto-refresh based on page visibility
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            stopAutoRefresh();
-        } else {
-            startAutoRefresh();
-            // Also do an immediate refresh when coming back to the page
-            loadNotifications();
-        }
-    });
-});
+        // Initial load
+        loadNotifications();
+        initializeModalListeners();
 
-function loadNotifications() {
-    const tableBody = document.getElementById('notifications-table-body');
-    const emptyState = document.getElementById('empty-state');
-    const loadingState = document.getElementById('loading-state');
+        // Add ESC key support for delete modal
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                const deleteModal = document.getElementById('deleteConfirmModal');
+                if (deleteModal && !deleteModal.classList.contains('hidden')) {
+                    window.hideDeleteConfirm();
+                }
 
-    tableBody.innerHTML = '';
-    emptyState.classList.add('hidden');
-    loadingState.classList.remove('hidden');
-
-    // Add cache busting to prevent browser caching
-    const timestamp = new Date().getTime();
-
-    fetch(`/api/user/notifications?t=${timestamp}`)
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to load notifications');
-            return response.json();
-        })
-        .then(notifications => {
-            loadingState.classList.add('hidden');
-
-            if (notifications.length === 0) {
-                emptyState.classList.remove('hidden');
-                return;
+                const requestModal = document.getElementById('requestDetailsModal');
+                if (requestModal && !requestModal.classList.contains('hidden')) {
+                    hideRequestDetailsModal();
+                }
             }
-
-            notifications.forEach(notification => {
-                const row = document.createElement('tr');
-                row.className = `border-b border-gray-700 ${!notification.is_read ? 'bg-blue-900/20' : ''}`;
-
-                row.innerHTML = `
-                    <td class="px-4 py-3">
-                        <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full ${getNotificationColor(notification.type)}"></span>
-                            <span class="capitalize">${notification.type}</span>
-                        </div>
-                    </td>
-                    <td class="px-4 py-3 font-medium text-white">${notification.room_name || '—'}</td>
-                    <td class="px-4 py-3">
-                        <div>
-                            <div class="font-medium text-white">${notification.title}</div>
-                            <div class="text-gray-500 text-xs">${notification.message}</div>
-                            ${notification.estimated_completion ? `
-                                <div class="flex items-center gap-1 text-yellow-400 text-xs mt-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Est: ${new Date(notification.estimated_completion).toLocaleString()}
-                                </div>
-                            ` : ''}
-                        </div>
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(notification.request_status)}">
-                            ${notification.request_status ? notification.request_status.replace('_', ' ') : 'notification'}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-gray-400">
-                        ${new Date(notification.created_at).toLocaleDateString()}
-                    </td>
-                    <td class="px-4 py-3">
-                        <div class="flex gap-2">
-                            ${!notification.is_read ? `
-                                <button onclick="markAsRead('${notification.id}')"
-                                        class="text-blue-400 hover:text-blue-300 text-sm">
-                                    Mark Read
-                                </button>
-                            ` : ''}
-                            ${notification.request_id ? `
-                                <button onclick="viewRequestDetails('${notification.request_id}')"
-                                        class="text-green-400 hover:text-green-300 text-sm">
-                                    Details
-                                </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                `;
-
-                tableBody.appendChild(row);
-            });
-        })
-        .catch(error => {
-            console.error('Error loading notifications:', error);
-            loadingState.classList.add('hidden');
-            emptyState.innerHTML = `
-                <svg class="w-16 h-16 mx-auto text-red-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                </svg>
-                <h3 class="text-lg font-semibold text-red-400 mb-2">Failed to load notifications</h3>
-                <p class="text-gray-500">Please try refreshing the page.</p>
-            `;
-            emptyState.classList.remove('hidden');
         });
-}
-        function getNotificationColor(type) {
-            const colors = {
-                'success': 'bg-green-500',
-                'warning': 'bg-yellow-500',
-                'error': 'bg-red-500',
-                'info': 'bg-blue-500'
-            };
-            return colors[type] || 'bg-gray-500';
+
+        // Add click outside to close for delete modal
+        const deleteModal = document.getElementById('deleteConfirmModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    window.hideDeleteConfirm();
+                }
+            });
         }
 
-        function getStatusBadgeClass(status) {
-            const classes = {
-                'pending': 'bg-yellow-500/20 text-yellow-400',
-                'viewed': 'bg-blue-500/20 text-blue-400',
-                'approved': 'bg-green-500/20 text-green-400',
-                'denied': 'bg-red-500/20 text-red-400',
-                'completed': 'bg-gray-500/20 text-gray-400'
-            };
-            return classes[status] || 'bg-gray-500/20 text-gray-400';
+        // Set up visibility change listener for auto-refresh when tab becomes active
+        let visibilityTimeout;
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) {
+                clearTimeout(visibilityTimeout);
+                visibilityTimeout = setTimeout(() => {
+                    console.log('Page became visible - refreshing notifications...');
+                    loadNotifications();
+                }, 1000); // 1 second delay
+            }
+        });
+
+        function startAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+
+            refreshInterval = setInterval(() => {
+                if (!document.hidden && !isRefreshing) {
+                    isRefreshing = true;
+                    console.log('Auto-refreshing notifications...');
+                    loadNotifications();
+                    // Reset refreshing flag after a short delay
+                    setTimeout(() => {
+                        isRefreshing = false;
+                    }, 1000);
+                }
+            }, 60000); // 60 seconds
         }
 
-        function markAsRead(notificationId) {
-            fetch(`/api/user/notifications/${notificationId}/read`, {
-                method: 'POST'
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+            isRefreshing = false;
+        }
+
+        // Start auto-refresh when page is visible
+        if (!document.hidden) {
+            startAutoRefresh();
+        }
+
+        // Manage auto-refresh based on page visibility
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else {
+                startAutoRefresh();
+                // Also do an immediate refresh when coming back to the page
+                setTimeout(() => {
+                    loadNotifications();
+                }, 500);
+            }
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            stopAutoRefresh();
+            listenersInitialized = false;
+        });
+    });
+
+    function loadNotifications() {
+        const tableBody = document.getElementById('notifications-table-body');
+        const emptyState = document.getElementById('empty-state');
+        const loadingState = document.getElementById('loading-state');
+
+        // Clear existing content and show loading
+        tableBody.innerHTML = '';
+        emptyState.classList.add('hidden');
+        loadingState.classList.remove('hidden');
+
+        // Add cache busting to prevent browser caching
+        const timestamp = new Date().getTime();
+
+        fetch(`/api/user/notifications?t=${timestamp}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load notifications');
+                return response.json();
             })
-                .then(response => {
-                    if (response.ok) {
-                        loadNotifications();
-                        // Update the notification bell count
-                        if (window.notificationSystem) {
-                            window.notificationSystem.loadNotificationCount();
-                        }
-                    }
-                })
-                .catch(error => console.error('Error marking as read:', error));
-        }
+            .then(notifications => {
+                loadingState.classList.add('hidden');
 
-        function markAllAsRead() {
-            fetch('/api/user/notifications/mark-all-read', {
-                method: 'POST'
+                // Clear the table body again to ensure no duplicates
+                tableBody.innerHTML = '';
+
+                if (notifications.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                // Use a Set to track unique notification IDs to prevent duplicates
+                const seenIds = new Set();
+                const uniqueNotifications = notifications.filter(notification => {
+                    if (seenIds.has(notification.id)) {
+                        console.warn('Duplicate notification found:', notification.id);
+                        return false;
+                    }
+                    seenIds.add(notification.id);
+                    return true;
+                });
+
+                console.log(`Loaded ${uniqueNotifications.length} unique notifications`);
+
+                uniqueNotifications.forEach(notification => {
+                    const row = document.createElement('tr');
+                    row.className = `border-b border-gray-700 ${!notification.is_read ? 'bg-blue-900/20' : ''}`;
+
+                    row.innerHTML = `
+                <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full ${getNotificationColor(notification.type)}"></span>
+                        <span class="capitalize">${notification.type}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 font-medium text-white">${notification.room_name || '—'}</td>
+                <td class="px-4 py-3">
+                    <div>
+                        <div class="font-medium text-white">${notification.title}</div>
+                        <div class="text-gray-500 text-xs">${notification.message}</div>
+                        ${notification.estimated_completion ? `
+                            <div class="flex items-center gap-1 text-yellow-400 text-xs mt-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Est: ${new Date(notification.estimated_completion).toLocaleString()}
+                            </div>
+                        ` : ''}
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(notification.request_status)}">
+                        ${notification.request_status ? notification.request_status.replace('_', ' ') : 'notification'}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-gray-400">
+                    ${new Date(notification.created_at).toLocaleDateString()}
+                </td>
+                <td class="px-4 py-3">
+                    <div class="flex gap-2">
+                        ${!notification.is_read ? `
+                            <button onclick="markAsRead('${notification.id}')"
+                                    class="text-blue-400 hover:text-blue-300 text-sm">
+                                Mark Read
+                            </button>
+                        ` : ''}
+                        ${notification.request_id ? `
+                            <button onclick="viewRequestDetails('${notification.request_id}')"
+                                    class="text-green-400 hover:text-green-300 text-sm">
+                                Details
+                            </button>
+                        ` : ''}
+                        <button onclick="window.showDeleteConfirm('${notification.id}', 'single')"
+                                class="text-red-400 hover:text-red-300 text-sm">
+                            Delete
+                        </button>
+                    </div>
+                </td>
+            `;
+
+                    tableBody.appendChild(row);
+                });
             })
-                .then(response => {
-                    if (response.ok) {
-                        loadNotifications();
-                        // Update the notification bell count
-                        if (window.notificationSystem) {
-                            window.notificationSystem.loadNotificationCount();
-                        }
+            .catch(error => {
+                console.error('Error loading notifications:', error);
+                loadingState.classList.add('hidden');
+                emptyState.innerHTML = `
+            <svg class="w-16 h-16 mx-auto text-red-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+            <h3 class="text-lg font-semibold text-red-400 mb-2">Failed to load notifications</h3>
+            <p class="text-gray-500">Please try refreshing the page.</p>
+        `;
+                emptyState.classList.remove('hidden');
+            });
+    }
+
+    function getNotificationColor(type) {
+        const colors = {
+            'success': 'bg-green-500',
+            'warning': 'bg-yellow-500',
+            'error': 'bg-red-500',
+            'info': 'bg-blue-500'
+        };
+        return colors[type] || 'bg-gray-500';
+    }
+
+    function getStatusBadgeClass(status) {
+        const classes = {
+            'pending': 'bg-yellow-500/20 text-yellow-400',
+            'viewed': 'bg-blue-500/20 text-blue-400',
+            'approved': 'bg-green-500/20 text-green-400',
+            'denied': 'bg-red-500/20 text-red-400',
+            'completed': 'bg-gray-500/20 text-gray-400'
+        };
+        return classes[status] || 'bg-gray-500/20 text-gray-400';
+    }
+
+    function markAsRead(notificationId) {
+        fetch(`/api/user/notifications/${notificationId}/read`, {
+            method: 'POST'
+        })
+            .then(response => {
+                if (response.ok) {
+                    loadNotifications();
+                    // Update the notification bell count
+                    if (window.notificationSystem) {
+                        window.notificationSystem.loadNotificationCount();
                     }
-                })
-                .catch(error => console.error('Error marking all as read:', error));
+                }
+            })
+            .catch(error => console.error('Error marking as read:', error));
+    }
+
+    function markAllAsRead() {
+        fetch('/api/user/notifications/mark-all-read', {
+            method: 'POST'
+        })
+            .then(response => {
+                if (response.ok) {
+                    loadNotifications();
+                    // Update the notification bell count
+                    if (window.notificationSystem) {
+                        window.notificationSystem.loadNotificationCount();
+                    }
+                }
+            })
+            .catch(error => console.error('Error marking all as read:', error));
+    }
+
+    // Delete functionality - with duplicate prevention
+    window.deleteState = {
+        pendingDeleteId: null,
+        deleteType: 'single',
+        isModalOpen: false
+    };
+
+    // Show delete confirmation modal
+    window.showDeleteConfirm = function (id, type = 'single') {
+        // Prevent duplicate modal openings
+        if (window.deleteState.isModalOpen) {
+            console.log('Delete modal already open, ignoring duplicate call');
+            return;
         }
 
-        // Request Details Modal Functions
-        function showRequestDetailsModal() {
-            const modal = document.getElementById('requestDetailsModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        console.log('showDeleteConfirm called with:', {id, type});
+
+        window.deleteState.pendingDeleteId = id;
+        window.deleteState.deleteType = type;
+        window.deleteState.isModalOpen = true;
+
+        const modal = document.getElementById('deleteConfirmModal');
+        const message = document.getElementById('deleteMessage');
+
+        if (!modal) {
+            console.error('Delete modal not found!');
+            window.deleteState.isModalOpen = false;
+            return;
         }
 
-        function hideRequestDetailsModal() {
-            const modal = document.getElementById('requestDetailsModal');
+        if (type === 'all_read') {
+            message.textContent = 'Are you sure you want to delete all read notifications? This action cannot be undone.';
+        } else {
+            message.textContent = 'Are you sure you want to delete this notification? This action cannot be undone.';
+        }
+
+        // Show modal
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+
+        console.log('Modal shown successfully');
+    };
+
+    // Hide delete confirmation modal
+    window.hideDeleteConfirm = function () {
+        console.log('hideDeleteConfirm called');
+
+        const modal = document.getElementById('deleteConfirmModal');
+        if (modal) {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-            document.body.style.overflow = ''; // Restore scrolling
+        }
+        document.body.style.overflow = '';
+        window.deleteState.pendingDeleteId = null;
+        window.deleteState.deleteType = 'single';
+        window.deleteState.isModalOpen = false;
+    };
+
+    // Confirm and perform the delete action
+    window.confirmDeleteAction = function () {
+        console.log('confirmDeleteAction called', window.deleteState);
+
+        if (window.deleteState.deleteType === 'all_read') {
+            window.deleteAllReadNotifications();
+        } else if (window.deleteState.pendingDeleteId) {
+            window.deleteNotification(window.deleteState.pendingDeleteId);
         }
 
-        function viewRequestDetails(requestId) {
-            console.log('Loading details for request:', requestId);
-            showRequestDetailsModal();
+        window.hideDeleteConfirm();
+    };
 
-            // Show loading state
-            const content = document.getElementById('requestDetailsContent');
-            content.innerHTML = `
+    // Delete single notification
+    window.deleteNotification = function (notificationId) {
+        console.log('Deleting notification:', notificationId);
+
+        fetch(`/api/user/notifications/${notificationId}`, {
+            method: 'DELETE'
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Notification deleted successfully');
+                    loadNotifications();
+                    // Update the notification bell count
+                    if (window.notificationSystem) {
+                        window.notificationSystem.loadNotificationCount();
+                    }
+                    window.showToast('Notification deleted successfully', 'success');
+                } else {
+                    throw new Error('Failed to delete notification');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting notification:', error);
+                window.showToast('Failed to delete notification', 'error');
+            });
+    };
+
+    // Delete all read notifications
+    window.deleteAllRead = function () {
+        console.log('deleteAllRead called');
+        window.showDeleteConfirm(null, 'all_read');
+    };
+
+    window.deleteAllReadNotifications = function () {
+        console.log('Deleting all read notifications');
+
+        fetch('/api/user/notifications/delete-all-read', {
+            method: 'DELETE'
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log('All read notifications deleted successfully');
+                    loadNotifications();
+                    // Update the notification bell count
+                    if (window.notificationSystem) {
+                        window.notificationSystem.loadNotificationCount();
+                    }
+                    window.showToast('All read notifications deleted successfully', 'success');
+                } else {
+                    throw new Error('Failed to delete read notifications');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting read notifications:', error);
+                window.showToast('Failed to delete read notifications', 'error');
+            });
+    };
+
+    // Toast notification
+    window.showToast = function (message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transform transition-all duration-300 ${
+            type === 'success' ? 'bg-green-600 text-white' :
+                type === 'error' ? 'bg-red-600 text-white' :
+                    'bg-blue-600 text-white'
+        }`;
+        toast.textContent = message;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    };
+
+    // Request Details Modal Functions
+    function showRequestDetailsModal() {
+        const modal = document.getElementById('requestDetailsModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+
+    function hideRequestDetailsModal() {
+        const modal = document.getElementById('requestDetailsModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = ''; // Restore scrolling
+    }
+
+    // Store the last request ID for retry functionality
+    let lastRequestId = null;
+
+    function viewRequestDetails(requestId) {
+        // Prevent duplicate requests for the same request ID
+        if (ongoingRequests.has(requestId)) {
+            console.log('Request already in progress for:', requestId);
+            return;
+        }
+
+        ongoingRequests.add(requestId);
+        lastRequestId = requestId;
+        console.log('Loading details for request:', requestId);
+        showRequestDetailsModal();
+
+        const content = document.getElementById('requestDetailsContent');
+        content.innerHTML = `
         <div class="text-center py-8">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-blue mx-auto"></div>
             <p class="text-text-muted mt-2">Loading request details...</p>
+            <p class="text-text-muted text-xs mt-1">Request ID: ${requestId}</p>
         </div>
     `;
 
-            // Load request details
-            fetch(`/api/requests/${requestId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        if (response.status === 404) {
-                            throw new Error('Request not found');
-                        } else if (response.status === 401) {
-                            throw new Error('Please log in to view request details');
-                        } else if (response.status === 500) {
-                            throw new Error('Server error - please try again later');
-                        } else {
-                            throw new Error(`Error: ${response.status} ${response.statusText}`);
-                        }
-                    }
-                    return response.json();
-                })
-                .then(request => {
-                    if (request.error) {
-                        throw new Error(request.error);
-                    }
-                    displayRequestDetails(request);
-                })
-                .catch(error => {
-                    console.error('Error loading request details:', error);
-                    displayRequestDetailsError(error.message);
-                });
-        }
+        // Test both endpoints
+        Promise.any([
+            fetch(`/api/requests/${requestId}`).then(r => r.ok ? r.json() : Promise.reject('Main API failed')),
+            fetch(`/api/debug/requests/${requestId}`).then(r => r.ok ? r.json() : Promise.reject('Debug API failed'))
+        ])
+            .then(data => {
+                console.log('API Response:', data);
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                // Handle debug endpoint response format
+                const requestData = data.data || data;
+                displayRequestDetails(requestData);
+            })
+            .catch(error => {
+                console.error('All API attempts failed:', error);
+                // Show fallback with error details
+                const detailsButton = document.querySelector(`button[onclick*="viewRequestDetails('${requestId}')"]`);
+                let fallbackData = null;
 
-        function displayRequestDetailsError(errorMessage) {
-            const content = document.getElementById('requestDetailsContent');
-            content.innerHTML = `
+                if (detailsButton) {
+                    const row = detailsButton.closest('tr');
+                    if (row) {
+                        fallbackData = extractNotificationData(row, requestId);
+                    }
+                }
+
+                if (fallbackData) {
+                    displayFallbackRequestDetails(fallbackData, error.message);
+                } else {
+                    displayRequestDetailsError(error.message);
+                }
+            })
+            .finally(() => {
+                // Remove from ongoing requests
+                ongoingRequests.delete(requestId);
+            });
+    }
+
+    function displayRequestDetailsError(errorMessage) {
+        const content = document.getElementById('requestDetailsContent');
+        content.innerHTML = `
         <div class="text-center py-8">
             <i class="fas fa-exclamation-triangle text-4xl text-accent-red mb-4"></i>
             <h3 class="text-lg font-semibold text-text-primary mb-2">Unable to Load Details</h3>
@@ -407,65 +703,13 @@ function loadNotifications() {
             </div>
         </div>
     `;
-        }
+    }
 
-        // Store the last request ID for retry functionality
-        let lastRequestId = null;
+    function displayFallbackRequestDetails(notification, errorMsg = null) {
+        const content = document.getElementById('requestDetailsContent');
+        const statusBadgeClass = getStatusBadgeClass(notification.status.toLowerCase());
 
-        function viewRequestDetails(requestId) {
-            lastRequestId = requestId;
-            console.log('Loading details for request:', requestId);
-            showRequestDetailsModal();
-
-            const content = document.getElementById('requestDetailsContent');
-            content.innerHTML = `
-        <div class="text-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-blue mx-auto"></div>
-            <p class="text-text-muted mt-2">Loading request details...</p>
-            <p class="text-text-muted text-xs mt-1">Request ID: ${requestId}</p>
-        </div>
-    `;
-
-            // Test both endpoints
-            Promise.any([
-                fetch(`/api/requests/${requestId}`).then(r => r.ok ? r.json() : Promise.reject('Main API failed')),
-                fetch(`/api/debug/requests/${requestId}`).then(r => r.ok ? r.json() : Promise.reject('Debug API failed'))
-            ])
-                .then(data => {
-                    console.log('API Response:', data);
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-                    // Handle debug endpoint response format
-                    const requestData = data.data || data;
-                    displayRequestDetails(requestData);
-                })
-                .catch(error => {
-                    console.error('All API attempts failed:', error);
-                    // Show fallback with error details
-                    const detailsButton = document.querySelector(`button[onclick*="viewRequestDetails('${requestId}')"]`);
-                    let fallbackData = null;
-
-                    if (detailsButton) {
-                        const row = detailsButton.closest('tr');
-                        if (row) {
-                            fallbackData = extractNotificationData(row, requestId);
-                        }
-                    }
-
-                    if (fallbackData) {
-                        displayFallbackRequestDetails(fallbackData, error.message);
-                    } else {
-                        displayRequestDetailsError(error.message);
-                    }
-                });
-        }
-
-        function displayFallbackRequestDetails(notification, errorMsg = null) {
-            const content = document.getElementById('requestDetailsContent');
-            const statusBadgeClass = getStatusBadgeClass(notification.status.toLowerCase());
-
-            content.innerHTML = `
+        content.innerHTML = `
         <div class="space-y-6">
             ${errorMsg ? `
             <div class="p-4 bg-accent-red/10 rounded-lg border border-accent-red/20">
@@ -524,83 +768,30 @@ function loadNotifications() {
             </div>
         </div>
     `;
-        }
+    }
 
-        function extractNotificationData(row, requestId) {
-            const cells = row.querySelectorAll('td');
-            return {
-                id: requestId,
-                room_name: cells[1].textContent.trim(),
-                title: cells[2].querySelector('.font-medium')?.textContent.trim() || 'Request Details',
-                message: cells[2].querySelector('.text-gray-500')?.textContent.trim() || 'No additional information available',
-                status: cells[3].querySelector('span')?.textContent.trim() || 'unknown',
-                created_at: cells[4].textContent.trim() || new Date().toLocaleDateString()
-            };
-        }
+    function extractNotificationData(row, requestId) {
+        const cells = row.querySelectorAll('td');
+        return {
+            id: requestId,
+            room_name: cells[1].textContent.trim(),
+            title: cells[2].querySelector('.font-medium')?.textContent.trim() || 'Request Details',
+            message: cells[2].querySelector('.text-gray-500')?.textContent.trim() || 'No additional information available',
+            status: cells[3].querySelector('span')?.textContent.trim() || 'unknown',
+            created_at: cells[4].textContent.trim() || new Date().toLocaleDateString()
+        };
+    }
 
-        function displayFallbackRequestDetails(notification) {
-            const content = document.getElementById('requestDetailsContent');
-            const statusBadgeClass = getStatusBadgeClass(notification.status.toLowerCase());
+    function displayRequestDetails(request) {
+        const content = document.getElementById('requestDetailsContent');
 
-            content.innerHTML = `
-        <div class="space-y-6">
-            <div class="p-4 bg-accent-yellow/10 rounded-lg border border-accent-yellow/20">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="fas fa-info-circle text-accent-yellow"></i>
-                    <span class="font-semibold text-text-primary">Limited Information Available</span>
-                </div>
-                <p class="text-text-secondary text-sm">
-                    Showing basic information from notification. Detailed request data is temporarily unavailable.
-                </p>
-            </div>
+        // Format the request data for display
+        const formattedDate = new Date(request.created_at).toLocaleString();
+        const statusBadgeClass = getStatusBadgeClass(request.status);
+        const temperatureUnit = request.temperature_unit || 'celsius';
+        const tempSymbol = temperatureUnit === 'celsius' ? '°C' : temperatureUnit === 'fahrenheit' ? '°F' : 'K';
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-tertiary rounded-lg">
-                <div>
-                    <h4 class="font-semibold text-text-primary mb-2">Room Information</h4>
-                    <p class="text-text-secondary text-sm">
-                        <strong>Room:</strong> ${notification.room_name}<br>
-                        <strong>Request ID:</strong> ${notification.id}
-                    </p>
-                </div>
-                <div>
-                    <h4 class="font-semibold text-text-primary mb-2">Request Status</h4>
-                    <p class="text-text-secondary text-sm">
-                        <strong>Status:</strong>
-                        <span class="px-2 py-1 text-xs rounded-full ${statusBadgeClass} ml-1">
-                            ${notification.status}
-                        </span><br>
-                        <strong>Created:</strong> ${notification.created_at}
-                    </p>
-                </div>
-            </div>
-
-            <div class="p-4 bg-tertiary rounded-lg">
-                <h4 class="font-semibold text-text-primary mb-2">Request Summary</h4>
-                <div class="space-y-2">
-                    <div>
-                        <strong class="text-text-secondary">Title:</strong><br>
-                        <span class="text-text-primary">${notification.title}</span>
-                    </div>
-                    <div>
-                        <strong class="text-text-secondary">Description:</strong><br>
-                        <span class="text-text-primary">${notification.message}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-        }
-
-        function displayRequestDetails(request) {
-            const content = document.getElementById('requestDetailsContent');
-
-            // Format the request data for display
-            const formattedDate = new Date(request.created_at).toLocaleString();
-            const statusBadgeClass = getStatusBadgeClass(request.status);
-            const temperatureUnit = request.temperature_unit || 'celsius';
-            const tempSymbol = temperatureUnit === 'celsius' ? '°C' : temperatureUnit === 'fahrenheit' ? '°F' : 'K';
-
-            content.innerHTML = `
+        content.innerHTML = `
         <div class="space-y-4 sm:space-y-6">
             <!-- Header Section -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-tertiary rounded-lg">
@@ -735,82 +926,64 @@ function loadNotifications() {
             </div>
         </div>
     `;
-        }
+    }
 
-        function displayRequestDetailsError() {
-            const content = document.getElementById('requestDetailsContent');
-            content.innerHTML = `
-                <div class="text-center py-8">
-                    <i class="fas fa-exclamation-triangle text-4xl text-accent-red mb-4"></i>
-                    <h3 class="text-lg font-semibold text-text-primary mb-2">Failed to Load Details</h3>
-                    <p class="text-text-muted text-sm mb-4">
-                        Unable to load request details. Please try again later.
-                    </p>
-                    <button onclick="hideRequestDetailsModal()"
-                            class="btn bg-accent-blue hover:bg-accent-blue-hover text-white">
-                        Close
-                    </button>
-                </div>
-            `;
-        }
+    function initializeModalListeners() {
+        const modal = document.getElementById('requestDetailsModal');
+        const closeBtn = document.getElementById('closeRequestDetailsModal');
+        const closeBtn2 = document.getElementById('closeRequestDetailsBtn');
 
-        function initializeModalListeners() {
-            const modal = document.getElementById('requestDetailsModal');
-            const closeBtn = document.getElementById('closeRequestDetailsModal');
-            const closeBtn2 = document.getElementById('closeRequestDetailsBtn');
+        if (closeBtn) closeBtn.addEventListener('click', hideRequestDetailsModal);
+        if (closeBtn2) closeBtn2.addEventListener('click', hideRequestDetailsModal);
 
-            if (closeBtn) closeBtn.addEventListener('click', hideRequestDetailsModal);
-            if (closeBtn2) closeBtn2.addEventListener('click', hideRequestDetailsModal);
-
-            if (modal) {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) hideRequestDetailsModal();
-                });
-            }
-
-            // Add keyboard event listener for ESC key
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') {
-                    hideRequestDetailsModal();
-                }
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) hideRequestDetailsModal();
             });
         }
 
-        function focusOnUserRequest(requestId) {
-            console.log('DEBUG: Focusing on user request:', requestId);
-
-            // Find the request in the user's request list and highlight it
-            const requestElement = document.querySelector(`[data-request-id="${requestId}"]`);
-            if (requestElement) {
-                requestElement.scrollIntoView({behavior: 'smooth', block: 'center'});
-
-                // Add highlight
-                requestElement.style.transition = 'all 0.5s ease';
-                requestElement.style.boxShadow = '0 0 0 3px var(--accent-blue)';
-                requestElement.style.transform = 'scale(1.02)';
-
-                setTimeout(() => {
-                    requestElement.style.boxShadow = '';
-                    requestElement.style.transform = '';
-                }, 3000);
-            }
-        }
-
-        // Check URL parameters on page load
-        document.addEventListener('DOMContentLoaded', function () {
-            const urlParams = new URLSearchParams(window.location.search);
-            const notificationId = urlParams.get('notification_id');
-
-            if (notificationId) {
-                // Mark the specific notification as read
-                fetch(`/api/user/notifications/${notificationId}/read`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
+        // Add keyboard event listener for ESC key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                hideRequestDetailsModal();
             }
         });
-    </script>
+    }
 
+    function focusOnUserRequest(requestId) {
+        console.log('DEBUG: Focusing on user request:', requestId);
+
+        // Find the request in the user's request list and highlight it
+        const requestElement = document.querySelector(`[data-request-id="${requestId}"]`);
+        if (requestElement) {
+            requestElement.scrollIntoView({behavior: 'smooth', block: 'center'});
+
+            // Add highlight
+            requestElement.style.transition = 'all 0.5s ease';
+            requestElement.style.boxShadow = '0 0 0 3px var(--accent-blue)';
+            requestElement.style.transform = 'scale(1.02)';
+
+            setTimeout(() => {
+                requestElement.style.boxShadow = '';
+                requestElement.style.transform = '';
+            }, 3000);
+        }
+    }
+
+    // Check URL parameters on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const notificationId = urlParams.get('notification_id');
+
+        if (notificationId) {
+            // Mark the specific notification as read
+            fetch(`/api/user/notifications/${notificationId}/read`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+        }
+    });
+</script>
     <style>
         @media (max-width: 480px) {
             #requestDetailsModal > div {
@@ -872,13 +1045,25 @@ function loadNotifications() {
             border-color: var(--border-color);
         }
 
-        /* Modal Styles */
+        #deleteConfirmModal,
         #requestDetailsModal {
             backdrop-filter: blur(4px);
+            animation: fadeIn 0.2s ease-out;
         }
 
+        #deleteConfirmModal > div,
         #requestDetailsModal > div {
             animation: modalSlideIn 0.3s ease-out;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes modalSlideIn {
@@ -892,27 +1077,422 @@ function loadNotifications() {
             }
         }
 
-        /* Scrollbar styling for modal content */
+        /* Modal container */
+        #deleteConfirmModal > div,
+        #requestDetailsModal > div {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Modal header */
+        #deleteConfirmModal .flex.items-center.justify-between,
+        #requestDetailsModal .flex.items-center.justify-between {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            border-radius: 12px 12px 0 0;
+        }
+
+        #deleteConfirmModal h3,
+        #requestDetailsModal h3 {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.125rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #deleteConfirmModal h3 i,
+        #requestDetailsModal h3 i {
+            font-size: 1.1em;
+        }
+
+        /* Close button */
+        #deleteConfirmModal button.text-text-muted,
+        #requestDetailsModal button.text-text-muted {
+            transition: all 0.2s ease-in-out;
+            font-size: 1.5rem;
+            line-height: 1;
+            padding: 0.25rem;
+            border-radius: 4px;
+        }
+
+        #deleteConfirmModal button.text-text-muted:hover,
+        #requestDetailsModal button.text-text-muted:hover {
+            color: var(--text-primary) !important;
+            background: var(--bg-tertiary);
+            transform: scale(1.1);
+        }
+
+        /* Modal content */
+        #deleteConfirmModal .p-6,
+        #requestDetailsModal .p-4.sm\:p-6 {
+            padding: 1.5rem;
+        }
+
+        /* Delete modal specific content */
+        #deleteMessage {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Request details modal specific content */
+        #requestDetailsContent {
+            color: var(--text-primary);
+        }
+
+        #requestDetailsContent .space-y-4 {
+            space-y: 1rem;
+        }
+
+        #requestDetailsContent .space-y-6 {
+            space-y: 1.5rem;
+        }
+
+        #requestDetailsContent h4 {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        #requestDetailsContent .bg-tertiary {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        #requestDetailsContent .text-text-secondary {
+            color: var(--text-muted);
+        }
+
+        #requestDetailsContent .text-text-primary {
+            color: var(--text-primary);
+        }
+
+        #requestDetailsContent .text-xs {
+            font-size: 0.75rem;
+        }
+
+        #requestDetailsContent .text-sm {
+            font-size: 0.875rem;
+        }
+
+        /* Button container */
+        #deleteConfirmModal .flex.gap-3,
+        #requestDetailsModal .flex.gap-2 {
+            gap: 0.75rem;
+        }
+
+        /* Buttons */
+        #deleteConfirmModal .btn,
+        #requestDetailsModal .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.5rem;
+        }
+
+        #deleteConfirmModal .btn:hover,
+        #requestDetailsModal .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Cancel/Close buttons */
+        #deleteConfirmModal .btn.bg-tertiary,
+        #requestDetailsModal .btn.bg-tertiary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        #deleteConfirmModal .btn.bg-tertiary:hover,
+        #requestDetailsModal .btn.bg-tertiary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--text-muted);
+        }
+
+        /* Delete button */
+        #deleteConfirmModal .btn.bg-red-600 {
+            background: #dc2626;
+            color: white;
+            border-color: #dc2626;
+        }
+
+        #deleteConfirmModal .btn.bg-red-600:hover {
+            background: #b91c1c;
+            border-color: #b91c1c;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        /* Primary/Accent buttons */
+        #requestDetailsModal .btn.bg-accent-blue {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        #requestDetailsModal .btn.bg-accent-blue:hover {
+            background: var(--accent-blue-hover);
+            border-color: var(--accent-blue-hover);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Status badges in request details */
+        #requestDetailsContent .px-2.py-1.text-xs.rounded-full {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 9999px;
+        }
+
+        /* Grid layouts in request details */
+        #requestDetailsContent .grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        #requestDetailsContent .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        #requestDetailsContent .grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        /* Alert/warning boxes */
+        #requestDetailsContent .bg-accent-yellow\/10 {
+            background: rgba(234, 179, 8, 0.1);
+            border: 1px solid rgba(234, 179, 8, 0.2);
+        }
+
+        #requestDetailsContent .bg-accent-red\/10 {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Responsive design */
+        @media (max-width: 640px) {
+            #deleteConfirmModal,
+            #requestDetailsModal {
+                padding: 0.5rem;
+            }
+
+            #deleteConfirmModal > div,
+            #requestDetailsModal > div {
+                margin: 0.25rem;
+                border-radius: 8px;
+                max-height: 95vh;
+            }
+
+            #deleteConfirmModal .flex.items-center.justify-between,
+            #requestDetailsModal .flex.items-center.justify-between,
+            #deleteConfirmModal .p-6,
+            #requestDetailsModal .p-4.sm\:p-6 {
+                padding: 1rem;
+            }
+
+            #deleteConfirmModal h3,
+            #requestDetailsModal h3 {
+                font-size: 1rem;
+            }
+
+            #deleteConfirmModal .btn,
+            #requestDetailsModal .btn {
+                padding: 0.625rem 1rem;
+                font-size: 0.875rem;
+                width: 100%;
+            }
+
+            #deleteConfirmModal .flex.gap-3,
+            #requestDetailsModal .flex.gap-2 {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            /* Request details responsive */
+            #requestDetailsContent .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+
+            #requestDetailsContent .flex-col.xs\:flex-row {
+                flex-direction: column;
+            }
+
+            #requestDetailsContent .space-y-4 {
+                space-y: 0.75rem;
+            }
+
+            #requestDetailsContent .space-y-6 {
+                space-y: 1rem;
+            }
+        }
+
+        /* Ensure modals are above other content */
+        #deleteConfirmModal,
+        #requestDetailsModal {
+            z-index: 1000;
+        }
+
+        /* Backdrop blur effect */
+        #deleteConfirmModal.bg-black\/60,
+        #requestDetailsModal.bg-black\/60 {
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        /* Modal content scroll handling */
+        #deleteConfirmModal .overflow-y-auto,
         #requestDetailsModal .overflow-y-auto {
             scrollbar-width: thin;
             scrollbar-color: var(--border-color) transparent;
         }
 
+        #deleteConfirmModal .overflow-y-auto::-webkit-scrollbar,
         #requestDetailsModal .overflow-y-auto::-webkit-scrollbar {
             width: 6px;
         }
 
+        #deleteConfirmModal .overflow-y-auto::-webkit-scrollbar-track,
         #requestDetailsModal .overflow-y-auto::-webkit-scrollbar-track {
             background: transparent;
         }
 
+        #deleteConfirmModal .overflow-y-auto::-webkit-scrollbar-thumb,
         #requestDetailsModal .overflow-y-auto::-webkit-scrollbar-thumb {
             background-color: var(--border-color);
             border-radius: 3px;
         }
 
-        /* Ensure modal is above other content */
-        #requestDetailsModal {
-            z-index: 1000;
+        /* Focus states for accessibility */
+        #deleteConfirmModal button:focus,
+        #requestDetailsModal button:focus {
+            outline: 2px solid var(--accent-blue);
+            outline-offset: 2px;
         }
-    </style>{% endblock %}
+
+        /* Icon styling */
+        #deleteConfirmModal .fa-exclamation-triangle {
+            color: #ef4444; /* red-500 */
+        }
+
+        #requestDetailsModal .fa-info-circle {
+            color: var(--accent-blue);
+        }
+
+        #requestDetailsModal .fa-door-open,
+        #requestDetailsModal .fa-calendar,
+        #requestDetailsModal .fa-clipboard-list,
+        #requestDetailsModal .fa-edit,
+        #requestDetailsModal .fa-clock,
+        #requestDetailsModal .fa-cog {
+            color: var(--accent-blue);
+        }
+
+        /* Ensure proper text contrast */
+        #deleteConfirmModal .text-text-primary,
+        #requestDetailsModal .text-text-primary {
+            color: var(--text-primary);
+        }
+
+        #deleteConfirmModal .text-text-muted,
+        #requestDetailsModal .text-text-muted {
+            color: var(--text-muted);
+        }
+
+        /* Modal border and shadow enhancements */
+        #deleteConfirmModal > div,
+        #requestDetailsModal > div {
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05),
+            0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Button hover animations */
+        #deleteConfirmModal .btn,
+        #requestDetailsModal .btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        #deleteConfirmModal .btn::before,
+        #requestDetailsModal .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        #deleteConfirmModal .btn:hover::before,
+        #requestDetailsModal .btn:hover::before {
+            left: 100%;
+        }
+
+        /* Request details specific improvements */
+        #requestDetailsContent .bg-secondary {
+            background: var(--bg-secondary);
+        }
+
+        #requestDetailsContent .border-border {
+            border-color: var(--border-color);
+        }
+
+        #requestDetailsContent .whitespace-pre-wrap {
+            white-space: pre-wrap;
+        }
+
+        #requestDetailsContent .break-words {
+            word-wrap: break-word;
+        }
+
+        /* Loading spinner */
+        #requestDetailsContent .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Code styling in request details */
+        #requestDetailsContent code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background: var(--bg-tertiary);
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        /* Ensure proper max-height for request details content */
+        #requestDetailsModal .overflow-y-auto[style*="max-height"] {
+            max-height: calc(90vh - 140px) !important;
+        }
+
+        @media (max-width: 640px) {
+            #requestDetailsModal .overflow-y-auto[style*="max-height"] {
+                max-height: calc(95vh - 120px) !important;
+            }
+        }
+    </style>
+{% endblock %}

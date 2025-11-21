@@ -285,4 +285,9 @@ UPDATE users SET created_at = NOW() WHERE created_at IS NULL;
 
 -- Update rooms column to accept empty columns. From now on admins and technicians won't own rooms on creation. Keep them empty for users
 ALTER TABLE rooms MODIFY user_id INT NULL;
+
+-- Update to allow notification deletions
+ALTER TABLE user_notifications
+ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL;
+CREATE INDEX idx_notifications_deleted ON user_notifications (deleted_at);
 */

@@ -526,7 +526,16 @@
                                             </p>
                                             <p class="text-xs text-text-muted flex items-center gap-1 justify-end">
                                                 <i class="fas fa-clock"></i>
-                                                Last: {{ d.recorded_at|default('N/A')|string|truncate(12, True, '') }}
+                                                <!-- Improved timestamp display -->
+                                                {% if d.last_reading_time %}
+                                                    {{ d.last_reading_time.strftime('%H:%M') }}<br>
+                                                    <span class="text-xs">{{ d.last_reading_time.strftime('%m/%d') }}</span>
+                                                {% elif d.recorded_at %}
+                                                    {{ d.recorded_at.strftime('%H:%M') }}<br>
+                                                    <span class="text-xs">{{ d.recorded_at.strftime('%m/%d') }}</span>
+                                                {% else %}
+                                                    No data
+                                                {% endif %}
                                             </p>
                                         </div>
                                     </div>
@@ -549,7 +558,14 @@
                                 {% for d in devices[:10] %}
                                     <div class="text-text-muted border-b border-border pb-2 pt-1 flex items-center gap-2">
                                         <i class="fas fa-clock text-text-muted text-xs"></i>
-                                        <span class="text-xs text-text-muted">{{ d.recorded_at|default('N/A')|string|truncate(12, True, '') }}</span>
+                                        <!-- Improved timestamp display for logs -->
+                                        <span class="text-xs text-text-muted font-mono">
+                                            {% if d.recorded_at %}
+                                                {{ d.recorded_at.strftime('%H:%M:%S') }}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </span>
                                         <span class="text-accent-green flex items-center gap-1">
                                         <i class="fas fa-thermometer-half"></i>
                                         T: <span class="log-temp"
@@ -1030,6 +1046,12 @@
 
         .listening {
             animation: pulse 1s infinite;
+        }
+
+        /* Timestamp styling */
+        .timestamp {
+            font-family: monospace;
+            font-size: 0.7rem;
         }
 
     </style>
