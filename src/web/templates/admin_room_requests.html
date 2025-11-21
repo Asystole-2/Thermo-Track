@@ -222,6 +222,21 @@
             border-radius: 0.375rem;
         }
 
+        .room-name-link {
+            color: var(--accent-blue);
+            text-decoration: none;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .room-name-link:hover {
+            background-color: var(--accent-blue);
+            color: white;
+            text-decoration: none;
+        }
+
         /* CSS Variables for Theme Support */
         :root {
             /* Light Mode Colors */
@@ -496,13 +511,18 @@
                     request.status === 'pending' ? 'border-accent-yellow' :
                         request.status === 'viewed' ? 'border-accent-blue' :
                             request.status === 'approved' ? 'border-accent-green' : 'border-accent-red'
-                }">
+                }" data-request-id="${request.id}">
                         <div class="compact-grid">
                             <div class="request-main">
                                 <div class="flex items-start justify-between">
                                     <div>
                                         <h3 class="text-lg font-bold text-text-primary mb-1 capitalize">
-                                            ${request.room_name} - ${request.request_type.replace(/_/g, ' ')}
+                                            <!-- Make room name clickable -->
+                                            <span class="room-name-link"
+                                                  onclick="goToRoom(${request.room_id}, '${request.id}')">
+                                                ${request.room_name}
+                                            </span>
+                                             - ${request.request_type.replace(/_/g, ' ')}
                                         </h3>
                                         <div class="request-meta">
                                             <span class="text-sm text-text-muted">
@@ -567,6 +587,31 @@
                 `;
                 listElement.insertAdjacentHTML('beforeend', cardHtml);
             });
+        }
+
+        // Function to navigate to room page
+        function goToRoom(roomId, requestId = null) {
+            console.log(`DEBUG: Navigating to room ${roomId}${requestId ? ` with request ${requestId}` : ''}`);
+
+            // Show loading feedback
+            const clickedElement = event.target;
+            if (clickedElement) {
+                clickedElement.style.opacity = '0.7';
+                clickedElement.style.cursor = 'wait';
+            }
+
+            // Build the URL with optional request focus
+            let url = `/room/${roomId}`;
+
+            if (requestId) {
+                // Add query parameters to focus on the specific request
+                url += `?request_id=${requestId}&focus=true`;
+            }
+
+            // Navigate to the room page after a brief delay for visual feedback
+            setTimeout(() => {
+                window.location.href = url;
+            }, 300);
         }
 
         // Modal functions
@@ -778,124 +823,5 @@
                 }
             }
         }
-
-        // Update the renderRequests function to add data attributes
-        function renderRequests(requests) {
-            const listElement = document.getElementById('requests-list');
-            const loadingIndicator = document.getElementById('loading-indicator');
-
-            if (loadingIndicator) loadingIndicator.classList.add('hidden');
-            listElement.innerHTML = '';
-
-            if (requests.length === 0) {
-                listElement.innerHTML = `
-            <div class="text-center p-8 bg-secondary text-text-muted rounded-xl border border-border">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-green-500" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
-                    <path d="M12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                </svg>
-                <h2 class="text-lg font-semibold text-text-primary mb-1">No new requests found</h2>
-                <p class="text-sm">Try adjusting your filters to see more results.</p>
-            </div>
-        `;
-                return;
-            }
-
-            requests.forEach(request => {
-                const cardHtml = `
-            <div class="request-card bg-secondary p-4 rounded-xl border-l-4 ${
-                    request.status === 'pending' ? 'border-accent-yellow' :
-                        request.status === 'viewed' ? 'border-accent-blue' :
-                            request.status === 'approved' ? 'border-accent-green' : 'border-accent-red'
-                }" data-request-id="${request.id}">
-                <div class="compact-grid">
-                    <div class="request-main">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <h3 class="text-lg font-bold text-text-primary mb-1 capitalize">
-                                    ${request.room_name} - ${request.request_type.replace(/_/g, ' ')}
-                                </h3>
-                                <div class="request-meta">
-                                    <span class="text-sm text-text-muted">
-                                        By: <span class="text-text-secondary font-medium">${request.username}</span>
-                                    </span>
-                                    <span class="text-sm text-text-muted">
-                                        ${new Date(request.created_at).toLocaleString()}
-                                    </span>
-                                    <span class="status-badge status-${request.status}">
-                                        ${request.status}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="request-details">
-                            ${request.request_type === 'temperature_change' && request.current_temperature && request.target_temperature ? `
-                                <div class="detail-item">
-                                    <div class="detail-label">Temperature Change</div>
-                                    <div class="detail-value">
-                                        ${request.current_temperature}°C → ${request.target_temperature}°C
-                                    </div>
-                                </div>
-                            ` : ''}
-
-                            ${request.request_type === 'fan_adjustment' && request.fan_level_request ? `
-                                <div class="detail-item">
-                                    <div class="detail-label">Airflow Request</div>
-                                    <div class="detail-value capitalize">
-                                        ${request.fan_level_request.replace(/_/g, ' ')}
-                                    </div>
-                                </div>
-                            ` : ''}
-
-                            ${request.user_notes ? `
-                                <div class="detail-item">
-                                    <div class="detail-label">User Notes</div>
-                                    <div class="detail-value text-sm">"${request.user_notes}"</div>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-
-                    <div class="action-buttons">
-                        ${request.status === 'pending' ? `
-                            <button onclick="markAsViewed('${request.id}')"
-                                class="btn-compact bg-accent-blue hover:bg-accent-blue-hover text-white font-semibold transition duration-150">
-                                Mark Viewed
-                            </button>
-                        ` : ''}
-                        <button onclick="showApproveModal('${request.id}')"
-                            class="btn-compact bg-accent-green hover:bg-accent-green-hover text-white font-semibold transition duration-150">
-                            Approve
-                        </button>
-                        <button onclick="showDenyModal('${request.id}')"
-                            class="btn-compact bg-accent-red hover:bg-accent-red-hover text-white font-semibold transition duration-150">
-                            Deny
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-                listElement.insertAdjacentHTML('beforeend', cardHtml);
-            });
-
-            // Check if we need to focus on a specific request
-            const urlParams = new URLSearchParams(window.location.search);
-            const focusRequestId = urlParams.get('request_id');
-            const shouldFocus = urlParams.get('focus') === 'true';
-
-            if (focusRequestId && shouldFocus) {
-                focusOnRequest(focusRequestId);
-
-                // Clean up URL
-                const newUrl = window.location.pathname + '?' + new URLSearchParams({
-                    ...Object.fromEntries(urlParams),
-                    focus: 'false' // Set focus to false so it doesn't trigger again on refresh
-                }).toString();
-                window.history.replaceState({}, '', newUrl);
-            }
-        }
     </script>
 {% endblock %}
-
-{#comment for push#}
