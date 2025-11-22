@@ -1,69 +1,65 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('toggle-sidebar-btn');
-    const collapseIcon = document.getElementById('collapse-icon');
-    const logoText = document.getElementById('logo-text');
+// static/js/sidebar.js
 
-    const linkTexts = document.querySelectorAll('.link-text');
-    const userGreeting = document.getElementById('user-greeting');
+document.addEventListener('DOMContentLoaded', () => {
+    const sidebar      = document.getElementById('sidebar');
+    const toggleBtn    = document.getElementById('toggle-sidebar-btn');
+    const collapseIcon = document.getElementById('collapse-icon');
+
+    const linkTexts        = document.querySelectorAll('.link-text');
+    const userGreeting     = document.getElementById('user-greeting');
     const authLinksContainer = document.getElementById('auth-links');
 
-    let isExpanded = true;
-    const expandedWidth = '250px';
-    const collapsedWidth = '80px';
-    const transitionDuration = '300';
+    // If there's no sidebar on this page, bail out quietly
+    if (!sidebar || !toggleBtn) return;
 
-    const collapsibleElements = [logoText, userGreeting, ...Array.from(linkTexts)];
+    const STORAGE_KEY     = 'sidebarExpanded';
+    const EXPANDED_WIDTH  = '250px';
+    const COLLAPSED_WIDTH = '80px';
+
+    // Elements whose text we hide when collapsed
+    const collapsibleEls = [];
+    linkTexts.forEach(el => collapsibleEls.push(el));
+    if (userGreeting) collapsibleEls.push(userGreeting);
     if (authLinksContainer) {
-        collapsibleElements.push(...Array.from(authLinksContainer.querySelectorAll('a')));
+        authLinksContainer.querySelectorAll('a').forEach(a => collapsibleEls.push(a));
     }
 
-    const initializeSidebar = () => {
-        isExpanded = true;
-        sidebar.style.width = expandedWidth;
-        collapseIcon.style.transform = 'rotate(0deg)';
+    // Read last state from localStorage; default = expanded
+    const stored = localStorage.getItem(STORAGE_KEY);
+    let isExpanded = (stored === null || stored === '1');
 
-        collapsibleElements.forEach(el => {
-            if (el) {
-                el.style.opacity = 1;
+    function applyState() {
+        // Width of sidebar
+        sidebar.style.width = isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
+
+        // Arrow rotation (if present)
+        if (collapseIcon) {
+            collapseIcon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
+        // Hide/show all text bits (menu labels, greeting, auth links)
+        collapsibleEls.forEach(el => {
+            if (!el) return;
+            if (isExpanded) {
+                el.style.opacity    = '1';
                 el.style.visibility = 'visible';
-                el.style.transition = `opacity ${transitionDuration}ms ease-in-out, visibility 0ms`;
+            } else {
+                el.style.opacity    = '0';
+                el.style.visibility = 'hidden';
             }
         });
-    };
 
-    initializeSidebar();
+        // We let your CSS handle centering etc when width is 80px
+        // via the #sidebar[style*="80px"] rules in main.css
+    }
 
-    const toggleSidebar = () => {
+    // Toggle click
+    toggleBtn.addEventListener('click', () => {
         isExpanded = !isExpanded;
+        localStorage.setItem(STORAGE_KEY, isExpanded ? '1' : '0');
+        applyState();
+    });
 
-        if (isExpanded) {
-            sidebar.style.width = expandedWidth;
-            collapseIcon.style.transform = 'rotate(0deg)';
-
-            setTimeout(() => {
-                collapsibleElements.forEach(el => {
-                    if (el) {
-                        el.style.opacity = 1;
-                        el.style.visibility = 'visible';
-                    }
-                });
-            }, 50);
-
-        } else {
-            sidebar.style.width = collapsedWidth;
-            collapseIcon.style.transform = 'rotate(180deg)';
-
-            collapsibleElements.forEach(el => {
-                if (el) {
-                    el.style.opacity = 0;
-                    setTimeout(() => {
-                        el.style.visibility = 'hidden';
-                    }, 200);
-                }
-            });
-        }
-    };
-
-    toggleBtn.addEventListener('click', toggleSidebar);
+    // Apply stored state on first load
+    applyState();
 });
