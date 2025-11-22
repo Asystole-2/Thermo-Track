@@ -1,1385 +1,1516 @@
-{% extends "layout.html" %}
-
-{% block body %}
+{% extends "layout.html" %} {% block body %}
 <div class="app-container">
-    {% include 'components/menu.html' %}
+  {% include 'components/menu.html' %}
 
-    <main class="main-content">
-        <!-- Header -->
-        <header class="page-header">
-            <div class="header-content">
-                <div>
-                    <h1 class="text-4xl font-extrabold text-text-primary mb-2">System Setup</h1>
-                    <p class="header-subtitle">
-                        {% if session.role in ['admin', 'technician'] %}
-                            Manage all rooms and devices system-wide.
-                        {% else %}
-                            Create and manage your rooms.
-                        {% endif %}
-                    </p>
-                </div>
-                <div class="flex items-center gap-3">
-                    {% include 'components/notification_bell.html' %}
-                </div>
-            </div>
-        </header>
-
-        <!-- Tab Navigation -->
-        {% if session.role in ['admin', 'technician'] %}
-            <div class="mb-6">
-                <div class="border-b border-border">
-                    <nav class="-mb-px flex space-x-8">
-                        <button
-                            id="devices-tab"
-                            class="tab-button active py-4 px-1 border-b-2 border-accent-blue font-medium text-sm text-accent-blue"
-                            onclick="switchTab('devices')"
-                        >
-                            <i class="fas fa-microchip mr-2"></i>All Devices
-                        </button>
-
-                        <button
-                            id="rooms-tab"
-                            class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-text-muted hover:text-text-primary hover:border-border"
-                            onclick="switchTab('rooms')"
-                        >
-                            <i class="fas fa-building mr-2"></i>Rooms Management
-                        </button>
-                    </nav>
-                </div>
-            </div>
-        {% endif %}
-
-        <!-- Universal Search Bar -->
-        <section class="mb-6">
-            <div class="card p-4">
-                <div class="relative">
-                    <input
-                        type="text"
-                        id="universalSearchInput"
-                        placeholder="{% if session.role in ['admin', 'technician'] %}Search devices by name, UID, type, status, room, or location...{% else %}Search rooms by name, location, or devices...{% endif %}"
-                        class="w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent transition duration-200"
-                    >
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-text-muted"></i>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Rooms Tab Content -->
-        <div id="rooms-content" class="tab-content {% if session.role in ['admin', 'technician'] %}hidden{% else %}active{% endif %}">
-            {% if session.role not in ['admin', 'technician'] and user_rooms|length == 0 and available_rooms|length == 0 %}
-                <section class="mb-6">
-                    <div class="card p-6 bg-accent-yellow/20 border border-accent-yellow">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-exclamation-triangle text-accent-yellow text-xl"></i>
-                            <div>
-                                <h4 class="text-lg font-semibold text-accent-yellow">No Rooms Available</h4>
-                                <p class="text-text-secondary text-sm">
-                                    There are no rooms available in the system yet. Please contact an administrator to
-                                    add rooms.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            {% endif %}
-
-            <!-- Room Management Filters (Regular Users Only) -->
-            {% if session.role not in ['admin', 'technician'] %}
-                <section class="mb-6">
-                    <div class="card p-4">
-                        <div class="flex flex-wrap gap-2">
-                            <button id="filterMyRooms"
-                                    class="filter-room-btn active px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-accent-blue text-white flex items-center gap-2"
-                                    onclick="switchRoomFilter('my-rooms')">
-                                <i class="fas fa-home"></i>
-                                My Rooms ({{ user_rooms|length }})
-                            </button>
-                            <button id="filterAvailableRooms"
-                                    class="filter-room-btn inactive px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-tertiary text-text-secondary hover:bg-tertiary-hover flex items-center gap-2"
-                                    onclick="switchRoomFilter('available-rooms')">
-                                <i class="fas fa-door-open"></i>
-                                Available Rooms ({{ available_rooms|length }})
-                            </button>
-                        </div>
-                    </div>
-                </section>
-            {% endif %}
-
-            <!-- Create Room (Technician and Admin) -->
-            {% if session.role in ['admin', 'technician'] %}
-                <section class="mb-6" id="createRoomSection">
-                    <h3 class="text-xl font-semibold mb-4 text-text-primary flex items-center gap-2">
-                        <i class="fas fa-plus-circle text-accent-green"></i>
-                        Create a New Room
-                    </h3>
-
-                    <form
-                            action="{{ url_for('setuprooms_create') }}"
-                            method="post"
-                            class="card p-4"
-                    >
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                            <div class="md:col-span-2">
-                                <label for="room_name" class="form-label flex items-center gap-2">
-                                    <i class="fas fa-door-closed text-text-muted"></i>
-                                    Room Name
-                                </label>
-                                <input
-                                        id="room_name"
-                                        name="room_name"
-                                        type="text"
-                                        class="form-input"
-                                        placeholder="e.g. Chemistry Lab 2"
-                                        required
-                                />
-                            </div>
-
-                            <div class="md:col-span-1">
-                                <label for="room_location" class="form-label flex items-center gap-2">
-                                    <i class="fas fa-map-marker-alt text-text-muted"></i>
-                                    Location (optional)
-                                </label>
-                                <input
-                                        id="room_location"
-                                        name="room_location"
-                                        type="text"
-                                        class="form-input"
-                                        placeholder="e.g. Building B"
-                                />
-                            </div>
-
-                            <div class="md:col-span-1">
-                                <button type="submit"
-                                        class="btn bg-accent-green hover:bg-accent-green-hover text-white w-full flex items-center justify-center gap-2">
-                                    <i class="fas fa-plus"></i>
-                                    Add Room
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </section>
-            {% endif %}
-
-            <!-- My Rooms Section (Regular Users Only) -->
-            {% if session.role not in ['admin', 'technician'] %}
-                <section id="myRoomsSection" class="room-section">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-text-primary flex items-center gap-2">
-                            <i class="fas fa-home text-accent-blue"></i>
-                            My Rooms
-                        </h3>
-                        <span class="text-xs text-text-muted room-count flex items-center gap-1">
-                            <i class="fas fa-hashtag"></i>
-                            Showing <span id="myRoomsCount">{{ user_rooms|length }}</span> of {{ user_rooms|length }} room
-                            {% if user_rooms|length != 1 %}s{% endif %}
-                        </span>
-                    </div>
-
-                    {% if user_rooms and user_rooms|length > 0 %}
-                        <div class="card p-5 overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="table w-full">
-                                    <thead class="bg-tertiary">
-                                    <tr>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-door-closed mr-2"></i>Room Name
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-map-marker-alt mr-2"></i>Location
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-microchip mr-2"></i>Devices
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-thermometer-half mr-2"></i>Avg Temp
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-tint mr-2"></i>Avg Humidity
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">Actions</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="myRoomsTable">
-                                    {% for r in user_rooms %}
-                                        <tr class="room-row hover:bg-tertiary/40 transition border-b border-border"
-                                            data-room-name="{{ r.room_name.lower() }}"
-                                            data-location="{{ (r.location or '').lower() }}"
-                                            data-devices="{{ r.devices_count }}">
-                                            <td class="text-center p-3">
-                                                <a href="{{ url_for('room', room_id=r.id) }}"
-                                                   class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2 justify-center">
-                                                    <i class="fas fa-door-open"></i>
-                                                    {{ r.room_name }}
-                                                </a>
-                                            </td>
-                                            <td class="text-center p-3 text-text-muted">
-                                                {{ r.location or '—' }}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <span class="inline-flex items-center gap-1 justify-center">
-                                                    <i class="fas fa-microchip text-text-muted"></i>
-                                                    {{ r.devices_count or 0 }}
-                                                </span>
-                                            </td>
-                                            <td class="text-center p-3">
-                                                {% if r.avg_temp is not none %}
-                                                    <span class="inline-flex items-center gap-1 justify-center">
-                                                        <i class="fas fa-thermometer-half text-accent-red"></i>
-                                                        {{ '%.1f'|format(r.avg_temp) }}°C
-                                                    </span>
-                                                {% else %}—{% endif %}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                {% if r.avg_humidity is not none %}
-                                                    <span class="inline-flex items-center gap-1 justify-center">
-                                                        <i class="fas fa-tint text-accent-blue"></i>
-                                                        {{ '%.1f'|format(r.avg_humidity) }}%
-                                                    </span>
-                                                {% else %}—{% endif %}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <div class="flex justify-center gap-2">
-                                                    <a href="{{ url_for('room', room_id=r.id) }}"
-                                                       class="btn bg-accent-blue hover:bg-accent-blue-hover text-white btn-sm flex items-center gap-2">
-                                                        <i class="fas fa-eye"></i>
-                                                        View
-                                                    </a>
-                                                    <form action="{{ url_for('dashboard_remove_room', room_id=r.id) }}"
-                                                          method="post"
-                                                          class="inline">
-                                                        <button type="submit"
-                                                                class="btn bg-accent-red hover:bg-accent-red-hover text-white btn-sm flex items-center gap-2"
-                                                                onclick="return confirm('Remove {{ r.room_name }} from your rooms?')">
-                                                            <i class="fas fa-times"></i>
-                                                            Remove
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="card p-8 text-center">
-                            <i class="fas fa-inbox text-4xl text-text-muted mb-4"></i>
-                            <h3 class="text-lg font-semibold text-text-primary mb-2">No Rooms Added</h3>
-                            <p class="text-text-muted text-sm mb-4">
-                                You haven't added any rooms to your dashboard yet.
-                            </p>
-                            <p class="text-text-muted text-sm flex items-center justify-center gap-2">
-                                <i class="fas fa-arrow-right"></i>
-                                Use the "Available Rooms" tab to find and add rooms.
-                            </p>
-                        </div>
-                    {% endif %}
-                </section>
-            {% endif %}
-
-            <!-- Available Rooms Section (Regular Users Only) -->
-            {% if session.role not in ['admin', 'technician'] %}
-                <section id="availableRoomsSection" class="room-section hidden">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-text-primary flex items-center gap-2">
-                            <i class="fas fa-door-open text-accent-green"></i>
-                            Available Rooms
-                        </h3>
-                        <span class="text-xs text-text-muted room-count flex items-center gap-1">
-                            <i class="fas fa-hashtag"></i>
-                            Showing <span id="availableRoomsCount">{{ available_rooms|length }}</span> of {{ available_rooms|length }} room
-                            {% if available_rooms|length != 1 %}s{% endif %} available
-                        </span>
-                    </div>
-
-                    {% if available_rooms and available_rooms|length > 0 %}
-                        <div class="card p-5 overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="table w-full">
-                                    <thead class="bg-tertiary">
-                                    <tr>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-door-closed mr-2"></i>Room Name
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-map-marker-alt mr-2"></i>Location
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-microchip mr-2"></i>Devices
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-thermometer-half mr-2"></i>Avg Temp
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-tint mr-2"></i>Avg Humidity
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">Actions</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="availableRoomsTable">
-                                    {% for r in available_rooms %}
-                                        <tr class="room-row hover:bg-tertiary/40 transition border-b border-border"
-                                            data-room-name="{{ r.room_name.lower() }}"
-                                            data-location="{{ (r.location or '').lower() }}"
-                                            data-devices="{{ r.devices_count }}">
-                                            <td class="text-center p-3">
-                                                <a href="{{ url_for('room', room_id=r.id) }}"
-                                                   class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2 justify-center">
-                                                    <i class="fas fa-door-open"></i>
-                                                    {{ r.room_name }}
-                                                </a>
-                                            </td>
-                                            <td class="text-center p-3 text-text-muted">
-                                                {{ r.location or '—' }}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <span class="inline-flex items-center gap-1 justify-center">
-                                                    <i class="fas fa-microchip text-text-muted"></i>
-                                                    {{ r.devices_count or 0 }}
-                                                </span>
-                                            </td>
-                                            <td class="text-center p-3">
-                                                {% if r.avg_temp is not none %}
-                                                    <span class="inline-flex items-center gap-1 justify-center">
-                                                        <i class="fas fa-thermometer-half text-accent-red"></i>
-                                                        {{ '%.1f'|format(r.avg_temp) }}°C
-                                                    </span>
-                                                {% else %}—{% endif %}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                {% if r.avg_humidity is not none %}
-                                                    <span class="inline-flex items-center gap-1 justify-center">
-                                                        <i class="fas fa-tint text-accent-blue"></i>
-                                                        {{ '%.1f'|format(r.avg_humidity) }}%
-                                                    </span>
-                                                {% else %}—{% endif %}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <form action="{{ url_for('dashboard_add_room', room_id=r.id) }}"
-                                                      method="post"
-                                                      class="flex justify-center">
-                                                    <button type="submit"
-                                                            class="btn bg-accent-green hover:bg-accent-green-hover text-white btn-sm flex items-center gap-2">
-                                                        <i class="fas fa-plus"></i>
-                                                        Add to My Rooms
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="card p-8 text-center">
-                            <i class="fas fa-search text-4xl text-text-muted mb-4"></i>
-                            <h3 class="text-lg font-semibold text-text-primary mb-2">No Available Rooms</h3>
-                            <p class="text-text-muted text-sm">
-                                There are no additional rooms available to add to your dashboard.
-                            </p>
-                        </div>
-                    {% endif %}
-                </section>
-            {% endif %}
-
-            <!-- All Rooms Section (Admin/Technician only) -->
-            {% if session.role in ['admin', 'technician'] %}
-                <section id="allRoomsSection">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-text-primary flex items-center gap-2">
-                            <i class="fas fa-building text-accent-blue"></i>
-                            All System Rooms
-                        </h3>
-                        <span class="text-xs text-text-muted room-count flex items-center gap-1">
-                            <i class="fas fa-hashtag"></i>
-                            <span id="allRoomsCount">{{ all_rooms|length }}</span> of {{ all_rooms|length }} room
-                            {% if all_rooms|length != 1 %}s{% endif %} total
-                        </span>
-                    </div>
-
-                    {% if all_rooms and all_rooms|length > 0 %}
-                        <div class="card p-5 overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="table w-full">
-                                    <thead class="bg-tertiary">
-                                    <tr>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-door-closed mr-2"></i>Room Name
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-map-marker-alt mr-2"></i>Location
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-microchip mr-2"></i>Devices
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-chart-line mr-2"></i>With Readings
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-thermometer-half mr-2"></i>Avg Temp
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-tint mr-2"></i>Avg Humidity
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-clock mr-2"></i>Last Update
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-user mr-2"></i>Owners
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">Actions</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="allRoomsTable">
-                                    {% for r in all_rooms %}
-                                        <tr class="all-room-row hover:bg-tertiary/40 transition border-b border-border"
-                                            data-room-name="{{ r.room_name.lower() }}"
-                                            data-location="{{ (r.location or '').lower() }}"
-                                            data-devices="{{ r.devices_count }}"
-                                            data-readings="{{ r.devices_with_readings }}"
-                                            data-temp="{{ r.avg_temp or '' }}"
-                                            data-humidity="{{ r.avg_humidity or '' }}"
-                                            data-owner="{{ (r.owner_username or '').lower() }}"
-                                            data-last-update="{{ (r.last_update or '')|string|lower }}">
-                                            <td class="text-center p-3">
-                                                <a href="{{ url_for('room', room_id=r.id) }}"
-                                                   class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2 justify-center">
-                                                    <i class="fas fa-door-open"></i>
-                                                    {{ r.room_name }}
-                                                </a>
-                                            </td>
-                                            <td class="text-center p-3 text-text-muted">
-                                                {{ r.location or '—' }}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <span class="inline-flex items-center gap-1 justify-center">
-                                                    <i class="fas fa-microchip text-text-muted"></i>
-                                                    {{ r.devices_count or 0 }}
-                                                </span>
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <span class="inline-flex items-center gap-1 justify-center">
-                                                    <i class="fas fa-chart-line text-accent-green"></i>
-                                                    {{ r.devices_with_readings or 0 }}
-                                                </span>
-                                            </td>
-                                            <td class="text-center p-3">
-                                                {% if r.avg_temp is not none %}
-                                                    <span class="inline-flex items-center gap-1 justify-center">
-                                                        <i class="fas fa-thermometer-half text-accent-red"></i>
-                                                        {{ '%.1f'|format(r.avg_temp) }}°C
-                                                    </span>
-                                                {% else %}—{% endif %}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                {% if r.avg_humidity is not none %}
-                                                    <span class="inline-flex items-center gap-1 justify-center">
-                                                        <i class="fas fa-tint text-accent-blue"></i>
-                                                        {{ '%.1f'|format(r.avg_humidity) }}%
-                                                    </span>
-                                                {% else %}—{% endif %}
-                                            </td>
-                                            <td class="text-center p-3 whitespace-nowrap text-text-muted text-sm">
-                                                {% if r.last_update %}
-                                                    <span class="inline-flex items-center gap-1 justify-center">
-                                                        <i class="fas fa-calendar"></i>
-                                                        {{ (r.last_update|string).replace('T',' ') }}
-                                                    </span>
-                                                {% else %}—{% endif %}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                {{ r.owner_username or '—' }}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <div class="flex justify-center gap-2">
-                                                    <a href="{{ url_for('room', room_id=r.id) }}"
-                                                       class="btn bg-accent-blue hover:bg-accent-blue-hover text-white btn-sm flex items-center gap-2">
-                                                        <i class="fas fa-eye"></i>
-                                                        View
-                                                    </a>
-                                                    <button onclick="showDeleteRoomConfirm({{ r.id }}, '{{ r.room_name }}')"
-                                                            class="btn bg-accent-red hover:bg-accent-red-hover text-white btn-sm flex items-center gap-2">
-                                                        <i class="fas fa-trash"></i>
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="card p-8 text-center">
-                            <i class="fas fa-inbox text-4xl text-text-muted mb-4"></i>
-                            <h3 class="text-lg font-semibold text-text-primary mb-2">No Rooms Found</h3>
-                            <p class="text-text-muted text-sm">
-                                No rooms have been created yet.
-                            </p>
-                        </div>
-                    {% endif %}
-                </section>
-            {% endif %}
+  <main class="main-content">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="header-content">
+        <div>
+          <h1 class="text-4xl font-extrabold text-text-primary mb-2">
+            System Setup
+          </h1>
+          <p class="header-subtitle">
+            {% if session.role in ['admin', 'technician'] %} Manage all rooms
+            and devices system-wide. {% else %} Create and manage your rooms. {%
+            endif %}
+          </p>
         </div>
+        <div class="flex items-center gap-3">
+          {% include 'components/notification_bell.html' %}
+        </div>
+      </div>
+    </header>
 
-        <!-- Devices Tab Content (Admin/Technician only) -->
-        {% if session.role in ['admin', 'technician'] %}
-            <div id="devices-content" class="tab-content active">
-                <!-- Devices Table -->
-                <section>
-                    <div class="text-xl mb-4 text-text-primary flex items-center gap-2">
-                        {% if session.role in ['admin', 'technician'] %}
-                            <button id="openAddDeviceModal"
-                                    class="btn bg-accent-green hover:bg-accent-blue-hover text-white rounded flex items-center gap-2">
-                                <i class="fas fa-plus"></i>
-                                Add Device
-                            </button>
-                        {% endif %}
-                    </div>
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-text-primary flex items-center gap-2">
-                            <i class="fas fa-microchip text-accent-purple"></i>
-                            All System Devices
-                        </h3>
-                        <span class="text-xs text-text-muted device-count flex items-center gap-1">
-                            <i class="fas fa-hashtag"></i>
-                            <span id="devicesCount">{{ devices|length if devices else 0 }}</span> of {{ devices|length if devices else 0 }} device
-                            {% if (devices|length if devices else 0) != 1 %}s{% endif %} total
-                        </span>
-                    </div>
+    <!-- Tab Navigation -->
+    {% if session.role in ['admin', 'technician'] %}
+    <div class="mb-6">
+      <div class="border-b border-border">
+        <nav class="-mb-px flex space-x-8">
+          <button
+            id="devices-tab"
+            class="tab-button active py-4 px-1 border-b-2 border-accent-blue font-medium text-sm text-accent-blue"
+            onclick="switchTab('devices')"
+          >
+            <i class="fas fa-microchip mr-2"></i>All Devices
+          </button>
 
-                    {% if devices and devices|length > 0 %}
-                        <div class="card p-5 overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="table w-full">
-                                    <thead class="bg-tertiary">
-                                    <tr>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-tag mr-2"></i>Device Name
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-fingerprint mr-2"></i>Device UID
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-cog mr-2"></i>Type
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-circle mr-2"></i>Status
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-door-open mr-2"></i>Room
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-map-marker-alt mr-2"></i>Location
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-clock mr-2"></i>Last Seen
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">
-                                            <i class="fas fa-calendar mr-2"></i>Installed
-                                        </th>
-                                        <th class="text-center p-3 text-text-primary font-medium">Actions</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="devicesTable">
-                                    {% for device in devices %}
-                                        <tr class="device-row hover:bg-tertiary/40 transition border-b border-border"
-                                            data-device-name="{{ device.name.lower() }}"
-                                            data-device-uid="{{ device.device_uid.lower() }}"
-                                            data-device-type="{{ (device.type or '').lower() }}"
-                                            data-device-status="{{ device.status.lower() }}"
-                                            data-room-name="{{ (device.room_name or '').lower() }}"
-                                            data-room-location="{{ (device.room_location or '').lower() }}"
-                                            data-last-seen="{{ (device.last_seen_at or '').lower() }}">
-                                            <td class="text-center p-3">
-                                                <span class="text-text-primary font-medium flex items-center gap-2 justify-center">
-                                                    <i class="fas fa-microchip text-accent-purple"></i>
-                                                    {{ device.name }}
-                                                </span>
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <code class="text-text-muted bg-secondary px-2 py-1 rounded text-sm">{{ device.device_uid }}</code>
-                                            </td>
-                                            <td class="text-center p-3 text-text-muted">
-                                                {{ device.type or '—' }}
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium justify-center
-                                                    {% if device.status == 'active' %}bg-green-600 text-white
-                                                    {% else %}bg-gray-600 text-white{% endif %}">
-                                                    <i class="fas fa-circle text-xs"></i>
-                                                    {{ device.status|title }}
-                                                </span>
-                                            </td>
-                                            <td class="text-center p-3">
-                                                {% if device.room_name %}
-                                                    <a href="{{ url_for('room', room_id=device.room_id) }}"
-                                                       class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2 justify-center">
-                                                        <i class="fas fa-door-open"></i>
-                                                        {{ device.room_name }}
-                                                    </a>
-                                                {% else %}
-                                                    <span class="text-text-muted">—</span>
-                                                {% endif %}
-                                            </td>
-                                            <td class="text-center p-3 text-text-muted">
-                                                {{ device.room_location or '—' }}
-                                            </td>
-                                            <td class="text-center p-3 whitespace-nowrap text-text-muted text-sm">
-                                                {% if device.last_seen_at %}
-                                                    <span class="inline-flex items-center gap-1 justify-center">
-                                                        <i class="fas fa-clock"></i>
-                                                        {{ device.last_seen_at.strftime('%Y-%m-%d %H:%M') }}
-                                                    </span>
-                                                {% else %}—{% endif %}
-                                            </td>
-                                            <td class="text-center p-3 whitespace-nowrap text-text-muted text-sm">
-                                                <span class="inline-flex items-center gap-1 justify-center">
-                                                    <i class="fas fa-calendar"></i>
-                                                    {{ device.installed_at.strftime('%Y-%m-%d') }}
-                                                </span>
-                                            </td>
-                                            <td class="text-center p-3">
-                                                <div class="flex justify-center gap-2">
-                                                    <button onclick="showDeleteDeviceConfirm({{ device.id }}, '{{ device.name }}')"
-                                                            class="btn bg-accent-red hover:bg-accent-red-hover text-white btn-sm flex items-center gap-2">
-                                                        <i class="fas fa-trash"></i>
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="card p-8 text-center">
-                            <i class="fas fa-microchip text-4xl text-text-muted mb-4"></i>
-                            <h3 class="text-lg font-semibold text-text-primary mb-2">No Devices Found</h3>
-                            <p class="text-text-muted text-sm mb-4">
-                                {% if devices is defined %}
-                                    No devices have been added to the system yet.
-                                {% else %}
-                                    Devices data could not be loaded.
-                                {% endif %}
-                            </p>
-                            <button id="openAddDeviceModalFromDevices"
-                                    class="btn bg-accent-blue hover:bg-accent-blue-hover text-white flex items-center gap-2 mx-auto">
-                                <i class="fas fa-plus"></i>
-                                Add Your First Device
-                            </button>
-                        </div>
-                    {% endif %}
-                </section>
+          <button
+            id="rooms-tab"
+            class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-text-muted hover:text-text-primary hover:border-border"
+            onclick="switchTab('rooms')"
+          >
+            <i class="fas fa-building mr-2"></i>Rooms Management
+          </button>
+        </nav>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Universal Search Bar -->
+    <section class="mb-6">
+      <div class="card p-4">
+        <div class="relative">
+          <input
+            type="text"
+            id="universalSearchInput"
+            placeholder="{% if session.role in ['admin', 'technician'] %}Search devices by name, UID, type, status, room, or location...{% else %}Search rooms by name, location, or devices...{% endif %}"
+            class="w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent transition duration-200"
+          />
+          <div
+            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+          >
+            <i class="fas fa-search text-text-muted"></i>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rooms Tab Content -->
+    <div
+      id="rooms-content"
+      class="tab-content {% if session.role in ['admin', 'technician'] %}hidden{% else %}active{% endif %}"
+    >
+      {% if session.role not in ['admin', 'technician'] and user_rooms|length ==
+      0 and available_rooms|length == 0 %}
+      <section class="mb-6">
+        <div class="card p-6 bg-accent-yellow/20 border border-accent-yellow">
+          <div class="flex items-center gap-3">
+            <i
+              class="fas fa-exclamation-triangle text-accent-yellow text-xl"
+            ></i>
+            <div>
+              <h4 class="text-lg font-semibold text-accent-yellow">
+                No Rooms Available
+              </h4>
+              <p class="text-text-secondary text-sm">
+                There are no rooms available in the system yet. Please contact
+                an administrator to add rooms.
+              </p>
             </div>
-        {% endif %}
+          </div>
+        </div>
+      </section>
+      {% endif %}
 
-        <!-- Add Device Modal (Technician and Admin) -->
-        {% if session.role in ['admin', 'technician'] %}
-            <div
-                    id="addDeviceModal"
-                    class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50"
+      <!-- Room Management Filters (Regular Users Only) -->
+      {% if session.role not in ['admin', 'technician'] %}
+      <section class="mb-6">
+        <div class="card p-4">
+          <div class="flex flex-wrap gap-2">
+            <button
+              id="filterMyRooms"
+              class="filter-room-btn active px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-accent-blue text-white flex items-center gap-2"
+              onclick="switchRoomFilter('my-rooms')"
             >
-                <div
-                        class="bg-secondary rounded-xl shadow-xl w-full max-w-lg p-6 border border-border"
-                >
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
-                            <i class="fas fa-plus-circle text-accent-blue"></i>
-                            Add Device
-                        </h3>
-                        <button
-                                id="closeAddDeviceModal"
-                                class="text-text-muted hover:text-text-primary text-xl"
-                        >
-                            &times;
-                        </button>
-                    </div>
-
-                    <form
-                            method="post"
-                            action="{{ url_for('add_device') }}"
-                            class="space-y-4"
-                    >
-                        <div>
-                            <label class="form-label flex items-center gap-2">
-                                <i class="fas fa-door-open text-text-muted"></i>
-                                Room
-                            </label>
-                            <select name="room_id" class="form-input" required>
-                                <option value="" disabled selected>Select a room</option>
-                                {% for r in all_rooms %}
-                                    <option value="{{ r.id }}">{{ r.room_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="form-label flex items-center gap-2">
-                                <i class="fas fa-tag text-text-muted"></i>
-                                Device Name
-                            </label>
-                            <input type="text" name="name" class="form-input" required/>
-                        </div>
-
-                        <div>
-                            <label class="form-label flex items-center gap-2">
-                                <i class="fas fa-fingerprint text-text-muted"></i>
-                                Device UID
-                            </label>
-                            <input type="text" name="device_uid" class="form-input" required/>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="form-label flex items-center gap-2">
-                                    <i class="fas fa-cog text-text-muted"></i>
-                                    Type
-                                </label>
-                                <input type="text" name="type" class="form-input" placeholder="e.g., Sensor"/>
-                            </div>
-                            <div>
-                                <label class="form-label flex items-center gap-2">
-                                    <i class="fas fa-circle text-text-muted"></i>
-                                    Status
-                                </label>
-                                <select name="status" class="form-input">
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-2 pt-2">
-                            <button
-                                    type="button"
-                                    id="cancelAddDevice"
-                                    class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary flex items-center gap-2"
-                            >
-                                <i class="fas fa-times"></i>
-                                Cancel
-                            </button>
-                            <button class="btn bg-accent-blue hover:bg-accent-blue-hover text-white flex items-center gap-2">
-                                <i class="fas fa-save"></i>
-                                Save Device
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        {% endif %}
-    </main>
-</div>
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteConfirmModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4">
-        <div class="bg-secondary rounded-xl shadow-xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] overflow-hidden border border-border mx-2 sm:mx-0">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between p-4 sm:p-6 border-b border-border">
-                <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
-                    <i class="fas fa-exclamation-triangle text-red-500"></i>
-                    <span class="text-sm sm:text-base">Confirm Deletion</span>
-                </h3>
-                <button id="closeDeleteModal" class="text-text-muted hover:text-text-primary text-xl transition-colors">
-                    &times;
-                </button>
-            </div>
-
-            <!-- Modal Content -->
-            <div class="p-4 sm:p-6 overflow-y-auto">
-                <p class="text-text-primary mb-4 text-sm sm:text-base" id="deleteMessage">
-                    Are you sure you want to delete this item?
-                </p>
-                <div class="flex flex-col sm:flex-row gap-3 justify-end">
-                    <button id="cancelDelete"
-                            class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary px-4 py-2 text-sm sm:text-base order-2 sm:order-1 w-full sm:w-auto">
-                        Cancel
-                    </button>
-                    <button id="confirmDelete"
-                            class="btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto">
-                        Delete
-                    </button>
-                </div>
-            </div>
+              <i class="fas fa-home"></i>
+              My Rooms ({{ user_rooms|length }})
+            </button>
+            <button
+              id="filterAvailableRooms"
+              class="filter-room-btn inactive px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-tertiary text-text-secondary hover:bg-tertiary-hover flex items-center gap-2"
+              onclick="switchRoomFilter('available-rooms')"
+            >
+              <i class="fas fa-door-open"></i>
+              Available Rooms ({{ available_rooms|length }})
+            </button>
+          </div>
         </div>
+      </section>
+      {% endif %}
+
+      <!-- Create Room (Technician and Admin) -->
+      {% if session.role in ['admin', 'technician'] %}
+      <section class="mb-6" id="createRoomSection">
+        <h3
+          class="text-xl font-semibold mb-4 text-text-primary flex items-center gap-2"
+        >
+          <i class="fas fa-plus-circle text-accent-green"></i>
+          Create a New Room
+        </h3>
+
+        <form
+          action="{{ url_for('setuprooms_create') }}"
+          method="post"
+          class="card p-4"
+        >
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div class="md:col-span-2">
+              <label for="room_name" class="form-label flex items-center gap-2">
+                <i class="fas fa-door-closed text-text-muted"></i>
+                Room Name
+              </label>
+              <input
+                id="room_name"
+                name="room_name"
+                type="text"
+                class="form-input"
+                placeholder="e.g. Chemistry Lab 2"
+                required
+              />
+            </div>
+
+            <div class="md:col-span-1">
+              <label
+                for="room_location"
+                class="form-label flex items-center gap-2"
+              >
+                <i class="fas fa-map-marker-alt text-text-muted"></i>
+                Location (optional)
+              </label>
+              <input
+                id="room_location"
+                name="room_location"
+                type="text"
+                class="form-input"
+                placeholder="e.g. Building B"
+              />
+            </div>
+
+            <div class="md:col-span-1">
+              <button
+                type="submit"
+                class="btn bg-accent-green hover:bg-accent-green-hover text-white w-full flex items-center justify-center gap-2"
+              >
+                <i class="fas fa-plus"></i>
+                Add Room
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+      {% endif %}
+
+      <!-- My Rooms Section (Regular Users Only) -->
+      {% if session.role not in ['admin', 'technician'] %}
+      <section id="myRoomsSection" class="room-section">
+        <div class="flex items-center justify-between mb-4">
+          <h3
+            class="text-xl font-semibold text-text-primary flex items-center gap-2"
+          >
+            <i class="fas fa-home text-accent-blue"></i>
+            My Rooms
+          </h3>
+          <span
+            class="text-xs text-text-muted room-count flex items-center gap-1"
+          >
+            <i class="fas fa-hashtag"></i>
+            Showing <span id="myRoomsCount">{{ user_rooms|length }}</span> of {{
+            user_rooms|length }} room {% if user_rooms|length != 1 %}s{% endif
+            %}
+          </span>
+        </div>
+
+        {% if user_rooms and user_rooms|length > 0 %}
+        <div class="card p-5 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <thead class="bg-tertiary">
+                <tr>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-door-closed mr-2"></i>Room Name
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-map-marker-alt mr-2"></i>Location
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-microchip mr-2"></i>Devices
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-thermometer-half mr-2"></i>Avg Temp
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-tint mr-2"></i>Avg Humidity
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="myRoomsTable">
+                {% for r in user_rooms %}
+                <tr
+                  class="room-row hover:bg-tertiary/40 transition border-b border-border"
+                  data-room-name="{{ r.room_name.lower() }}"
+                  data-location="{{ (r.location or '').lower() }}"
+                  data-devices="{{ r.devices_count }}"
+                >
+                  <td class="text-center p-3">
+                    <a
+                      href="{{ url_for('room', room_id=r.id) }}"
+                      class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2 justify-center"
+                    >
+                      <i class="fas fa-door-open"></i>
+                      {{ r.room_name }}
+                    </a>
+                  </td>
+                  <td class="text-center p-3 text-text-muted">
+                    {{ r.location or '—' }}
+                  </td>
+                  <td class="text-center p-3">
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-microchip text-text-muted"></i>
+                      {{ r.devices_count or 0 }}
+                    </span>
+                  </td>
+                  <td class="text-center p-3">
+                    {% if r.avg_temp is not none %}
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-thermometer-half text-accent-red"></i>
+                      {{ '%.1f'|format(r.avg_temp) }}°C
+                    </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-center p-3">
+                    {% if r.avg_humidity is not none %}
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-tint text-accent-blue"></i>
+                      {{ '%.1f'|format(r.avg_humidity) }}%
+                    </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-center p-3">
+                    <div class="flex justify-center gap-2">
+                      <a
+                        href="{{ url_for('room', room_id=r.id) }}"
+                        class="btn bg-accent-blue hover:bg-accent-blue-hover text-white btn-sm flex items-center gap-2"
+                      >
+                        <i class="fas fa-eye"></i>
+                        View
+                      </a>
+                      <form
+                        action="{{ url_for('dashboard_remove_room', room_id=r.id) }}"
+                        method="post"
+                        class="inline"
+                      >
+                        <button
+                          type="submit"
+                          class="btn bg-accent-red hover:bg-accent-red-hover text-white btn-sm flex items-center gap-2"
+                          onclick="return confirm('Remove {{ r.room_name }} from your rooms?')"
+                        >
+                          <i class="fas fa-times"></i>
+                          Remove
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="card p-8 text-center">
+          <i class="fas fa-inbox text-4xl text-text-muted mb-4"></i>
+          <h3 class="text-lg font-semibold text-text-primary mb-2">
+            No Rooms Added
+          </h3>
+          <p class="text-text-muted text-sm mb-4">
+            You haven't added any rooms to your dashboard yet.
+          </p>
+          <p
+            class="text-text-muted text-sm flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-arrow-right"></i>
+            Use the "Available Rooms" tab to find and add rooms.
+          </p>
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <!-- Available Rooms Section (Regular Users Only) -->
+      {% if session.role not in ['admin', 'technician'] %}
+      <section id="availableRoomsSection" class="room-section hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h3
+            class="text-xl font-semibold text-text-primary flex items-center gap-2"
+          >
+            <i class="fas fa-door-open text-accent-green"></i>
+            Available Rooms
+          </h3>
+          <span
+            class="text-xs text-text-muted room-count flex items-center gap-1"
+          >
+            <i class="fas fa-hashtag"></i>
+            Showing
+            <span id="availableRoomsCount">{{ available_rooms|length }}</span>
+            of {{ available_rooms|length }} room {% if available_rooms|length !=
+            1 %}s{% endif %} available
+          </span>
+        </div>
+
+        {% if available_rooms and available_rooms|length > 0 %}
+        <div class="card p-5 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <thead class="bg-tertiary">
+                <tr>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-door-closed mr-2"></i>Room Name
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-map-marker-alt mr-2"></i>Location
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-microchip mr-2"></i>Devices
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-thermometer-half mr-2"></i>Avg Temp
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-tint mr-2"></i>Avg Humidity
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="availableRoomsTable">
+                {% for r in available_rooms %}
+                <tr
+                  class="room-row hover:bg-tertiary/40 transition border-b border-border"
+                  data-room-name="{{ r.room_name.lower() }}"
+                  data-location="{{ (r.location or '').lower() }}"
+                  data-devices="{{ r.devices_count }}"
+                >
+                  <td class="text-center p-3">
+                    <a
+                      href="{{ url_for('room', room_id=r.id) }}"
+                      class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2 justify-center"
+                    >
+                      <i class="fas fa-door-open"></i>
+                      {{ r.room_name }}
+                    </a>
+                  </td>
+                  <td class="text-center p-3 text-text-muted">
+                    {{ r.location or '—' }}
+                  </td>
+                  <td class="text-center p-3">
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-microchip text-text-muted"></i>
+                      {{ r.devices_count or 0 }}
+                    </span>
+                  </td>
+                  <td class="text-center p-3">
+                    {% if r.avg_temp is not none %}
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-thermometer-half text-accent-red"></i>
+                      {{ '%.1f'|format(r.avg_temp) }}°C
+                    </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-center p-3">
+                    {% if r.avg_humidity is not none %}
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-tint text-accent-blue"></i>
+                      {{ '%.1f'|format(r.avg_humidity) }}%
+                    </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-center p-3">
+                    <form
+                      action="{{ url_for('dashboard_add_room', room_id=r.id) }}"
+                      method="post"
+                      class="flex justify-center"
+                    >
+                      <button
+                        type="submit"
+                        class="btn bg-accent-green hover:bg-accent-green-hover text-white btn-sm flex items-center gap-2"
+                      >
+                        <i class="fas fa-plus"></i>
+                        Add to My Rooms
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="card p-8 text-center">
+          <i class="fas fa-search text-4xl text-text-muted mb-4"></i>
+          <h3 class="text-lg font-semibold text-text-primary mb-2">
+            No Available Rooms
+          </h3>
+          <p class="text-text-muted text-sm">
+            There are no additional rooms available to add to your dashboard.
+          </p>
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <!-- All Rooms Section (Admin/Technician only) -->
+      {% if session.role in ['admin', 'technician'] %}
+      <section id="allRoomsSection">
+        <div class="flex items-center justify-between mb-4">
+          <h3
+            class="text-xl font-semibold text-text-primary flex items-center gap-2"
+          >
+            <i class="fas fa-building text-accent-blue"></i>
+            All System Rooms
+          </h3>
+          <span
+            class="text-xs text-text-muted room-count flex items-center gap-1"
+          >
+            <i class="fas fa-hashtag"></i>
+            <span id="allRoomsCount">{{ all_rooms|length }}</span> of {{
+            all_rooms|length }} room {% if all_rooms|length != 1 %}s{% endif %}
+            total
+          </span>
+        </div>
+
+        {% if all_rooms and all_rooms|length > 0 %}
+        <div class="card p-5 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <thead class="bg-tertiary">
+                <tr>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-door-closed mr-2"></i>Room Name
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-map-marker-alt mr-2"></i>Location
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-microchip mr-2"></i>Devices
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-chart-line mr-2"></i>With Readings
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-thermometer-half mr-2"></i>Avg Temp
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-tint mr-2"></i>Avg Humidity
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-clock mr-2"></i>Last Update
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-user mr-2"></i>Owners
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="allRoomsTable">
+                {% for r in all_rooms %}
+                <tr
+                  class="all-room-row hover:bg-tertiary/40 transition border-b border-border"
+                  data-room-name="{{ r.room_name.lower() }}"
+                  data-location="{{ (r.location or '').lower() }}"
+                  data-devices="{{ r.devices_count }}"
+                  data-readings="{{ r.devices_with_readings }}"
+                  data-temp="{{ r.avg_temp or '' }}"
+                  data-humidity="{{ r.avg_humidity or '' }}"
+                  data-owner="{{ (r.owner_username or '').lower() }}"
+                  data-last-update="{{ (r.last_update or '')|string|lower }}"
+                >
+                  <td class="text-center p-3">
+                    <a
+                      href="{{ url_for('room', room_id=r.id) }}"
+                      class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2 justify-center"
+                    >
+                      <i class="fas fa-door-open"></i>
+                      {{ r.room_name }}
+                    </a>
+                  </td>
+                  <td class="text-center p-3 text-text-muted">
+                    {{ r.location or '—' }}
+                  </td>
+                  <td class="text-center p-3">
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-microchip text-text-muted"></i>
+                      {{ r.devices_count or 0 }}
+                    </span>
+                  </td>
+                  <td class="text-center p-3">
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-chart-line text-accent-green"></i>
+                      {{ r.devices_with_readings or 0 }}
+                    </span>
+                  </td>
+                  <td class="text-center p-3">
+                    {% if r.avg_temp is not none %}
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-thermometer-half text-accent-red"></i>
+                      {{ '%.1f'|format(r.avg_temp) }}°C
+                    </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-center p-3">
+                    {% if r.avg_humidity is not none %}
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-tint text-accent-blue"></i>
+                      {{ '%.1f'|format(r.avg_humidity) }}%
+                    </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td
+                    class="text-center p-3 whitespace-nowrap text-text-muted text-sm"
+                  >
+                    {% if r.last_update %}
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-calendar"></i>
+                      {{ (r.last_update|string).replace('T',' ') }}
+                    </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-center p-3">{{ r.owner_username or '—' }}</td>
+                  <td class="text-center p-3">
+                    <div class="flex justify-center gap-2">
+                      <a
+                        href="{{ url_for('room', room_id=r.id) }}"
+                        class="btn bg-accent-blue hover:bg-accent-blue-hover text-white btn-sm flex items-center gap-2"
+                      >
+                        <i class="fas fa-eye"></i>
+                        View
+                      </a>
+                      <button
+                        onclick="showDeleteRoomConfirm({{ r.id }}, '{{ r.room_name }}')"
+                        class="btn bg-accent-red hover:bg-accent-red-hover text-white btn-sm flex items-center gap-2"
+                      >
+                        <i class="fas fa-trash"></i>
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="card p-8 text-center">
+          <i class="fas fa-inbox text-4xl text-text-muted mb-4"></i>
+          <h3 class="text-lg font-semibold text-text-primary mb-2">
+            No Rooms Found
+          </h3>
+          <p class="text-text-muted text-sm">No rooms have been created yet.</p>
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
     </div>
 
-    <!-- Tab and Search Functionality -->
-    <script>
-        // Delete functionality state
-        window.deleteState = {
-            pendingDeleteId: null,
-            deleteType: null, // 'room' or 'device'
-            isModalOpen: false
-        };
-
-        // Track current active tab
-        window.currentActiveTab = '{% if session.role in ['admin', 'technician'] %}devices{% else %}rooms{% endif %}';
-
-        // Show delete confirmation modal for rooms
-        function showDeleteRoomConfirm(roomId, roomName) {
-            window.deleteState.pendingDeleteId = roomId;
-            window.deleteState.deleteType = 'room';
-            window.deleteState.isModalOpen = true;
-
-            const modal = document.getElementById('deleteConfirmModal');
-            const message = document.getElementById('deleteMessage');
-
-            message.textContent = `Are you sure you want to delete the room "${roomName}"? This will also delete all devices and readings associated with this room. This action cannot be undone.`;
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-
-        // Show delete confirmation modal for devices
-        function showDeleteDeviceConfirm(deviceId, deviceName) {
-            window.deleteState.pendingDeleteId = deviceId;
-            window.deleteState.deleteType = 'device';
-            window.deleteState.isModalOpen = true;
-
-            const modal = document.getElementById('deleteConfirmModal');
-            const message = document.getElementById('deleteMessage');
-
-            message.textContent = `Are you sure you want to delete the device "${deviceName}"? This will also delete all readings associated with this device. This action cannot be undone.`;
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-
-        // Hide delete confirmation modal
-        function hideDeleteConfirm() {
-            const modal = document.getElementById('deleteConfirmModal');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-            document.body.style.overflow = '';
-            window.deleteState.pendingDeleteId = null;
-            window.deleteState.deleteType = null;
-            window.deleteState.isModalOpen = false;
-        }
-
-        // Perform the delete action
-        function performDelete() {
-            if (!window.deleteState.pendingDeleteId || !window.deleteState.deleteType) {
-                console.error('No delete operation pending');
-                return;
-            }
-
-            const id = window.deleteState.pendingDeleteId;
-            const type = window.deleteState.deleteType;
-
-            if (type === 'room') {
-                deleteRoom(id);
-            } else if (type === 'device') {
-                deleteDevice(id);
-            }
-
-            hideDeleteConfirm();
-        }
-
-        // Delete room function
-        function deleteRoom(roomId) {
-            fetch(`/setup/rooms/${roomId}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    showToast('Room deleted successfully', 'success');
-                    // Reload the page to reflect changes
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    throw new Error('Failed to delete room');
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting room:', error);
-                showToast('Failed to delete room', 'error');
-            });
-        }
-
-        // Delete device function
-        function deleteDevice(deviceId) {
-            fetch(`/setup/devices/${deviceId}/delete`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    showToast('Device deleted successfully', 'success');
-                    // Remove the device row from the table
-                    const deviceRow = document.querySelector(`[data-device-id="${deviceId}"]`);
-                    if (deviceRow) {
-                        deviceRow.remove();
-                        updateDeviceCount();
-                    } else {
-                        // If we can't find the specific row, reload the page
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    }
-                } else {
-                    throw new Error('Failed to delete device');
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting device:', error);
-                showToast('Failed to delete device', 'error');
-            });
-        }
-
-        // Update device count display
-        function updateDeviceCount() {
-            const devicesTable = document.getElementById('devicesTable');
-            if (devicesTable) {
-                const visibleRows = devicesTable.querySelectorAll('.device-row:not(.hidden)');
-                const countElement = document.getElementById('devicesCount');
-                if (countElement) {
-                    countElement.textContent = visibleRows.length;
-                }
-            }
-        }
-
-        // Toast notification function
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transform transition-all duration-300 ${
-                type === 'success' ? 'bg-green-600 text-white' :
-                type === 'error' ? 'bg-red-600 text-white' :
-                'bg-blue-600 text-white'
-            }`;
-            toast.textContent = message;
-
-            document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 300);
-            }, 3000);
-        }
-
-        // Room filter switching for regular users
-        function switchRoomFilter(filterType) {
-            const myRoomsSection = document.getElementById('myRoomsSection');
-            const availableRoomsSection = document.getElementById('availableRoomsSection');
-            const myRoomsBtn = document.getElementById('filterMyRooms');
-            const availableRoomsBtn = document.getElementById('filterAvailableRooms');
-
-            if (filterType === 'my-rooms') {
-                myRoomsSection.classList.remove('hidden');
-                availableRoomsSection.classList.add('hidden');
-                myRoomsBtn.classList.remove('inactive', 'bg-tertiary', 'text-text-secondary');
-                myRoomsBtn.classList.add('active', 'bg-accent-blue', 'text-white');
-                availableRoomsBtn.classList.remove('active', 'bg-accent-blue', 'text-white');
-                availableRoomsBtn.classList.add('inactive', 'bg-tertiary', 'text-text-secondary');
-            } else if (filterType === 'available-rooms') {
-                myRoomsSection.classList.add('hidden');
-                availableRoomsSection.classList.remove('hidden');
-                myRoomsBtn.classList.remove('active', 'bg-accent-blue', 'text-white');
-                myRoomsBtn.classList.add('inactive', 'bg-tertiary', 'text-text-secondary');
-                availableRoomsBtn.classList.remove('inactive', 'bg-tertiary', 'text-text-secondary');
-                availableRoomsBtn.classList.add('active', 'bg-accent-blue', 'text-white');
-            }
-
-            // Re-apply current search when switching filters
-            const searchInput = document.getElementById('universalSearchInput');
-            if (searchInput) {
-                performSearch(searchInput.value);
-            }
-        }
-
-        // Tab switching functionality
-        window.switchTab = function(tabName) {
-            console.log('Switching to tab:', tabName);
-            window.currentActiveTab = tabName;
-
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-                tab.classList.add('hidden');
-            });
-
-            // Remove active class from all tab buttons
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active', 'border-accent-blue', 'text-accent-blue');
-                button.classList.add('border-transparent', 'text-text-muted');
-            });
-
-            // Show selected tab content
-            const selectedTab = document.getElementById(`${tabName}-content`);
-            if (selectedTab) {
-                selectedTab.classList.add('active');
-                selectedTab.classList.remove('hidden');
-                console.log('Showing tab content:', tabName);
-            }
-
-            // Activate selected tab button
-            const selectedButton = document.getElementById(`${tabName}-tab`);
-            if (selectedButton) {
-                selectedButton.classList.add('active', 'border-accent-blue', 'text-accent-blue');
-                selectedButton.classList.remove('border-transparent', 'text-text-muted');
-            }
-
-            // Update search placeholder based on active tab
-            const searchInput = document.getElementById('universalSearchInput');
-            if (searchInput) {
-                if (tabName === 'devices') {
-                    searchInput.placeholder = 'Search devices by name, UID, type, status, room, or location...';
-                } else if (tabName === 'rooms') {
-                    searchInput.placeholder = 'Search all rooms by name, location, devices, owner, or readings...';
-                }
-            }
-
-            // Clear search when switching tabs
-            if (searchInput) {
-                searchInput.value = '';
-                performSearch(''); // Reset all filters
-            }
-        };
-
-        // Universal search functionality
-        function performSearch(searchTerm) {
-            const term = searchTerm.trim().toLowerCase();
-
-            if (window.currentActiveTab === 'devices') {
-                // Search devices
-                const devicesTable = document.getElementById('devicesTable');
-                if (devicesTable) {
-                    const rows = devicesTable.querySelectorAll('.device-row');
-                    let visibleCount = 0;
-
-                    rows.forEach(row => {
-                        const deviceName = row.dataset.deviceName || '';
-                        const deviceUid = row.dataset.deviceUid || '';
-                        const deviceType = row.dataset.deviceType || '';
-                        const deviceStatus = row.dataset.deviceStatus || '';
-                        const roomName = row.dataset.roomName || '';
-                        const roomLocation = row.dataset.roomLocation || '';
-                        const lastSeen = row.dataset.lastSeen || '';
-
-                        const matches = !term ||
-                            deviceName.includes(term) ||
-                            deviceUid.includes(term) ||
-                            deviceType.includes(term) ||
-                            deviceStatus.includes(term) ||
-                            roomName.includes(term) ||
-                            roomLocation.includes(term) ||
-                            lastSeen.includes(term);
-
-                        if (matches) {
-                            row.classList.remove('hidden');
-                            visibleCount++;
-                        } else {
-                            row.classList.add('hidden');
-                        }
-                    });
-
-                    updateDeviceCount();
-                    console.log(`Device search: ${visibleCount} devices match "${term}"`);
-                }
-            } else if (window.currentActiveTab === 'rooms') {
-                // Search rooms (for admin/technician)
-                const allRoomsSection = document.getElementById('allRoomsSection');
-                if (allRoomsSection) {
-                    const rows = allRoomsSection.querySelectorAll('.all-room-row');
-                    let visibleCount = 0;
-
-                    rows.forEach(row => {
-                        const roomName = row.dataset.roomName || '';
-                        const location = row.dataset.location || '';
-                        const devices = row.dataset.devices || '';
-                        const readings = row.dataset.readings || '';
-                        const temp = row.dataset.temp || '';
-                        const humidity = row.dataset.humidity || '';
-                        const owner = row.dataset.owner || '';
-                        const lastUpdate = row.dataset.lastUpdate || '';
-
-                        const matches = !term ||
-                            roomName.includes(term) ||
-                            location.includes(term) ||
-                            devices.includes(term) ||
-                            readings.includes(term) ||
-                            temp.includes(term) ||
-                            humidity.includes(term) ||
-                            owner.includes(term) ||
-                            lastUpdate.includes(term);
-
-                        if (matches) {
-                            row.classList.remove('hidden');
-                            visibleCount++;
-                        } else {
-                            row.classList.add('hidden');
-                        }
-                    });
-
-                    const countElement = document.getElementById('allRoomsCount');
-                    if (countElement) {
-                        countElement.textContent = visibleCount;
-                    }
-                    console.log(`Room search: ${visibleCount} rooms match "${term}"`);
-                }
-
-                // Search for regular users (My Rooms and Available Rooms)
-                {% if session.role not in ['admin', 'technician'] %}
-                const myRoomsBtn = document.getElementById('filterMyRooms');
-                const activeRoomFilter = myRoomsBtn.classList.contains('active') ? 'my-rooms' : 'available-rooms';
-
-                if (activeRoomFilter === 'my-rooms') {
-                    // Search My Rooms
-                    const myRoomsTable = document.getElementById('myRoomsTable');
-                    if (myRoomsTable) {
-                        const rows = myRoomsTable.querySelectorAll('.room-row');
-                        let visibleCount = 0;
-
-                        rows.forEach(row => {
-                            const roomName = row.dataset.roomName || '';
-                            const location = row.dataset.location || '';
-                            const devices = row.dataset.devices || '';
-
-                            const matches = !term ||
-                                roomName.includes(term) ||
-                                location.includes(term) ||
-                                devices.toString().includes(term);
-
-                            if (matches) {
-                                row.classList.remove('hidden');
-                                visibleCount++;
-                            } else {
-                                row.classList.add('hidden');
-                            }
-                        });
-
-                        const countElement = document.getElementById('myRoomsCount');
-                        if (countElement) {
-                            countElement.textContent = visibleCount;
-                        }
-                        console.log(`My Rooms search: ${visibleCount} rooms match "${term}"`);
-                    }
-                } else if (activeRoomFilter === 'available-rooms') {
-                    // Search Available Rooms
-                    const availableRoomsTable = document.getElementById('availableRoomsTable');
-                    if (availableRoomsTable) {
-                        const rows = availableRoomsTable.querySelectorAll('.room-row');
-                        let visibleCount = 0;
-
-                        rows.forEach(row => {
-                            const roomName = row.dataset.roomName || '';
-                            const location = row.dataset.location || '';
-                            const devices = row.dataset.devices || '';
-
-                            const matches = !term ||
-                                roomName.includes(term) ||
-                                location.includes(term) ||
-                                devices.toString().includes(term);
-
-                            if (matches) {
-                                row.classList.remove('hidden');
-                                visibleCount++;
-                            } else {
-                                row.classList.add('hidden');
-                            }
-                        });
-
-                        const countElement = document.getElementById('availableRoomsCount');
-                        if (countElement) {
-                            countElement.textContent = visibleCount;
-                        }
-                        console.log(`Available Rooms search: ${visibleCount} rooms match "${term}"`);
-                    }
-                }
-                {% endif %}
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Initialize with appropriate tab active
-            console.log('Initializing with currentActiveTab:', window.currentActiveTab);
-
-            // Set up universal search
-            const universalSearchInput = document.getElementById('universalSearchInput');
-            if (universalSearchInput) {
-                universalSearchInput.addEventListener('input', function () {
-                    performSearch(this.value);
-                });
-            }
-
-            // Initialize delete modal event listeners
-            const closeDeleteModal = document.getElementById('closeDeleteModal');
-            const cancelDelete = document.getElementById('cancelDelete');
-            const confirmDelete = document.getElementById('confirmDelete');
-
-            if (closeDeleteModal) closeDeleteModal.addEventListener('click', hideDeleteConfirm);
-            if (cancelDelete) cancelDelete.addEventListener('click', hideDeleteConfirm);
-            if (confirmDelete) confirmDelete.addEventListener('click', performDelete);
-
-            // ESC key support for delete modal
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') {
-                    const deleteModal = document.getElementById('deleteConfirmModal');
-                    if (deleteModal && !deleteModal.classList.contains('hidden')) {
-                        hideDeleteConfirm();
-                    }
-                }
-            });
-
-            // Click outside to close for delete modal
-            const deleteModal = document.getElementById('deleteConfirmModal');
-            if (deleteModal) {
-                deleteModal.addEventListener('click', function (e) {
-                    if (e.target === this) {
-                        hideDeleteConfirm();
-                    }
-                });
-            }
-
-            // Open add device modal from devices tab
-            const openAddDeviceFromDevices = document.getElementById('openAddDeviceModalFromDevices');
-            if (openAddDeviceFromDevices) {
-                openAddDeviceFromDevices.addEventListener('click', function() {
-                    const openButton = document.getElementById('openAddDeviceModal');
-                    if (openButton) {
-                        openButton.click();
-                    }
-                });
-            }
-        });
-    </script>
-
-    <!-- Modal Script -->
-    <script>
-        (function () {
-            const open = document.getElementById("openAddDeviceModal");
-            const modal = document.getElementById("addDeviceModal");
-            const close = document.getElementById("closeAddDeviceModal");
-            const cancel = document.getElementById("cancelAddDevice");
-
-            function show() {
-                modal.classList.remove("hidden");
-                modal.classList.add("flex");
-            }
-
-            function hide() {
-                modal.classList.add("hidden");
-                modal.classList.remove("flex");
-            }
-
-            if (open) open.addEventListener("click", show);
-            if (close) close.addEventListener("click", hide);
-            if (cancel) cancel.addEventListener("click", hide);
-            if (modal)
-                modal.addEventListener("click", (e) => {
-                    if (e.target === modal) hide();
-                });
-        })();
-    </script>
-
-    <style>
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .tab-button.active {
-            border-bottom-color: var(--accent-blue);
-            color: var(--accent-blue);
-        }
-
-        /* Delete modal styles */
-        #deleteConfirmModal {
-            backdrop-filter: blur(4px);
-            animation: fadeIn 0.2s ease-out;
-        }
-
-        #deleteConfirmModal > div {
-            animation: modalSlideIn 0.3s ease-out;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        /* Ensure tables are always visible */
-        .room-section table {
-            display: table !important;
-            width: 100% !important;
-        }
-
-        .room-section tbody {
-            display: table-row-group !important;
-        }
-
-        .room-section tr {
-            display: table-row !important;
-        }
-
-        .room-section td, .room-section th {
-            display: table-cell !important;
-        }
-
-        .room-section .room-row {
-            display: table-row !important;
-        }
-
-        .room-section .room-row.hidden {
-            display: none !important;
-        }
-
-        .all-room-row.hidden {
-            display: none !important;
-        }
-
-        .device-row.hidden {
-            display: none !important;
-        }
-
-        .table th {
-            background-color: var(--bg-tertiary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .table td {
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .btn-sm {
-            padding: 0.25rem 0.75rem;
-            font-size: 0.875rem;
-        }
-    </style>
+    <!-- Devices Tab Content (Admin/Technician only) -->
+    {% if session.role in ['admin', 'technician'] %}
+    <div id="devices-content" class="tab-content active">
+      <!-- Devices Table -->
+      <section>
+        <div class="text-xl mb-4 text-text-primary flex items-center gap-2">
+          {% if session.role in ['admin', 'technician'] %}
+          <button
+            id="openAddDeviceModal"
+            class="btn bg-accent-green hover:bg-accent-blue-hover text-white rounded flex items-center gap-2"
+          >
+            <i class="fas fa-plus"></i>
+            Add Device
+          </button>
+          {% endif %}
+        </div>
+        <div class="flex items-center justify-between mb-4">
+          <h3
+            class="text-xl font-semibold text-text-primary flex items-center gap-2"
+          >
+            <i class="fas fa-microchip text-accent-purple"></i>
+            All System Devices
+          </h3>
+          <span
+            class="text-xs text-text-muted device-count flex items-center gap-1"
+          >
+            <i class="fas fa-hashtag"></i>
+            <span id="devicesCount"
+              >{{ devices|length if devices else 0 }}</span
+            >
+            of {{ devices|length if devices else 0 }} device {% if
+            (devices|length if devices else 0) != 1 %}s{% endif %} total
+          </span>
+        </div>
+
+        {% if devices and devices|length > 0 %}
+        <div class="card p-5 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <thead class="bg-tertiary">
+                <tr>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-tag mr-2"></i>Device Name
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-fingerprint mr-2"></i>Device UID
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-cog mr-2"></i>Type
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-circle mr-2"></i>Status
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-door-open mr-2"></i>Room
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-map-marker-alt mr-2"></i>Location
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-clock mr-2"></i>Last Seen
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    <i class="fas fa-calendar mr-2"></i>Installed
+                  </th>
+                  <th class="text-center p-3 text-text-primary font-medium">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="devicesTable">
+                {% for device in devices %}
+                <tr
+                  class="device-row hover:bg-tertiary/40 transition border-b border-border"
+                  data-device-name="{{ device.name.lower() }}"
+                  data-device-uid="{{ device.device_uid.lower() }}"
+                  data-device-type="{{ (device.type or '').lower() }}"
+                  data-device-status="{{ device.status.lower() }}"
+                  data-room-name="{{ (device.room_name or '').lower() }}"
+                  data-room-location="{{ (device.room_location or '').lower() }}"
+                  data-last-seen="{{ (device.last_seen_at|string).lower() if device.last_seen_at else '' }}"
+                >
+                  <td class="text-center p-3">
+                    <span
+                      class="text-text-primary font-medium flex items-center gap-2 justify-center"
+                    >
+                      <i class="fas fa-microchip text-accent-purple"></i>
+                      {{ device.name }}
+                    </span>
+                  </td>
+                  <td class="text-center p-3">
+                    <code
+                      class="text-text-muted bg-secondary px-2 py-1 rounded text-sm"
+                      >{{ device.device_uid }}</code
+                    >
+                  </td>
+                  <td class="text-center p-3 text-text-muted">
+                    {{ device.type or '—' }}
+                  </td>
+                  <td class="text-center p-3">
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium justify-center {% if device.status == 'active' %}bg-green-600 text-white {% else %}bg-gray-600 text-white{% endif %}"
+                    >
+                      <i class="fas fa-circle text-xs"></i>
+                      {{ device.status|title }}
+                    </span>
+                  </td>
+                  <td class="text-center p-3">
+                    {% if device.room_name %}
+                    <a
+                      href="{{ url_for('room', room_id=device.room_id) }}"
+                      class="text-accent-blue hover:text-accent-blue-hover font-medium flex items-center gap-2 justify-center"
+                    >
+                      <i class="fas fa-door-open"></i>
+                      {{ device.room_name }}
+                    </a>
+                    {% else %}
+                    <span class="text-text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center p-3 text-text-muted">
+                    {{ device.room_location or '—' }}
+                  </td>
+                  <td
+                    class="text-center p-3 whitespace-nowrap text-text-muted text-sm"
+                  >
+                    {% if device.last_seen_at %}
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-clock"></i>
+                      {{ device.last_seen_at.strftime('%Y-%m-%d %H:%M') }}
+                    </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td
+                    class="text-center p-3 whitespace-nowrap text-text-muted text-sm"
+                  >
+                    <span class="inline-flex items-center gap-1 justify-center">
+                      <i class="fas fa-calendar"></i>
+                      {{ device.installed_at.strftime('%Y-%m-%d') }}
+                    </span>
+                  </td>
+                  <td class="text-center p-3">
+                    <div class="flex justify-center gap-2">
+                      <button
+                        onclick="showDeleteDeviceConfirm({{ device.id }}, '{{ device.name }}')"
+                        class="btn bg-accent-red hover:bg-accent-red-hover text-white btn-sm flex items-center gap-2"
+                      >
+                        <i class="fas fa-trash"></i>
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="card p-8 text-center">
+          <i class="fas fa-microchip text-4xl text-text-muted mb-4"></i>
+          <h3 class="text-lg font-semibold text-text-primary mb-2">
+            No Devices Found
+          </h3>
+          <p class="text-text-muted text-sm mb-4">
+            {% if devices is defined %} No devices have been added to the system
+            yet. {% else %} Devices data could not be loaded. {% endif %}
+          </p>
+          <button
+            id="openAddDeviceModalFromDevices"
+            class="btn bg-accent-blue hover:bg-accent-blue-hover text-white flex items-center gap-2 mx-auto"
+          >
+            <i class="fas fa-plus"></i>
+            Add Your First Device
+          </button>
+        </div>
+        {% endif %}
+      </section>
+    </div>
+    {% endif %}
+
+    <!-- Add Device Modal (Technician and Admin) -->
+    {% if session.role in ['admin', 'technician'] %}
+    <div
+      id="addDeviceModal"
+      class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50"
+    >
+      <div
+        class="bg-secondary rounded-xl shadow-xl w-full max-w-lg p-6 border border-border"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <h3
+            class="text-lg font-semibold text-text-primary flex items-center gap-2"
+          >
+            <i class="fas fa-plus-circle text-accent-blue"></i>
+            Add Device
+          </h3>
+          <button
+            id="closeAddDeviceModal"
+            class="text-text-muted hover:text-text-primary text-xl"
+          >
+            &times;
+          </button>
+        </div>
+
+        <form
+          method="post"
+          action="{{ url_for('add_device') }}"
+          class="space-y-4"
+        >
+          <div>
+            <label class="form-label flex items-center gap-2">
+              <i class="fas fa-door-open text-text-muted"></i>
+              Room
+            </label>
+            <select name="room_id" class="form-input" required>
+              <option value="" disabled selected>Select a room</option>
+              {% for r in all_rooms %}
+              <option value="{{ r.id }}">{{ r.room_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label flex items-center gap-2">
+              <i class="fas fa-tag text-text-muted"></i>
+              Device Name
+            </label>
+            <input type="text" name="name" class="form-input" required />
+          </div>
+
+          <div>
+            <label class="form-label flex items-center gap-2">
+              <i class="fas fa-fingerprint text-text-muted"></i>
+              Device UID
+            </label>
+            <input type="text" name="device_uid" class="form-input" required />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="form-label flex items-center gap-2">
+                <i class="fas fa-cog text-text-muted"></i>
+                Type
+              </label>
+              <input
+                type="text"
+                name="type"
+                class="form-input"
+                placeholder="e.g., Sensor"
+              />
+            </div>
+            <div>
+              <label class="form-label flex items-center gap-2">
+                <i class="fas fa-circle text-text-muted"></i>
+                Status
+              </label>
+              <select name="status" class="form-input">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              id="cancelAddDevice"
+              class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary flex items-center gap-2"
+            >
+              <i class="fas fa-times"></i>
+              Cancel
+            </button>
+            <button
+              class="btn bg-accent-blue hover:bg-accent-blue-hover text-white flex items-center gap-2"
+            >
+              <i class="fas fa-save"></i>
+              Save Device
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </main>
+</div>
+<!-- Delete Confirmation Modal -->
+<div
+  id="deleteConfirmModal"
+  class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4"
+>
+  <div
+    class="bg-secondary rounded-xl shadow-xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] overflow-hidden border border-border mx-2 sm:mx-0"
+  >
+    <!-- Modal Header -->
+    <div
+      class="flex items-center justify-between p-4 sm:p-6 border-b border-border"
+    >
+      <h3
+        class="text-lg font-semibold text-text-primary flex items-center gap-2"
+      >
+        <i class="fas fa-exclamation-triangle text-red-500"></i>
+        <span class="text-sm sm:text-base">Confirm Deletion</span>
+      </h3>
+      <button
+        id="closeDeleteModal"
+        class="text-text-muted hover:text-text-primary text-xl transition-colors"
+      >
+        &times;
+      </button>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="p-4 sm:p-6 overflow-y-auto">
+      <p class="text-text-primary mb-4 text-sm sm:text-base" id="deleteMessage">
+        Are you sure you want to delete this item?
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-end">
+        <button
+          id="cancelDelete"
+          class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary px-4 py-2 text-sm sm:text-base order-2 sm:order-1 w-full sm:w-auto"
+        >
+          Cancel
+        </button>
+        <button
+          id="confirmDelete"
+          class="btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab and Search Functionality -->
+<script>
+  // Delete functionality state
+  window.deleteState = {
+      pendingDeleteId: null,
+      deleteType: null, // 'room' or 'device'
+      isModalOpen: false
+  };
+
+  // Track current active tab
+  window.currentActiveTab = '{% if session.role in ['admin', 'technician'] %}devices{% else %}rooms{% endif %}';
+
+  // Show delete confirmation modal for rooms
+  function showDeleteRoomConfirm(roomId, roomName) {
+      window.deleteState.pendingDeleteId = roomId;
+      window.deleteState.deleteType = 'room';
+      window.deleteState.isModalOpen = true;
+
+      const modal = document.getElementById('deleteConfirmModal');
+      const message = document.getElementById('deleteMessage');
+
+      message.textContent = `Are you sure you want to delete the room "${roomName}"? This will also delete all devices and readings associated with this room. This action cannot be undone.`;
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+  }
+
+  // Show delete confirmation modal for devices
+  function showDeleteDeviceConfirm(deviceId, deviceName) {
+      window.deleteState.pendingDeleteId = deviceId;
+      window.deleteState.deleteType = 'device';
+      window.deleteState.isModalOpen = true;
+
+      const modal = document.getElementById('deleteConfirmModal');
+      const message = document.getElementById('deleteMessage');
+
+      message.textContent = `Are you sure you want to delete the device "${deviceName}"? This will also delete all readings associated with this device. This action cannot be undone.`;
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+  }
+
+  // Hide delete confirmation modal
+  function hideDeleteConfirm() {
+      const modal = document.getElementById('deleteConfirmModal');
+      if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+      }
+      document.body.style.overflow = '';
+      window.deleteState.pendingDeleteId = null;
+      window.deleteState.deleteType = null;
+      window.deleteState.isModalOpen = false;
+  }
+
+  // Perform the delete action
+  function performDelete() {
+      if (!window.deleteState.pendingDeleteId || !window.deleteState.deleteType) {
+          console.error('No delete operation pending');
+          return;
+      }
+
+      const id = window.deleteState.pendingDeleteId;
+      const type = window.deleteState.deleteType;
+
+      if (type === 'room') {
+          deleteRoom(id);
+      } else if (type === 'device') {
+          deleteDevice(id);
+      }
+
+      hideDeleteConfirm();
+  }
+
+  // Delete room function
+  function deleteRoom(roomId) {
+      fetch(`/setup/rooms/${roomId}/delete`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          }
+      })
+      .then(response => {
+          if (response.ok) {
+              showToast('Room deleted successfully', 'success');
+              // Reload the page to reflect changes
+              setTimeout(() => {
+                  window.location.reload();
+              }, 1000);
+          } else {
+              throw new Error('Failed to delete room');
+          }
+      })
+      .catch(error => {
+          console.error('Error deleting room:', error);
+          showToast('Failed to delete room', 'error');
+      });
+  }
+
+  // Delete device function
+  function deleteDevice(deviceId) {
+      fetch(`/setup/devices/${deviceId}/delete`, {
+          method: 'DELETE',
+          headers: {
+              'Content-Type': 'application/json',
+          }
+      })
+      .then(response => {
+          if (response.ok) {
+              showToast('Device deleted successfully', 'success');
+              // Remove the device row from the table
+              const deviceRow = document.querySelector(`[data-device-id="${deviceId}"]`);
+              if (deviceRow) {
+                  deviceRow.remove();
+                  updateDeviceCount();
+              } else {
+                  // If we can't find the specific row, reload the page
+                  setTimeout(() => {
+                      window.location.reload();
+                  }, 1000);
+              }
+          } else {
+              throw new Error('Failed to delete device');
+          }
+      })
+      .catch(error => {
+          console.error('Error deleting device:', error);
+          showToast('Failed to delete device', 'error');
+      });
+  }
+
+  // Update device count display
+  function updateDeviceCount() {
+      const devicesTable = document.getElementById('devicesTable');
+      if (devicesTable) {
+          const visibleRows = devicesTable.querySelectorAll('.device-row:not(.hidden)');
+          const countElement = document.getElementById('devicesCount');
+          if (countElement) {
+              countElement.textContent = visibleRows.length;
+          }
+      }
+  }
+
+  // Toast notification function
+  function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transform transition-all duration-300 ${
+          type === 'success' ? 'bg-green-600 text-white' :
+          type === 'error' ? 'bg-red-600 text-white' :
+          'bg-blue-600 text-white'
+      }`;
+      toast.textContent = message;
+
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(100%)';
+          setTimeout(() => {
+              if (toast.parentNode) {
+                  toast.parentNode.removeChild(toast);
+              }
+          }, 300);
+      }, 3000);
+  }
+
+  // Room filter switching for regular users
+  function switchRoomFilter(filterType) {
+      const myRoomsSection = document.getElementById('myRoomsSection');
+      const availableRoomsSection = document.getElementById('availableRoomsSection');
+      const myRoomsBtn = document.getElementById('filterMyRooms');
+      const availableRoomsBtn = document.getElementById('filterAvailableRooms');
+
+      if (filterType === 'my-rooms') {
+          myRoomsSection.classList.remove('hidden');
+          availableRoomsSection.classList.add('hidden');
+          myRoomsBtn.classList.remove('inactive', 'bg-tertiary', 'text-text-secondary');
+          myRoomsBtn.classList.add('active', 'bg-accent-blue', 'text-white');
+          availableRoomsBtn.classList.remove('active', 'bg-accent-blue', 'text-white');
+          availableRoomsBtn.classList.add('inactive', 'bg-tertiary', 'text-text-secondary');
+      } else if (filterType === 'available-rooms') {
+          myRoomsSection.classList.add('hidden');
+          availableRoomsSection.classList.remove('hidden');
+          myRoomsBtn.classList.remove('active', 'bg-accent-blue', 'text-white');
+          myRoomsBtn.classList.add('inactive', 'bg-tertiary', 'text-text-secondary');
+          availableRoomsBtn.classList.remove('inactive', 'bg-tertiary', 'text-text-secondary');
+          availableRoomsBtn.classList.add('active', 'bg-accent-blue', 'text-white');
+      }
+
+      // Re-apply current search when switching filters
+      const searchInput = document.getElementById('universalSearchInput');
+      if (searchInput) {
+          performSearch(searchInput.value);
+      }
+  }
+
+  // Tab switching functionality
+  window.switchTab = function(tabName) {
+      console.log('Switching to tab:', tabName);
+      window.currentActiveTab = tabName;
+
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(tab => {
+          tab.classList.remove('active');
+          tab.classList.add('hidden');
+      });
+
+      // Remove active class from all tab buttons
+      document.querySelectorAll('.tab-button').forEach(button => {
+          button.classList.remove('active', 'border-accent-blue', 'text-accent-blue');
+          button.classList.add('border-transparent', 'text-text-muted');
+      });
+
+      // Show selected tab content
+      const selectedTab = document.getElementById(`${tabName}-content`);
+      if (selectedTab) {
+          selectedTab.classList.add('active');
+          selectedTab.classList.remove('hidden');
+          console.log('Showing tab content:', tabName);
+      }
+
+      // Activate selected tab button
+      const selectedButton = document.getElementById(`${tabName}-tab`);
+      if (selectedButton) {
+          selectedButton.classList.add('active', 'border-accent-blue', 'text-accent-blue');
+          selectedButton.classList.remove('border-transparent', 'text-text-muted');
+      }
+
+      // Update search placeholder based on active tab
+      const searchInput = document.getElementById('universalSearchInput');
+      if (searchInput) {
+          if (tabName === 'devices') {
+              searchInput.placeholder = 'Search devices by name, UID, type, status, room, or location...';
+          } else if (tabName === 'rooms') {
+              searchInput.placeholder = 'Search all rooms by name, location, devices, owner, or readings...';
+          }
+      }
+
+      // Clear search when switching tabs
+      if (searchInput) {
+          searchInput.value = '';
+          performSearch(''); // Reset all filters
+      }
+  };
+
+  // Universal search functionality
+  function performSearch(searchTerm) {
+      const term = searchTerm.trim().toLowerCase();
+
+      if (window.currentActiveTab === 'devices') {
+          // Search devices
+          const devicesTable = document.getElementById('devicesTable');
+          if (devicesTable) {
+              const rows = devicesTable.querySelectorAll('.device-row');
+              let visibleCount = 0;
+
+              rows.forEach(row => {
+                  const deviceName = row.dataset.deviceName || '';
+                  const deviceUid = row.dataset.deviceUid || '';
+                  const deviceType = row.dataset.deviceType || '';
+                  const deviceStatus = row.dataset.deviceStatus || '';
+                  const roomName = row.dataset.roomName || '';
+                  const roomLocation = row.dataset.roomLocation || '';
+                  const lastSeen = row.dataset.lastSeen || '';
+
+                  const matches = !term ||
+                      deviceName.includes(term) ||
+                      deviceUid.includes(term) ||
+                      deviceType.includes(term) ||
+                      deviceStatus.includes(term) ||
+                      roomName.includes(term) ||
+                      roomLocation.includes(term) ||
+                      lastSeen.includes(term);
+
+                  if (matches) {
+                      row.classList.remove('hidden');
+                      visibleCount++;
+                  } else {
+                      row.classList.add('hidden');
+                  }
+              });
+
+              updateDeviceCount();
+              console.log(`Device search: ${visibleCount} devices match "${term}"`);
+          }
+      } else if (window.currentActiveTab === 'rooms') {
+          // Search rooms (for admin/technician)
+          const allRoomsSection = document.getElementById('allRoomsSection');
+          if (allRoomsSection) {
+              const rows = allRoomsSection.querySelectorAll('.all-room-row');
+              let visibleCount = 0;
+
+              rows.forEach(row => {
+                  const roomName = row.dataset.roomName || '';
+                  const location = row.dataset.location || '';
+                  const devices = row.dataset.devices || '';
+                  const readings = row.dataset.readings || '';
+                  const temp = row.dataset.temp || '';
+                  const humidity = row.dataset.humidity || '';
+                  const owner = row.dataset.owner || '';
+                  const lastUpdate = row.dataset.lastUpdate || '';
+
+                  const matches = !term ||
+                      roomName.includes(term) ||
+                      location.includes(term) ||
+                      devices.includes(term) ||
+                      readings.includes(term) ||
+                      temp.includes(term) ||
+                      humidity.includes(term) ||
+                      owner.includes(term) ||
+                      lastUpdate.includes(term);
+
+                  if (matches) {
+                      row.classList.remove('hidden');
+                      visibleCount++;
+                  } else {
+                      row.classList.add('hidden');
+                  }
+              });
+
+              const countElement = document.getElementById('allRoomsCount');
+              if (countElement) {
+                  countElement.textContent = visibleCount;
+              }
+              console.log(`Room search: ${visibleCount} rooms match "${term}"`);
+          }
+
+          // Search for regular users (My Rooms and Available Rooms)
+          {% if session.role not in ['admin', 'technician'] %}
+          const myRoomsBtn = document.getElementById('filterMyRooms');
+          const activeRoomFilter = myRoomsBtn.classList.contains('active') ? 'my-rooms' : 'available-rooms';
+
+          if (activeRoomFilter === 'my-rooms') {
+              // Search My Rooms
+              const myRoomsTable = document.getElementById('myRoomsTable');
+              if (myRoomsTable) {
+                  const rows = myRoomsTable.querySelectorAll('.room-row');
+                  let visibleCount = 0;
+
+                  rows.forEach(row => {
+                      const roomName = row.dataset.roomName || '';
+                      const location = row.dataset.location || '';
+                      const devices = row.dataset.devices || '';
+
+                      const matches = !term ||
+                          roomName.includes(term) ||
+                          location.includes(term) ||
+                          devices.toString().includes(term);
+
+                      if (matches) {
+                          row.classList.remove('hidden');
+                          visibleCount++;
+                      } else {
+                          row.classList.add('hidden');
+                      }
+                  });
+
+                  const countElement = document.getElementById('myRoomsCount');
+                  if (countElement) {
+                      countElement.textContent = visibleCount;
+                  }
+                  console.log(`My Rooms search: ${visibleCount} rooms match "${term}"`);
+              }
+          } else if (activeRoomFilter === 'available-rooms') {
+              // Search Available Rooms
+              const availableRoomsTable = document.getElementById('availableRoomsTable');
+              if (availableRoomsTable) {
+                  const rows = availableRoomsTable.querySelectorAll('.room-row');
+                  let visibleCount = 0;
+
+                  rows.forEach(row => {
+                      const roomName = row.dataset.roomName || '';
+                      const location = row.dataset.location || '';
+                      const devices = row.dataset.devices || '';
+
+                      const matches = !term ||
+                          roomName.includes(term) ||
+                          location.includes(term) ||
+                          devices.toString().includes(term);
+
+                      if (matches) {
+                          row.classList.remove('hidden');
+                          visibleCount++;
+                      } else {
+                          row.classList.add('hidden');
+                      }
+                  });
+
+                  const countElement = document.getElementById('availableRoomsCount');
+                  if (countElement) {
+                      countElement.textContent = visibleCount;
+                  }
+                  console.log(`Available Rooms search: ${visibleCount} rooms match "${term}"`);
+              }
+          }
+          {% endif %}
+      }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+      // Initialize with appropriate tab active
+      console.log('Initializing with currentActiveTab:', window.currentActiveTab);
+
+      // Set up universal search
+      const universalSearchInput = document.getElementById('universalSearchInput');
+      if (universalSearchInput) {
+          universalSearchInput.addEventListener('input', function () {
+              performSearch(this.value);
+          });
+      }
+
+      // Initialize delete modal event listeners
+      const closeDeleteModal = document.getElementById('closeDeleteModal');
+      const cancelDelete = document.getElementById('cancelDelete');
+      const confirmDelete = document.getElementById('confirmDelete');
+
+      if (closeDeleteModal) closeDeleteModal.addEventListener('click', hideDeleteConfirm);
+      if (cancelDelete) cancelDelete.addEventListener('click', hideDeleteConfirm);
+      if (confirmDelete) confirmDelete.addEventListener('click', performDelete);
+
+      // ESC key support for delete modal
+      document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') {
+              const deleteModal = document.getElementById('deleteConfirmModal');
+              if (deleteModal && !deleteModal.classList.contains('hidden')) {
+                  hideDeleteConfirm();
+              }
+          }
+      });
+
+      // Click outside to close for delete modal
+      const deleteModal = document.getElementById('deleteConfirmModal');
+      if (deleteModal) {
+          deleteModal.addEventListener('click', function (e) {
+              if (e.target === this) {
+                  hideDeleteConfirm();
+              }
+          });
+      }
+
+      // Open add device modal from devices tab
+      const openAddDeviceFromDevices = document.getElementById('openAddDeviceModalFromDevices');
+      if (openAddDeviceFromDevices) {
+          openAddDeviceFromDevices.addEventListener('click', function() {
+              const openButton = document.getElementById('openAddDeviceModal');
+              if (openButton) {
+                  openButton.click();
+              }
+          });
+      }
+  });
+</script>
+
+<!-- Modal Script -->
+<script>
+  (function () {
+    const open = document.getElementById("openAddDeviceModal");
+    const modal = document.getElementById("addDeviceModal");
+    const close = document.getElementById("closeAddDeviceModal");
+    const cancel = document.getElementById("cancelAddDevice");
+
+    function show() {
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function hide() {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    if (open) open.addEventListener("click", show);
+    if (close) close.addEventListener("click", hide);
+    if (cancel) cancel.addEventListener("click", hide);
+    if (modal)
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) hide();
+      });
+  })();
+</script>
+
+<style>
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  .tab-button.active {
+    border-bottom-color: var(--accent-blue);
+    color: var(--accent-blue);
+  }
+
+  /* Delete modal styles */
+  #deleteConfirmModal {
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  #deleteConfirmModal > div {
+    animation: modalSlideIn 0.3s ease-out;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3),
+      0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Ensure tables are always visible */
+  .room-section table {
+    display: table !important;
+    width: 100% !important;
+  }
+
+  .room-section tbody {
+    display: table-row-group !important;
+  }
+
+  .room-section tr {
+    display: table-row !important;
+  }
+
+  .room-section td,
+  .room-section th {
+    display: table-cell !important;
+  }
+
+  .room-section .room-row {
+    display: table-row !important;
+  }
+
+  .room-section .room-row.hidden {
+    display: none !important;
+  }
+
+  .all-room-row.hidden {
+    display: none !important;
+  }
+
+  .device-row.hidden {
+    display: none !important;
+  }
+
+  .table th {
+    background-color: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .table td {
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+  }
+</style>
 {% endblock %}
