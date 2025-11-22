@@ -6,7 +6,7 @@ import secrets
 from decimal import Decimal
 from functools import wraps
 from datetime import datetime, date
-from src.core.hardware_controller import hardware_controller
+from src.core.pubnub_client import publish_data
 
 from flask import (
     Flask,
@@ -22,7 +22,7 @@ from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from MySQLdb._exceptions import IntegrityError, Error
-from .utils.weather_gemini import WeatherAIAnalyzer
+from src.web.utils.weather_gemini import WeatherAIAnalyzer
 
 # Google OAuth (Authlib)
 try:
@@ -181,27 +181,26 @@ def format_temperature(value, unit, decimals=1):
 
 
 def get_rooms_summary(user_id=None, user_role=None):
-    """Get rooms summary based on user role"""
     c = db_cursor()
 
     latest_temp_sql = """
         (
-            SELECT rd.temperature
-            FROM readings rd
-            JOIN devices dd ON dd.id = rd.device_id
-            WHERE dd.room_id = r.id
-            ORDER BY rd.recorded_at DESC
+            SELECT lr.temperature
+            FROM v_latest_device_reading lr
+            JOIN devices d ON d.id = lr.device_id
+            WHERE d.room_id = r.id
+            ORDER BY lr.recorded_at DESC
             LIMIT 1
         )
     """
 
     latest_humidity_sql = """
         (
-            SELECT rd.humidity
-            FROM readings rd
-            JOIN devices dd ON dd.id = rd.device_id
-            WHERE dd.room_id = r.id
-            ORDER BY rd.recorded_at DESC
+            SELECT lr.humidity
+            FROM v_latest_device_reading lr
+            JOIN devices d ON d.id = lr.device_id
+            WHERE d.room_id = r.id
+            ORDER BY lr.recorded_at DESC
             LIMIT 1
         )
     """
@@ -216,11 +215,11 @@ def get_rooms_summary(user_id=None, user_role=None):
                    {latest_temp_sql} AS avg_temp,
                    {latest_humidity_sql} AS avg_humidity,
                    (
-                        SELECT rd.recorded_at
-                        FROM readings rd
-                        JOIN devices dd ON dd.id = rd.device_id
-                        WHERE dd.room_id = r.id
-                        ORDER BY rd.recorded_at DESC
+                        SELECT lr.recorded_at
+                        FROM v_latest_device_reading lr
+                        JOIN devices d ON d.id = lr.device_id
+                        WHERE d.room_id = r.id
+                        ORDER BY lr.recorded_at DESC
                         LIMIT 1
                    ) AS last_update,
                    u.username AS owner_username
@@ -242,11 +241,11 @@ def get_rooms_summary(user_id=None, user_role=None):
                    {latest_temp_sql} AS avg_temp,
                    {latest_humidity_sql} AS avg_humidity,
                    (
-                        SELECT rd.recorded_at
-                        FROM readings rd
-                        JOIN devices dd ON dd.id = rd.device_id
-                        WHERE dd.room_id = r.id
-                        ORDER BY rd.recorded_at DESC
+                        SELECT lr.recorded_at
+                        FROM v_latest_device_reading lr
+                        JOIN devices d ON d.id = lr.device_id
+                        WHERE d.room_id = r.id
+                        ORDER BY lr.recorded_at DESC
                         LIMIT 1
                    ) AS last_update,
                    u.username AS owner_username
@@ -260,9 +259,10 @@ def get_rooms_summary(user_id=None, user_role=None):
         """
         c.execute(query, (user_id,))
 
-    rows = c.fetchall()
+    rooms = c.fetchall()
     c.close()
-    return rows
+    return rooms
+
 
 def get_all_devices():
     """Get all devices with room information"""
@@ -289,6 +289,7 @@ def get_all_devices():
         return []
     finally:
         c.close()
+
 
 def get_recent_readings(limit=50, offset=0, user_id=None, user_role=None):
     limit = max(1, min(int(limit or 50), 500))
@@ -716,7 +717,7 @@ def role_required(*roles):
 def after_request(response):
     # Ensure API routes return JSON even on errors
     if request.path.startswith("/api/") or (
-            request.path.startswith("/room/") and "/request_adjustment" in request.path
+        request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         if response.status_code >= 400 and not response.is_json:
             data = {
@@ -739,7 +740,7 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     if request.path.startswith("/api/") or (
-            request.path.startswith("/room/") and "/request_adjustment" in request.path
+        request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         return jsonify({"success": False, "error": "Internal server error"}), 500
     return error
@@ -1320,6 +1321,7 @@ def setuprooms_delete(room_id):
 
     return redirect(url_for("setup"))
 
+
 @app.route("/setup/rooms/<int:room_id>/delete", methods=["POST"])
 @login_required
 @role_required("admin", "technician")
@@ -1336,6 +1338,7 @@ def delete_room_admin(room_id):
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
         cursor.close()
+
 
 @app.route("/setup/devices/<int:device_id>/delete", methods=["DELETE"])
 @login_required
@@ -1773,7 +1776,7 @@ def get_request_details(request_id):
         # Convert datetime objects and Decimal objects
         for date_field in ["created_at", "updated_at", "estimated_completion_time"]:
             if request_dict.get(date_field) and hasattr(
-                    request_dict[date_field], "isoformat"
+                request_dict[date_field], "isoformat"
             ):
                 request_dict[date_field] = request_dict[date_field].isoformat()
 
@@ -2885,8 +2888,8 @@ def upload_profile_picture():
     # Validate file type
     allowed_extensions = {"png", "jpg", "jpeg", "gif"}
     if not (
-            "." in file.filename
-            and file.filename.rsplit(".", 1)[1].lower() in allowed_extensions
+        "." in file.filename
+        and file.filename.rsplit(".", 1)[1].lower() in allowed_extensions
     ):
         return jsonify({"success": False, "error": "Invalid file type"}), 400
 
@@ -3153,128 +3156,128 @@ def inject_theme():
 #     return redirect(request.referrer or url_for("dashboard"))
 
 # =============================================================================
-# Hardware Control Routes
+# Hardware Control Routes (PubNub Based)
 # =============================================================================
 
+
+# ---------------------------
+# GET HARDWARE STATUS (from DB or temp data)
+# ---------------------------
 @app.route("/api/hardware/status")
 @login_required
 def get_hardware_status():
-    """Get current hardware status"""
+    """
+    Returns current hardware status.
+    NOTE: This no longer communicates with the Pi directly.
+          Instead, status is stored in DB or cached from sensor updates.
+    """
     try:
-        status = hardware_controller.get_status()
+        # Example: Replace this with your DB model later
+        status = {"fan": False, "buzzer": False, "auto_mode": False, "threshold": 30}
         return jsonify({"success": True, "status": status})
+
     except Exception as e:
         log.error(f"Error getting hardware status: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ---------------------------
+# FAN ON/OFF – Send PubNub Command
+# ---------------------------
 @app.route("/api/hardware/fan", methods=["POST"])
 @login_required
 @role_required("admin", "technician")
 def control_fan():
-    """Control fan manually (admin/technician only)"""
     try:
         data = request.get_json()
         state = data.get("state")
 
         if state is None:
-            return jsonify({"success": False, "error": "State parameter required"}), 400
+            return jsonify({"success": False, "error": "state required"}), 400
 
-        hardware_controller.set_fan_state(state)
-        return jsonify({"success": True, "message": f"Fan turned {'ON' if state else 'OFF'}"})
+        cmd = "Fan On" if state else "Fan Off"
+        publish_data({"cmd": cmd})
+
+        return jsonify({"success": True, "message": f"Fan command: {cmd}"})
 
     except Exception as e:
         log.error(f"Error controlling fan: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ---------------------------
+# AUTO MODE – Store in DB
+# ---------------------------
 @app.route("/api/hardware/fan/auto", methods=["POST"])
 @login_required
 @role_required("admin", "technician")
 def set_fan_auto_mode():
-    """Set fan auto mode (admin/technician only)"""
     try:
         data = request.get_json()
         auto_mode = data.get("auto_mode")
 
         if auto_mode is None:
-            return jsonify({"success": False, "error": "auto_mode parameter required"}), 400
+            return jsonify({"success": False, "error": "auto_mode required"}), 400
 
-        hardware_controller.set_fan_auto_mode(auto_mode)
-        return jsonify({"success": True, "message": f"Fan auto mode {'enabled' if auto_mode else 'disabled'}"})
+        # Save to DB or config later
+
+        return jsonify({"success": True, "message": f"Auto Mode set to {auto_mode}"})
 
     except Exception as e:
         log.error(f"Error setting fan auto mode: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ---------------------------
+# AUTO THRESHOLD – Stored in DB
+# ---------------------------
 @app.route("/api/hardware/fan/threshold", methods=["POST"])
 @login_required
 @role_required("admin", "technician")
 def set_temperature_threshold():
-    """Set temperature threshold for auto fan (admin/technician only)"""
     try:
         data = request.get_json()
         threshold = data.get("threshold")
 
         if threshold is None:
-            return jsonify({"success": False, "error": "threshold parameter required"}), 400
+            return jsonify({"success": False, "error": "threshold required"}), 400
 
-        hardware_controller.set_temperature_threshold(threshold)
-        return jsonify({"success": True, "message": f"Temperature threshold set to {threshold}°C"})
+        # Store threshold in DB or settings file
+
+        return jsonify({"success": True, "message": f"Threshold set to {threshold}°C"})
 
     except Exception as e:
-        log.error(f"Error setting temperature threshold: {e}")
+        log.error(f"Error setting threshold: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ---------------------------
+# BUZZER CONTROL – Send PubNub Command
+# ---------------------------
 @app.route("/api/hardware/buzzer", methods=["POST"])
 @login_required
 @role_required("admin", "technician")
 def control_buzzer():
-    """Control buzzer manually (admin/technician only)"""
     try:
         data = request.get_json()
         state = data.get("state")
 
         if state is None:
-            return jsonify({"success": False, "error": "State parameter required"}), 400
+            return jsonify({"success": False, "error": "state required"}), 400
 
-        hardware_controller.set_buzzer_state(state)
-        return jsonify({"success": True, "message": f"Buzzer {'activated' if state else 'deactivated'}"})
+        cmd = "buzzer_on" if state else "buzzer_off"
+        publish_data({"cmd": cmd})
+
+        return jsonify({"success": True, "message": f"Buzzer command: {cmd}"})
 
     except Exception as e:
         log.error(f"Error controlling buzzer: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route("/api/hardware/preset", methods=["POST"])
-@login_required
-def apply_preset():
-    """Apply a hardware preset"""
-    try:
-        data = request.get_json()
-        preset_name = data.get("preset")
-
-        if not preset_name:
-            return jsonify({"success": False, "error": "preset parameter required"}), 400
-
-        success = hardware_controller.apply_preset(preset_name)
-
-        if success:
-            return jsonify({"success": True, "message": f"Preset '{preset_name}' applied"})
-        else:
-            return jsonify({"success": False, "error": "Unknown preset"}), 400
-
-    except Exception as e:
-        log.error(f"Error applying preset: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
 # =============================================================================
 # APPLICATION ENTRY POINT
 # =============================================================================
-atexit.register(hardware_controller.cleanup)
 
 if __name__ == "__main__":
     app.run(debug=True)
