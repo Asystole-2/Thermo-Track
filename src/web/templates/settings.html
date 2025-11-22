@@ -826,7 +826,7 @@
 
         // Delete user function
         function deleteUser(userId) {
-            fetch(`/admin/users/${userId}/delete`, {
+            fetch(`/delete-user/${userId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
