@@ -1,3 +1,4 @@
+# https://pimylifeup.com/raspberry-pi-motion-sensor/
 import time
 from typing import Optional
 
@@ -20,7 +21,9 @@ class MotionService:
         self.cooldown = cooldown
         self._gpio = GPIO
         if not self._gpio:
-            raise RuntimeError(" Please connect to your Raspberry Pi hardware — GPIO not available.")
+            raise RuntimeError(
+                " Please connect to your Raspberry Pi hardware — GPIO not available."
+            )
         self._setup_gpio()
 
     def _setup_gpio(self) -> None:
@@ -65,7 +68,7 @@ class MotionService:
                         print(f"[Motion] PubNub publish error: {e}")
                     last_state = 1
                 elif current_state == 0 and last_state != 0:
-                    #no motion detected
+                    # no motion detected
                     print("[Motion] No motion detected.")
                     payload = {"event": "motion", "occupied": 0, "at": int(time.time())}
                     try:
