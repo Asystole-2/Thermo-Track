@@ -181,27 +181,26 @@ def format_temperature(value, unit, decimals=1):
 
 
 def get_rooms_summary(user_id=None, user_role=None):
-    """Get rooms summary based on user role"""
     c = db_cursor()
 
     latest_temp_sql = """
         (
-            SELECT rd.temperature
-            FROM readings rd
-            JOIN devices dd ON dd.id = rd.device_id
-            WHERE dd.room_id = r.id
-            ORDER BY rd.recorded_at DESC
+            SELECT lr.temperature
+            FROM v_latest_device_reading lr
+            JOIN devices d ON d.id = lr.device_id
+            WHERE d.room_id = r.id
+            ORDER BY lr.recorded_at DESC
             LIMIT 1
         )
     """
 
     latest_humidity_sql = """
         (
-            SELECT rd.humidity
-            FROM readings rd
-            JOIN devices dd ON dd.id = rd.device_id
-            WHERE dd.room_id = r.id
-            ORDER BY rd.recorded_at DESC
+            SELECT lr.humidity
+            FROM v_latest_device_reading lr
+            JOIN devices d ON d.id = lr.device_id
+            WHERE d.room_id = r.id
+            ORDER BY lr.recorded_at DESC
             LIMIT 1
         )
     """
@@ -216,11 +215,11 @@ def get_rooms_summary(user_id=None, user_role=None):
                    {latest_temp_sql} AS avg_temp,
                    {latest_humidity_sql} AS avg_humidity,
                    (
-                        SELECT rd.recorded_at
-                        FROM readings rd
-                        JOIN devices dd ON dd.id = rd.device_id
-                        WHERE dd.room_id = r.id
-                        ORDER BY rd.recorded_at DESC
+                        SELECT lr.recorded_at
+                        FROM v_latest_device_reading lr
+                        JOIN devices d ON d.id = lr.device_id
+                        WHERE d.room_id = r.id
+                        ORDER BY lr.recorded_at DESC
                         LIMIT 1
                    ) AS last_update,
                    u.username AS owner_username
@@ -242,11 +241,11 @@ def get_rooms_summary(user_id=None, user_role=None):
                    {latest_temp_sql} AS avg_temp,
                    {latest_humidity_sql} AS avg_humidity,
                    (
-                        SELECT rd.recorded_at
-                        FROM readings rd
-                        JOIN devices dd ON dd.id = rd.device_id
-                        WHERE dd.room_id = r.id
-                        ORDER BY rd.recorded_at DESC
+                        SELECT lr.recorded_at
+                        FROM v_latest_device_reading lr
+                        JOIN devices d ON d.id = lr.device_id
+                        WHERE d.room_id = r.id
+                        ORDER BY lr.recorded_at DESC
                         LIMIT 1
                    ) AS last_update,
                    u.username AS owner_username
@@ -260,9 +259,9 @@ def get_rooms_summary(user_id=None, user_role=None):
         """
         c.execute(query, (user_id,))
 
-    rows = c.fetchall()
+    rooms = c.fetchall()
     c.close()
-    return rows
+    return rooms
 
 
 def get_all_devices():
