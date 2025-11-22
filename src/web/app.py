@@ -3195,7 +3195,7 @@ def control_fan():
         if state is None:
             return jsonify({"success": False, "error": "state required"}), 400
 
-        cmd = "fan_on" if state else "fan_off"
+        cmd = "Fan On" if state else "Fan Off"
         publish_data({"cmd": cmd})
 
         return jsonify({"success": True, "message": f"Fan command: {cmd}"})
