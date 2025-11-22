@@ -2,9 +2,7 @@ import time
 import RPi.GPIO as GPIO
 
 from src.core.pubnub_client import subscribe_to_updates
-from src.core.dht22.dht22 import (
-    read_temperature,
-)  # adjust if your function is named differently
+
 
 # --------------------------
 # GPIO Setup
