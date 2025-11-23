@@ -5,52 +5,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleBtn    = document.getElementById('toggle-sidebar-btn');
     const collapseIcon = document.getElementById('collapse-icon');
 
-    const linkTexts        = document.querySelectorAll('.link-text');
-    const userGreeting     = document.getElementById('user-greeting');
-    const authLinksContainer = document.getElementById('auth-links');
-
-    // If there's no sidebar on this page, bail out quietly
     if (!sidebar || !toggleBtn) return;
 
-    const STORAGE_KEY     = 'sidebarExpanded';
-    const EXPANDED_WIDTH  = '250px';
-    const COLLAPSED_WIDTH = '80px';
+    const STORAGE_KEY = 'sidebarExpanded';
 
-    // Elements whose text we hide when collapsed
-    const collapsibleEls = [];
-    linkTexts.forEach(el => collapsibleEls.push(el));
-    if (userGreeting) collapsibleEls.push(userGreeting);
-    if (authLinksContainer) {
-        authLinksContainer.querySelectorAll('a').forEach(a => collapsibleEls.push(a));
+    // Last saved state (default = expanded)
+    let isExpanded = localStorage.getItem(STORAGE_KEY);
+    if (isExpanded === null) {
+        isExpanded = true;
+    } else {
+        isExpanded = isExpanded === '1';
     }
 
-    // Read last state from localStorage; default = expanded
-    const stored = localStorage.getItem(STORAGE_KEY);
-    let isExpanded = (stored === null || stored === '1');
-
     function applyState() {
-        // Width of sidebar
-        sidebar.style.width = isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
 
-        // Arrow rotation (if present)
-        if (collapseIcon) {
-            collapseIcon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+        // Add or remove the collapsed class
+        if (isExpanded) {
+            sidebar.classList.remove('sidebar-collapsed');
+        } else {
+            sidebar.classList.add('sidebar-collapsed');
         }
 
-        // Hide/show all text bits (menu labels, greeting, auth links)
-        collapsibleEls.forEach(el => {
-            if (!el) return;
-            if (isExpanded) {
-                el.style.opacity    = '1';
-                el.style.visibility = 'visible';
-            } else {
-                el.style.opacity    = '0';
-                el.style.visibility = 'hidden';
-            }
-        });
-
-        // We let your CSS handle centering etc when width is 80px
-        // via the #sidebar[style*="80px"] rules in main.css
+        // Rotate icon
+        if (collapseIcon) {
+            collapseIcon.style.transform = isExpanded
+                ? 'rotate(0deg)'
+                : 'rotate(180deg)';
+        }
     }
 
     // Toggle click
@@ -60,6 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
         applyState();
     });
 
-    // Apply stored state on first load
+    // Initial load
     applyState();
 });
