@@ -59,7 +59,6 @@
 
 /* =========================
    THEME UTILITY CLASSES
-   (this is what makes dashboard etc actually react to theme)
    ========================= */
 
 .bg-primary {
@@ -453,7 +452,40 @@ body {
   border-right: 1px solid var(--border-color);
   flex-shrink: 0;
   overflow: hidden;
+  width: 250px;
+  transition: width 0.3s ease-in-out;
 }
+
+/* Collapsed sidebar state */
+#sidebar.sidebar-collapsed {
+  width: 56px;
+}
+
+/* Collapsed: hide logo + labels + greeting/auth text, keep nav icons */
+#sidebar.sidebar-collapsed #logo-wrapper,
+#sidebar.sidebar-collapsed .link-text,
+#sidebar.sidebar-collapsed #user-greeting,
+#sidebar.sidebar-collapsed #auth-links {
+  display: none;
+}
+
+/* Icon spacing + centering */
+#sidebar a svg {
+  margin-right: 0.75rem;
+  transition: margin 0.3s ease-in-out;
+}
+
+#sidebar.sidebar-collapsed a svg {
+  margin-right: 0;
+}
+
+/* Center nav items when collapsed (icon-only) */
+#sidebar.sidebar-collapsed a {
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: center;
+}
+
 
 #sidebar .border-gray-700 {
   border-color: var(--border-color);
@@ -471,7 +503,7 @@ body {
   background-color: var(--bg-tertiary);
 }
 
-/* Fix for sidebar collapse icon and scrollbar */
+/* Collapse icon / toggle button */
 #toggle-sidebar-btn {
   display: flex;
   align-items: center;
@@ -490,18 +522,11 @@ body {
   min-width: 40px;
 }
 
-/* When sidebar is collapsed, ensure proper spacing */
-#sidebar[style*="80px"] #toggle-sidebar-btn {
+/* When sidebar is collapsed, center the toggle button full width */
+#sidebar.sidebar-collapsed #toggle-sidebar-btn {
   width: 100%;
   justify-content: center;
   padding: 0.5rem;
-}
-
-#sidebar[style*="80px"] .px-4.py-2.border-t.border-gray-700 {
-  padding-left: 0.5rem !important;
-  padding-right: 0.5rem !important;
-  display: flex;
-  justify-content: center;
 }
 
 /* Tailwind color overrides for theme compatibility */
@@ -632,7 +657,7 @@ body {
 }
 
 /* ========================= */
-/* Notifications / Modals CSS (moved from template) */
+/* Notifications / Modals CSS */
 /* ========================= */
 
 @media (max-width: 480px) {
