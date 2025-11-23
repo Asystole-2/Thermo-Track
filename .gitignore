@@ -430,3 +430,5 @@ $RECYCLE.BIN/
 
 .idea/
 .vscode/
+flask_session/
+
