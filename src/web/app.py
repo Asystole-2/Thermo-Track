@@ -23,8 +23,10 @@ from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from MySQLdb._exceptions import IntegrityError, Error
+
 from utils.weather_gemini import WeatherAIAnalyzer
 
+# from src.web.utils.weather_gemini import WeatherAIAnalyzer
 # Google OAuth (Authlib)
 try:
     from authlib.integrations.flask_client import OAuth
@@ -3193,7 +3195,7 @@ def control_fan():
         if state is None:
             return jsonify({"success": False, "error": "state required"}), 400
 
-        cmd = "Fan On" if state else "Fan Off"
+        cmd = "fan_on" if state else "fan_off"
         publish_data({"cmd": cmd})
 
         return jsonify({"success": True, "message": f"Fan command: {cmd}"})
