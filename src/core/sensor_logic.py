@@ -161,6 +161,17 @@ class SmartHomeMonitor:
             GPIO.output(PinConfig.FAN_PIN, GPIO.LOW)
             print(f"[AUTO] Temp {temp_c}°C → FAN OFF")
 
+    # BUZZER BEEP
+    def _buzzer_loud_beep(self, repeat=4):
+
+        for _ in range(repeat):
+            for pulse in range(400):
+                GPIO.output(PinConfig.BUZZER_PIN, True)
+                time.sleep(0.0002)
+                GPIO.output(PinConfig.BUZZER_PIN, False)
+                time.sleep(0.0002)
+            time.sleep(0.02)
+
     # MAIN LOOP
     def run(self):
         print("[Pi] Starting Smart Home Monitor...")
@@ -208,9 +219,10 @@ class SmartHomeMonitor:
                     }
                 )
                 GPIO.output(PinConfig.LED_PIN, GPIO.HIGH)
-                GPIO.output(PinConfig.BUZZER_PIN, GPIO.HIGH)
-                time.sleep(0.3)
-                GPIO.output(PinConfig.BUZZER_PIN, GPIO.LOW)
+                # GPIO.output(PinConfig.BUZZER_PIN, GPIO.HIGH)
+                # time.sleep(0.3)
+                # GPIO.output(PinConfig.BUZZER_PIN, GPIO.LOW)
+                self._buzzer_loud_beep(repeat=2)
 
             elif not motion_detected and last_motion == GPIO.HIGH:
                 if ts - last_motion_time >= 2:
