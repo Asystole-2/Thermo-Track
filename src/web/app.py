@@ -6,7 +6,8 @@ import secrets
 from decimal import Decimal
 from functools import wraps
 from datetime import datetime, date
-from src.core.pubnub_client import publish_data
+
+# from src.core.pubnub_client import publish_data
 
 from flask import (
     Flask,
@@ -22,7 +23,7 @@ from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from MySQLdb._exceptions import IntegrityError, Error
-from src.web.utils.weather_gemini import WeatherAIAnalyzer
+from utils.weather_gemini import WeatherAIAnalyzer
 
 # Google OAuth (Authlib)
 try:
@@ -831,6 +832,8 @@ def login_google():
 @app.route("/auth/google")
 def auth_google():
     """Google OAuth callback"""
+    print("REDIRECT URI:", redirect_uri)
+
     if not google:
         flash("Google login is not configured.", "error")
         return redirect(url_for("login"))
@@ -842,15 +845,13 @@ def auth_google():
         flash("Google login failed.", "error")
         return redirect(url_for("login"))
 
-    userinfo = token.get("userinfo")
-    if not userinfo:
-        try:
-            resp = google.get("userinfo")
-            userinfo = resp.json()
-        except Exception as e:
-            log.exception("Failed to fetch Google userinfo: %s", e)
-            flash("Google login failed.", "error")
-            return redirect(url_for("login"))
+    try:
+        resp = google.get("userinfo")
+        userinfo = resp.json()
+    except Exception as e:
+        log.exception("Failed to fetch Google userinfo: %s", e)
+        flash("Google login failed.", "error")
+        return redirect(url_for("login"))
 
     email = (userinfo.get("email") or "").lower()
     name = userinfo.get("name") or email.split("@")[0]
