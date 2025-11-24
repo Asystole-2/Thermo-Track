@@ -92,11 +92,10 @@ else:
             name="google",
             client_id=google_client_id,
             client_secret=google_client_secret,
-            server_metadata_url=(
-                "https://accounts.google.com/.well-known/openid-configuration"
-            ),
+            server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
             client_kwargs={"scope": "openid email profile"},
         )
+
         log.info("Google OAuth client registered.")
     else:
         log.warning(
@@ -832,7 +831,6 @@ def login_google():
 @app.route("/auth/google")
 def auth_google():
     """Google OAuth callback"""
-    print("REDIRECT URI:", redirect_uri)
 
     if not google:
         flash("Google login is not configured.", "error")
@@ -846,8 +844,7 @@ def auth_google():
         return redirect(url_for("login"))
 
     try:
-        resp = google.get("userinfo")
-        userinfo = resp.json()
+        userinfo = google.userinfo()
     except Exception as e:
         log.exception("Failed to fetch Google userinfo: %s", e)
         flash("Google login failed.", "error")
