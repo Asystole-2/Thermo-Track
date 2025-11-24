@@ -7,7 +7,7 @@ from decimal import Decimal
 from functools import wraps
 from datetime import datetime, date
 
-# from src.core.pubnub_client import publish_data
+from src.core.pubnub_client import publish_data
 
 from flask import (
     Flask,
@@ -23,7 +23,10 @@ from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from MySQLdb._exceptions import IntegrityError, Error
-from utils.weather_gemini import WeatherAIAnalyzer
+
+# from utils.weather_gemini import WeatherAIAnalyzer
+
+from src.web.utils.weather_gemini import WeatherAIAnalyzer
 
 # Google OAuth (Authlib)
 try:
@@ -3193,7 +3196,7 @@ def control_fan():
         if state is None:
             return jsonify({"success": False, "error": "state required"}), 400
 
-        cmd = "Fan On" if state else "Fan Off"
+        cmd = "fan_on" if state else "fan_off"
         publish_data({"cmd": cmd})
 
         return jsonify({"success": True, "message": f"Fan command: {cmd}"})
@@ -3204,7 +3207,7 @@ def control_fan():
 
 
 # ---------------------------
-# AUTO MODE – Store in DB
+# AUTO MODE – Send PubNub Command
 # ---------------------------
 @app.route("/api/hardware/fan/auto", methods=["POST"])
 @login_required
@@ -3217,7 +3220,9 @@ def set_fan_auto_mode():
         if auto_mode is None:
             return jsonify({"success": False, "error": "auto_mode required"}), 400
 
-        # Save to DB or config later
+        # Publish to Pi
+        cmd = "auto_on" if auto_mode else "auto_off"
+        publish_data({"cmd": cmd})
 
         return jsonify({"success": True, "message": f"Auto Mode set to {auto_mode}"})
 

@@ -10,7 +10,7 @@ from src.core.pubnub_client import subscribe_to_updates
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
-FAN_PIN = 14  # Relay control pin
+FAN_PIN = 17  # Relay control pin
 BUZZER_PIN = 27  # Buzzer control pin
 
 GPIO.setup(FAN_PIN, GPIO.OUT)
@@ -26,47 +26,59 @@ MANUAL_TIMEOUT = 20  # seconds of manual control before auto mode resumes
 
 
 # --------------------------
-# Handle PubNub Commands (Manual Control)
+# TEMP SENSOR READER
+# (replace with your real DHT read later)
+# --------------------------
+def read_temperature():
+    """Temporary fake temperature reading.
+    Replace with real DHT22 read later."""
+    try:
+        # TODO: read from DHT22 sensor
+        return 23.5
+    except:
+        return None
+
+
+# --------------------------
+# PUBNUB COMMAND HANDLER
 # --------------------------
 def handle_command(msg: dict):
-    global LAST_MANUAL
+    global LAST_MANUAL, AUTO_MODE
 
     cmd = msg.get("cmd")
     print(f"[Pi] Received: {cmd}")
 
-    # Record manual override time
+    # Any manual command pauses auto mode
     LAST_MANUAL = time.time()
+    AUTO_MODE = False
 
-    if cmd == "fan_on":
+    if cmd in ["fan_on", "Fan On", "FAN_ON"]:
         GPIO.output(FAN_PIN, GPIO.HIGH)
-        print("[MANUAL] FAN ON")
+        print("[Pi] FAN ON (manual)")
 
-    elif cmd == "fan_off":
+    elif cmd in ["fan_off", "Fan Off", "FAN_OFF"]:
         GPIO.output(FAN_PIN, GPIO.LOW)
-        print("[MANUAL] FAN OFF")
+        print("[Pi] FAN OFF (manual)")
 
-    elif cmd == "buzzer_on":
+    elif cmd in ["buzzer_on", "Buzzer On", "BUZZER_ON"]:
         GPIO.output(BUZZER_PIN, GPIO.HIGH)
-        print("[MANUAL] BUZZER ON")
+        print("[Pi] BUZZER ON")
 
-    elif cmd == "buzzer_off":
+    elif cmd in ["buzzer_off", "Buzzer Off", "BUZZER_OFF"]:
         GPIO.output(BUZZER_PIN, GPIO.LOW)
-        print("[MANUAL] BUZZER OFF")
+        print("[Pi] BUZZER OFF")
 
 
 # --------------------------
-# Automatic Fan Control (Fallback)
+# AUTOMATIC FAN CONTROLLER
 # --------------------------
 def auto_fan_controller():
-    """Automatically turn fan on/off based on temperature."""
     global AUTO_MODE
 
     while True:
-        # If no manual override recently, auto mode is active
+        # Resume auto mode if timeout passed
         if time.time() - LAST_MANUAL > MANUAL_TIMEOUT:
             AUTO_MODE = True
-        else:
-            AUTO_MODE = False
 
         if AUTO_MODE:
             temp = read_temperature()
@@ -76,29 +88,26 @@ def auto_fan_controller():
 
                 if temp >= AUTO_THRESHOLD:
                     GPIO.output(FAN_PIN, GPIO.HIGH)
-                    print("[AUTO] FAN ON (>= 24°C)")
-
+                    print("[AUTO] FAN ON (≥ threshold)")
                 else:
                     GPIO.output(FAN_PIN, GPIO.LOW)
-                    print("[AUTO] FAN OFF (< 24°C)")
+                    print("[AUTO] FAN OFF (< threshold)")
 
         time.sleep(3)
 
 
 # --------------------------
-# Main Program
+# MAIN
 # --------------------------
 if __name__ == "__main__":
     print("[Pi] Starting PubNub Command Listener...")
     subscribe_to_updates(handle_command)
 
-    print(f"[Pi] Auto Fan Control Enabled (threshold = {AUTO_THRESHOLD}°C)")
-    print("[Pi] Listening for commands + monitoring temperature...")
+    print("[Pi] Auto Mode Enabled")
+    print("[Pi] Now listening for commands + checking temperature...")
 
-    # RUN AUTO MODE LOOP
     try:
         auto_fan_controller()
-
     except KeyboardInterrupt:
         print("\n[Pi] Cleaning up GPIO...")
         GPIO.cleanup()
