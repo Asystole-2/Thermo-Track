@@ -565,3 +565,46 @@ body {
     background-color: #6b7280;
     color: white;
 }
+    #sidebar {
+        transition: width 0.3s ease-in-out;
+        width: 250px; /* Default expanded width */
+    }
+
+    #sidebar.collapsed {
+        width: 100px !important;
+    }
+
+    /* When collapsed, force flex items to center */
+    #sidebar.collapsed nav a {
+        justify-content: center !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    #sidebar.collapsed nav a svg {
+        margin-right: 0 !important;
+    }
+
+    #sidebar.collapsed .link-text {
+        display: none !important;
+    }
+
+
+    .sidebar-collapsed-initial #sidebar {
+    width: 80px !important;
+}
+
+
+.sidebar-collapsed-initial #sidebar .link-text {
+    display: none !important;
+}
+
+.sidebar-collapsed-initial #sidebar nav a {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.sidebar-collapsed-initial #sidebar nav a svg {
+    margin-right: 0 !important;
+}
