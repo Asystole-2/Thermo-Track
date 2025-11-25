@@ -2274,7 +2274,7 @@ def admin_create_user():
 
 @app.route("/delete-user/<int:user_id>", methods=["POST"])
 @login_required
-@role_required("admin", "technician")
+@role_required("admin")
 def delete_user(user_id):
     """Delete a user (admin and technicians)"""
     current_user_id = session.get("user_id")
@@ -2326,7 +2326,7 @@ def delete_user(user_id):
 
 @app.route("/update-user-role/<int:user_id>", methods=["POST"])
 @login_required
-@role_required("admin", "technician")
+@role_required("admin")
 def update_user_role(user_id):
     """Update user role (admin and technicians)"""
     new_role = request.form.get("role")
