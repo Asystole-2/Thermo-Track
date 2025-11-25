@@ -184,7 +184,8 @@
                                 Profile Information
                             </h3>
 
-                            <form id="profileForm" action="{{ url_for('update_profile') }}" method="post" class="space-y-4">
+                            <form id="profileForm" action="{{ url_for('update_profile') }}" method="post"
+                                  class="space-y-4">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="form-label text-text-primary">Username</label>
@@ -255,7 +256,8 @@
                                 Change Password
                             </h3>
 
-                            <form id="passwordForm" action="{{ url_for('change_password') }}" method="post" class="space-y-4">
+                            <form id="passwordForm" action="{{ url_for('change_password') }}" method="post"
+                                  class="space-y-4">
                                 <div>
                                     <label class="form-label text-text-primary">Current Password</label>
                                     <input
@@ -371,7 +373,7 @@
                                         <th class="text-left py-3 text-text-primary font-semibold">User</th>
                                         <th class="text-left py-3 text-text-primary font-semibold">Email</th>
                                         <th class="text-left py-3 text-text-primary font-semibold">Role</th>
-                                        {% if session.get('role') in ['admin', 'technician'] %}
+                                        {% if session.get('role') == 'admin' %}
                                             <th class="text-left py-3 text-text-primary font-semibold">Alter Role</th>
                                         {% endif %}
                                         <th class="text-right py-3 text-text-primary font-semibold">Actions</th>
@@ -433,22 +435,20 @@
                       </span>
                                                 </td>
 
-                                                {% if session.get('role') in ['admin', 'technician'] %}
+                                                {% if session.get('role') == 'admin' %}
                                                     <td class="py-3">
                                                         <form action="{{ url_for('update_user_role', user_id=u.id) }}"
                                                               method="post" class="inline" id="role-form-{{ u.id }}">
                                                             <select name="role" class="form-input text-sm py-1"
                                                                     onchange="confirmRoleChange('{{ u.username }}', '{{ u.role }}', this.value, '{{ u.id }}')">
-                                                                {% if session.get('role') == 'admin' %}
-                                                                    <option value="admin"
-                                                                            {% if u.role=='admin' %}selected{% endif %}>
-                                                                        <i class="fas fa-crown mr-2"></i>Admin
-                                                                    </option>
-                                                                    <option value="technician"
-                                                                            {% if u.role=='technician' %}selected{% endif %}>
-                                                                        <i class="fas fa-tools mr-2"></i>Technician
-                                                                    </option>
-                                                                {% endif %}
+                                                                <option value="admin"
+                                                                        {% if u.role=='admin' %}selected{% endif %}>
+                                                                    <i class="fas fa-crown mr-2"></i>Admin
+                                                                </option>
+                                                                <option value="technician"
+                                                                        {% if u.role=='technician' %}selected{% endif %}>
+                                                                    <i class="fas fa-tools mr-2"></i>Technician
+                                                                </option>
                                                                 <option value="user"
                                                                         {% if u.role=='user' %}selected{% endif %}>
                                                                     <i class="fas fa-user mr-2"></i>User
@@ -474,8 +474,8 @@
                                                         </button>
 
                                                         {% if u.role != 'admin' %}
-                                                            <!-- Technician is allowed to delete non-technician, non-admin users -->
-                                                            {% if u.role != 'technician' or session.get('role') == 'admin' %}
+                                                            <!-- Only admin can delete users -->
+                                                            {% if session.get('role') == 'admin' %}
                                                                 <button
                                                                         class="btn btn-danger btn-sm flex items-center gap-1"
                                                                         onclick="showDeleteUserConfirm('{{ u.username }}', {{ u.id }})"
@@ -513,7 +513,8 @@
                     <i class="fas fa-user-circle text-accent-blue"></i>
                     <span class="text-sm sm:text-base">User Profile</span>
                 </h3>
-                <button id="closeUserProfileModal" class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                <button id="closeUserProfileModal"
+                        class="text-text-muted hover:text-text-primary text-xl transition-colors">
                     &times;
                 </button>
             </div>
@@ -540,8 +541,10 @@
                             </div>
 
                             <!-- Username and Role -->
-                            <h2 id="modalUsername" class="text-lg sm:text-xl font-bold text-text-primary mb-1 truncate px-2"></h2>
-                            <div id="modalUserRole" class="inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium mb-2">
+                            <h2 id="modalUsername"
+                                class="text-lg sm:text-xl font-bold text-text-primary mb-1 truncate px-2"></h2>
+                            <div id="modalUserRole"
+                                 class="inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium mb-2">
                                 <i class="fas fa-user text-xs"></i>
                                 <span class="truncate">User</span>
                             </div>
@@ -550,7 +553,8 @@
 
                         <!-- Personal Information -->
                         <div class="bg-tertiary rounded-lg p-3 sm:p-4">
-                            <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Personal Information</h4>
+                            <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Personal
+                                Information</h4>
                             <div class="space-y-2 text-xs sm:text-sm">
                                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
                                     <span class="text-text-muted font-medium">Full Name:</span>
@@ -568,11 +572,15 @@
                             <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Statistics</h4>
                             <div class="grid grid-cols-2 gap-3 sm:gap-4">
                                 <div class="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                                    <div id="modalOwnedRooms" class="text-lg sm:text-xl md:text-2xl font-bold text-accent-blue">0</div>
+                                    <div id="modalOwnedRooms"
+                                         class="text-lg sm:text-xl md:text-2xl font-bold text-accent-blue">0
+                                    </div>
                                     <div class="text-text-muted text-xs">Owned Rooms</div>
                                 </div>
                                 <div class="bg-secondary rounded-lg p-2 sm:p-3 text-center">
-                                    <div id="modalActiveRequests" class="text-lg sm:text-xl md:text-2xl font-bold text-accent-blue">0</div>
+                                    <div id="modalActiveRequests"
+                                         class="text-lg sm:text-xl md:text-2xl font-bold text-accent-blue">0
+                                    </div>
                                     <div class="text-text-muted text-xs">Active Requests</div>
                                 </div>
                             </div>
@@ -581,14 +589,16 @@
                         <!-- Bio -->
                         <div class="bg-tertiary rounded-lg p-3 sm:p-4">
                             <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2">Bio</h4>
-                            <p id="modalUserBio" class="text-text-primary text-xs sm:text-sm bg-secondary rounded-lg p-2 sm:p-3 min-h-[50px] sm:min-h-[60px] max-h-[100px] overflow-y-auto">
+                            <p id="modalUserBio"
+                               class="text-text-primary text-xs sm:text-sm bg-secondary rounded-lg p-2 sm:p-3 min-h-[50px] sm:min-h-[60px] max-h-[100px] overflow-y-auto">
                                 No bio provided
                             </p>
                         </div>
 
                         <!-- Recent Activity -->
                         <div class="bg-tertiary rounded-lg p-3 sm:p-4">
-                            <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Recent Activity</h4>
+                            <h4 class="text-sm sm:text-md font-semibold text-text-primary mb-2 sm:mb-3">Recent
+                                Activity</h4>
                             <div id="modalRecentActivity" class="space-y-2 text-xs sm:text-sm">
                                 <div class="text-text-muted italic text-center py-2">No recent activity</div>
                             </div>
@@ -612,7 +622,8 @@
                     <i class="fas fa-exclamation-triangle text-yellow-500"></i>
                     <span class="text-sm sm:text-base" id="confirmModalTitle">Confirm Action</span>
                 </h3>
-                <button id="closeConfirmModal" class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                <button id="closeConfirmModal"
+                        class="text-text-muted hover:text-text-primary text-xl transition-colors">
                     &times;
                 </button>
             </div>
@@ -680,8 +691,12 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes modalSlideIn {
@@ -832,21 +847,21 @@
                     'Content-Type': 'application/json',
                 }
             })
-            .then(response => {
-                if (response.ok) {
-                    showToast('User deleted successfully', 'success');
-                    // Reload the page to reflect changes
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    throw new Error('Failed to delete user');
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting user:', error);
-                showToast('Failed to delete user', 'error');
-            });
+                .then(response => {
+                    if (response.ok) {
+                        showToast('User deleted successfully', 'success');
+                        // Reload the page to reflect changes
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        throw new Error('Failed to delete user');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting user:', error);
+                    showToast('Failed to delete user', 'error');
+                });
         }
 
         // Initialize confirmation modal

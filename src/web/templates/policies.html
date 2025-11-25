@@ -11,7 +11,6 @@
                         <h1 class="text-4xl font-extrabold text-text-primary mb-2">Policy Management</h1>
                         <p class="header-subtitle">Define and automate energy-saving rules and schedules.</p>
                     </div>
-                      <!-- Right side: Notification bell -->
                 {% include 'components/notification_bell.html' %}
                 </div>
             </header>
@@ -28,23 +27,285 @@
                 {% endif %}
             {% endwith %}
 
-            <section>
-                <h3 class="text-xl font-semibold mb-4 text-gray-300">Automated Rules</h3>
-                <div class="card">
-                    <div class="card-placeholder">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-green-400" fill="none"
-                             viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M9 12l2 2 4-4m5.617-4.238A6.995 6.995 0 0112 5c-3.14 0-5.922 1.487-7.617 3.762A.5.5 0 004 8.248V16a2 2 0 002 2h12a2 2 0 002-2V8.248a.5.5 0 00-.383-.486z"/>
-                        </svg>
-                        <h3 class="mt-2 text-xl font-medium text-gray-200">Feature In Progress</h3>
-                        <p class="mt-1 text-muted">Automated scheduling and policy creation tools are currently being
-                            developed.</p>
-                        <p class="mt-4 text-sm text-gray-500">Manage cooling/heating schedules for
-                            your {{ rooms|length }} connected rooms here.</p>
+            <div class="card p-4 bg-secondary mb-6 rounded-xl border border-gray-700/30">
+                <h3 class="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+                    <i class="fas fa-sliders-h text-purple-400"></i>
+                    Quick Presets
+                </h3>
+
+                <div class="p-4 bg-tertiary rounded-lg">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button id="btn-comfort" onclick="togglePreset(this, 'Comfort', 'bg-blue-600')"
+                                data-active="false"
+                                class="btn bg-gray-700 hover:bg-gray-600 transition-all duration-200 text-white text-sm py-3 rounded-lg shadow-lg border border-transparent">
+                            <i class="fas fa-couch mr-2"></i> Comfort
+                        </button>
+
+                        <button id="btn-saver" onclick="togglePreset(this, 'Energy Saver', 'bg-emerald-600')"
+                                data-active="false"
+                                class="btn bg-gray-700 hover:bg-gray-600 transition-all duration-200 text-white text-sm py-3 rounded-lg shadow-lg border border-transparent">
+                            <i class="fas fa-leaf mr-2"></i> Saver
+                        </button>
+
+                        <button id="btn-manual" onclick="togglePreset(this, 'Manual Mode', 'bg-purple-600')"
+                                data-active="false"
+                                class="btn bg-gray-700 hover:bg-gray-600 transition-all duration-200 text-white text-sm py-3 rounded-lg shadow-lg border border-transparent">
+                            <i class="fas fa-hand-paper mr-2"></i> Manual
+                        </button>
+
+                        <button id="btn-away" onclick="togglePreset(this, 'Away Mode', 'bg-orange-600')"
+                                data-active="false"
+                                class="btn bg-gray-700 hover:bg-gray-600 transition-all duration-200 text-white text-sm py-3 rounded-lg shadow-lg border border-transparent">
+                            <i class="fas fa-power-off mr-2"></i> Away
+                        </button>
                     </div>
+                </div>
+            </div>
+
+            <section class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 bg-blue-900/30 rounded-lg">
+                        <i class="fas fa-robot text-blue-400 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold ">Automated Rules</h3>
+                        <p class="text-sm text-gray-400">Manage automated rules for HVAC optimization.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+
+                    <div class="card p-5 bg-secondary rounded-xl border border-gray-700/30 flex justify-between items-center hover:bg-gray-800 transition-colors">
+                        <div class="pr-4">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-door-open text-gray-500 text-xs"></i>
+                                <h4 class="text-lg font-bold text-white">Empty Room Setback</h4>
+                            </div>
+                            <p class="text-gray-400 text-sm mb-3">If unoccupied > 15 mins, adjust setpoint by +/- 2°C.</p>
+                            <div class="flex items-center gap-2 text-xs font-medium transition-all">
+                                <span class="text-gray-300">Enabled</span>
+                                <span class="bg-blue-600 text-white px-2 py-0.5 rounded-full">Active</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked onchange="togglePolicy(this, 'empty_room')" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card p-5 bg-secondary rounded-xl border border-gray-700/30 flex justify-between items-center hover:bg-gray-800 transition-colors">
+                        <div class="pr-4">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-moon text-gray-500 text-xs"></i>
+                                <h4 class="text-lg font-bold text-white">Night Time Economy</h4>
+                            </div>
+                            <p class="text-gray-400 text-sm mb-3">Widen temperature deadband between 10 PM and 6 AM.</p>
+                            <div class="flex items-center gap-2 text-xs font-medium transition-all">
+                                <span class="text-gray-300">Enabled</span>
+                                <span class="bg-blue-600 text-white px-2 py-0.5 rounded-full">Active</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked onchange="togglePolicy(this, 'night_eco')" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card p-5 bg-secondary rounded-xl border border-gray-700/30 flex justify-between items-center hover:bg-gray-800 transition-colors">
+                        <div class="pr-4">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-bolt text-gray-500 text-xs"></i>
+                                <h4 class="text-lg font-bold text-white">Peak Demand Limiting</h4>
+                            </div>
+                            <p class="text-gray-400 text-sm mb-3">Reduce load during peak electricity rate hours (4 PM - 7 PM).</p>
+                            <div class="flex items-center gap-2 text-xs font-medium transition-all">
+                                <span class="text-gray-500">Disabled</span>
+                                <span class="bg-gray-700 text-gray-400 px-2 py-0.5 rounded-full border border-gray-600">Inactive</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" onchange="togglePolicy(this, 'peak_limit')" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card p-5 bg-secondary rounded-xl border border-gray-700/30 flex justify-between items-center hover:bg-gray-800 transition-colors">
+                        <div class="pr-4">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-calendar-week text-gray-500 text-xs"></i>
+                                <h4 class="text-lg font-bold text-white">Weekend Deep Sleep</h4>
+                            </div>
+                            <p class="text-gray-400 text-sm mb-3">Minimize energy use on Sat/Sun by maintaining only safety temperatures (12°C - 30°C).</p>
+                            <div class="flex items-center gap-2 text-xs font-medium transition-all">
+                                <span class="text-gray-300">Enabled</span>
+                                <span class="bg-blue-600 text-white px-2 py-0.5 rounded-full">Active</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked onchange="togglePolicy(this, 'weekend_sleep')" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card p-5 bg-secondary rounded-xl border border-gray-700/30 flex justify-between items-center hover:bg-gray-800 transition-colors">
+                        <div class="pr-4">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-wind text-gray-500 text-xs"></i>
+                                <h4 class="text-lg font-bold text-white">CO2 Demand Control</h4>
+                            </div>
+                            <p class="text-gray-400 text-sm mb-3">Dynamically adjust fresh air intake based on indoor air quality sensors to reduce fan energy.</p>
+                            <div class="flex items-center gap-2 text-xs font-medium transition-all">
+                                <span class="text-gray-500">Disabled</span>
+                                <span class="bg-gray-700 text-gray-400 px-2 py-0.5 rounded-full border border-gray-600">Inactive</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" onchange="togglePolicy(this, 'co2_dcv')" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card p-5 bg-secondary rounded-xl border border-gray-700/30 flex justify-between items-center hover:bg-gray-800 transition-colors">
+                        <div class="pr-4">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-sun text-gray-500 text-xs"></i>
+                                <h4 class="text-lg font-bold text-white">Solar Gain Compensation</h4>
+                            </div>
+                            <p class="text-gray-400 text-sm mb-3">Adjust cooling setpoints automatically in south-facing rooms during high UV index hours.</p>
+                            <div class="flex items-center gap-2 text-xs font-medium transition-all">
+                                <span class="text-gray-300">Enabled</span>
+                                <span class="bg-blue-600 text-white px-2 py-0.5 rounded-full">Active</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked onchange="togglePolicy(this, 'solar_gain')" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card p-5 bg-secondary rounded-xl border border-gray-700/30 flex justify-between items-center hover:bg-gray-800 transition-colors">
+                        <div class="pr-4">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-snowflake text-gray-500 text-xs"></i>
+                                <h4 class="text-lg font-bold text-white">Frost Protection</h4>
+                            </div>
+                            <p class="text-gray-400 text-sm mb-3">Automatically activate heating if internal temperatures drop below 5°C to prevent pipe damage.</p>
+                            <div class="flex items-center gap-2 text-xs font-medium transition-all">
+                                <span class="text-gray-300">Enabled</span>
+                                <span class="bg-blue-600 text-white px-2 py-0.5 rounded-full">Active</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked onchange="togglePolicy(this, 'frost_prot')" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
                 </div>
             </section>
         </main>
     </div>
+
+    <script>
+        // -------------------------
+        // DUMMY SIMULATION LOGIC
+        // -------------------------
+
+        // 1. Handle Preset Buttons
+        function togglePreset(btn, name, activeColorClass) {
+            const isCurrentlyActive = btn.getAttribute('data-active') === 'true';
+            const newState = !isCurrentlyActive;
+            btn.setAttribute('data-active', newState);
+
+            if (newState) {
+                btn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                btn.classList.add(activeColorClass, 'ring-2', 'ring-offset-2', 'ring-offset-gray-900', 'ring-white/50');
+                simulateNetworkRequest().then(() => showVoiceFeedback(`${name} Activated`, 'success'));
+            } else {
+                btn.classList.remove(activeColorClass, 'ring-2', 'ring-offset-2', 'ring-offset-gray-900', 'ring-white/50');
+                btn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                simulateNetworkRequest().then(() => showVoiceFeedback(`${name} Deactivated`, 'info'));
+            }
+        }
+
+        // 2. Handle Policy Switches (Generic - works for all 7 policies)
+        function togglePolicy(checkbox, policyId) {
+            const isChecked = checkbox.checked;
+            const card = checkbox.closest('.card');
+            const statusDiv = card.querySelector('.flex.items-center.gap-2.text-xs'); // Specific selector for the badge area
+
+            if (isChecked) {
+                statusDiv.innerHTML = `
+                    <span class="text-gray-300">Enabled</span>
+                    <span class="bg-blue-600 text-white px-2 py-0.5 rounded-full">Active</span>
+                `;
+                simulateNetworkRequest().then(() => showVoiceFeedback(`Policy Enabled`, 'success'));
+            } else {
+                statusDiv.innerHTML = `
+                    <span class="text-gray-500">Disabled</span>
+                    <span class="bg-gray-700 text-gray-400 px-2 py-0.5 rounded-full border border-gray-600">Inactive</span>
+                `;
+                simulateNetworkRequest().then(() => showVoiceFeedback(`Policy Disabled`, 'warning'));
+            }
+        }
+
+        // 3. Mock Network Request
+        function simulateNetworkRequest() {
+            return new Promise(resolve => setTimeout(() => resolve({ success: true }), 300));
+        }
+
+        // 4. Toast Notification
+        function showVoiceFeedback(message, type = 'info', duration = 3000) {
+            const existingFeedback = document.getElementById('tt-voice-feedback');
+            if (existingFeedback) existingFeedback.remove();
+
+            const feedback = document.createElement('div');
+            feedback.id = 'tt-voice-feedback';
+            feedback.textContent = message;
+            feedback.style.cssText = `
+                position: fixed; top: 20px; right: 20px; padding: 12px 20px;
+                border-radius: 8px; color: white; font-weight: 600; z-index: 10000;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+                animation: tt-slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                font-family: system-ui, -apple-system, sans-serif; font-size: 0.95rem;
+                display: flex; align-items: center; gap: 10px; backdrop-filter: blur(8px);
+            `;
+            const styles = {
+                success: 'background: rgba(16, 185, 129, 0.95); border-left: 4px solid #fff;',
+                error:   'background: rgba(239, 68, 68, 0.95); border-left: 4px solid #fff;',
+                info:    'background: rgba(59, 130, 246, 0.95); border-left: 4px solid #fff;',
+                warning: 'background: rgba(107, 114, 128, 0.95); border-left: 4px solid #fff;',
+            };
+            feedback.style.cssText += styles[type] || styles.info;
+            document.body.appendChild(feedback);
+
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.style.animation = 'tt-slideOut 0.3s ease-in';
+                    setTimeout(() => feedback.remove(), 290);
+                }
+            }, duration);
+        }
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes tt-slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes tt-slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+        `;
+        document.head.appendChild(style);
+    </script>
 {% endblock %}
