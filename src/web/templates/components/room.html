@@ -460,32 +460,6 @@
                                             </button>
                                         </div>
                                     </div>
-
-                                    <!-- Presets -->
-                                    <div class="p-3 bg-tertiary rounded-lg">
-                                        <h4 class="text-md font-semibold text-text-primary mb-3 flex items-center gap-2">
-                                            <i class="fas fa-sliders-h text-purple-400"></i>
-                                            Quick Presets
-                                        </h4>
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <button onclick="applyPreset('comfort')"
-                                                    class="btn bg-blue-600 hover:bg-blue-700 text-white text-sm py-2">
-                                                <i class="fas fa-couch mr-1"></i> Comfort
-                                            </button>
-                                            <button onclick="applyPreset('energy_saver')"
-                                                    class="btn bg-green-600 hover:bg-green-700 text-white text-sm py-2">
-                                                <i class="fas fa-leaf mr-1"></i> Energy Saver
-                                            </button>
-                                            <button onclick="applyPreset('manual')"
-                                                    class="btn bg-purple-600 hover:bg-purple-700 text-white text-sm py-2">
-                                                <i class="fas fa-hand-paper mr-1"></i> Manual
-                                            </button>
-                                            <button onclick="applyPreset('away')"
-                                                    class="btn bg-gray-600 hover:bg-gray-700 text-white text-sm py-2">
-                                                <i class="fas fa-home mr-1"></i> Away
-                                            </button>
-                                        </div>
-                                    </div>
                                 </div>
                             {% endif %}
                         </div>
@@ -1730,29 +1704,6 @@
                 .catch(error => {
                     console.error('Error controlling buzzer:', error);
                     showVoiceFeedback('Failed to control buzzer', 'error');
-                });
-        }
-
-        function applyPreset(presetName) {
-            fetch('/api/hardware/preset', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({preset: presetName})
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showVoiceFeedback(data.message, 'success');
-                        loadHardwareStatus();
-                    } else {
-                        showVoiceFeedback(data.error, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error applying preset:', error);
-                    showVoiceFeedback('Failed to apply preset', 'error');
                 });
         }
 
