@@ -34,36 +34,42 @@ try:
     import adafruit_dht
     import board
 except ImportError:
-    print("Warning: adafruit_dht or board not found. DHT reading will be skipped.")
+    print("Warning: adafruit_dht or board not found. DHT reading skipped.")
     adafruit_dht = None
     board = None
 
 # --- PubNub Client Import ---
 try:
-    from pubnub_client import publish_data
+    from pubnub_client import publish_data, subscribe_to_updates
 except ImportError:
-    print("Warning: Could not import pubnub_client. Using fallback.")
+    print("Warning: PubNub client missing (mock mode enabled)")
 
-    def publish_data(payload):
-        print(f"[PubNub Fallback] Would publish: {payload}")
+    def publish_data(data):
+        print(f"[PubNub Mock] Would publish: {data}")
+
+    def subscribe_to_updates(cb):
+        print("[PubNub Mock] No real listener added")
 
 
-# --- PIN CONFIGURATION (BCM numbering) ---
+# --- PIN CONFIGURATION ---
 class PinConfig:
     PIR_PIN = 6
     DHT_PIN = 4
     BUZZER_PIN = 27
     LED_PIN = 22
-    FAN_PIN = 14
+    FAN_PIN = 17
 
 
-# --- LOGIC THRESHOLDS ---
-READ_INTERVAL_SECONDS = 2.0
-TEMP_THRESHOLD_C = 24.0  # FAN turns ON only if > 24°C
-MOTION_COOLDOWN = 2.0
-BUZZER_DURATION = 0.8
+# --- AUTO MODE SETTINGS ---
+AUTO_MODE = True
+AUTO_THRESHOLD = 24  # Fan ON at >= 24°C
+LAST_MANUAL = 0  # Time manual button pressed
+MANUAL_TIMEOUT = 10  # Auto mode resumes after 10 sec
 
 
+# -----------------------
+# SENSOR MONITOR CLASS
+# -----------------------
 class SmartHomeMonitor:
 
     def __init__(self):
@@ -71,29 +77,16 @@ class SmartHomeMonitor:
         self.dht_device = None
 
         self._gpio.setwarnings(False)
-
-        if self._gpio.__class__.__name__ == "MockGPIO":
-            print(" Running in Mock Mode (No physical GPIO control)")
-
-        self._setup_dht()
         self._setup_gpio()
-        print("[Monitor] All components initialized")
+        self._setup_dht()
 
-    def _setup_dht(self):
-        if adafruit_dht and board:
-            try:
-                self.dht_device = adafruit_dht.DHT22(board.D4)
-                print("[Monitor] DHT22 sensor initialized on BCM 4")
-            except Exception as e:
-                print(f"[Monitor] Error initializing DHT22: {e}")
-                self.dht_device = None
-        else:
-            print("[Monitor] DHT22 libraries not available")
+        print("[Monitor] Components initialized.")
 
+    # GPIO Setup
     def _setup_gpio(self):
         try:
             self._gpio.cleanup()
-        except Exception:
+        except:
             pass
 
         self._gpio.setmode(self._gpio.BCM)
@@ -105,141 +98,159 @@ class SmartHomeMonitor:
         self._gpio.setup(PinConfig.LED_PIN, self._gpio.OUT, initial=self._gpio.LOW)
         self._gpio.setup(PinConfig.FAN_PIN, self._gpio.OUT, initial=self._gpio.LOW)
 
-        print(
-            f"[Monitor] GPIO configured (BCM mode) - PIR:{PinConfig.PIR_PIN}, "
-            f"Buzzer:{PinConfig.BUZZER_PIN}, LED:{PinConfig.LED_PIN}, Fan:{PinConfig.FAN_PIN}"
-        )
+        print("[Monitor] GPIO configured.")
 
-    def _beep_buzzer(self, duration=BUZZER_DURATION):
-        self._gpio.output(PinConfig.BUZZER_PIN, self._gpio.HIGH)
-        time.sleep(duration)
-        self._gpio.output(PinConfig.BUZZER_PIN, self._gpio.LOW)
+    # DHT Setup
+    def _setup_dht(self):
+        if adafruit_dht and board:
+            try:
+                self.dht_device = adafruit_dht.DHT22(board.D4)
+                print("[Monitor] DHT22 initialized.")
+            except:
+                print("[Monitor] DHT22 failed.")
+                self.dht_device = None
 
-    def _control_actuators(self, temp_c: Optional[float], motion_detected: bool):
+    # CMD Handler for PubNub
+    def handle_command(self, msg: dict):
+        global AUTO_MODE, LAST_MANUAL
 
-        # Motion handling
-        if motion_detected:
-            self._gpio.output(PinConfig.LED_PIN, self._gpio.HIGH)
-            self._beep_buzzer()
-            print("  [Actuator] Motion detected: LED ON, Buzzer beeped")
+        cmd = msg.get("cmd")
+        print(f"[Pi] CMD Received → {cmd}")
+
+        # turns off auto mode temporarily
+        if cmd in ["fan_on", "Fan On"]:
+            GPIO.output(PinConfig.FAN_PIN, GPIO.HIGH)
+            print("[MANUAL] Fan ON")
+            LAST_MANUAL = time.time()
+            AUTO_MODE = False
+
+        elif cmd in ["fan_off", "Fan Off"]:
+            GPIO.output(PinConfig.FAN_PIN, GPIO.LOW)
+            print("[MANUAL] Fan OFF")
+            LAST_MANUAL = time.time()
+            AUTO_MODE = False
+
+        elif cmd == "buzzer_on":
+            GPIO.output(PinConfig.BUZZER_PIN, GPIO.HIGH)
+            print("[MANUAL] Buzzer ON")
+
+        elif cmd == "buzzer_off":
+            GPIO.output(PinConfig.BUZZER_PIN, GPIO.LOW)
+            print("[MANUAL] Buzzer OFF")
+
+        elif cmd == "auto_on":
+            AUTO_MODE = True
+            print("[Pi] AUTO MODE ENABLED")
+
+        elif cmd == "auto_off":
+            AUTO_MODE = False
+            print("[Pi] AUTO MODE DISABLED")
+
         else:
-            self._gpio.output(PinConfig.LED_PIN, self._gpio.LOW)
+            print("[Pi] Unknown command")
 
-        # Temperature / Fan Logic (UPDATED)
-        if temp_c is not None:
-            if temp_c > TEMP_THRESHOLD_C:
-                self._gpio.output(PinConfig.FAN_PIN, self._gpio.HIGH)
-                print(
-                    f"  [Actuator] Temp {temp_c:.1f}°C > {TEMP_THRESHOLD_C}°C: Fan ON"
-                )
-            else:
-                self._gpio.output(PinConfig.FAN_PIN, self._gpio.LOW)
-                print(
-                    f"  [Actuator] Temp {temp_c:.1f}°C ≤ {TEMP_THRESHOLD_C}°C: Fan OFF"
-                )
+    # AUTO FAN LOGIC
+    def auto_fan(self, temp_c):
+        if temp_c is None:
+            return
 
+        if temp_c >= AUTO_THRESHOLD:
+            GPIO.output(PinConfig.FAN_PIN, GPIO.HIGH)
+            print(f"[AUTO] Temp {temp_c}°C → FAN ON")
+        else:
+            GPIO.output(PinConfig.FAN_PIN, GPIO.LOW)
+            print(f"[AUTO] Temp {temp_c}°C → FAN OFF")
+
+    # BUZZER BEEP
+    def _buzzer_loud_beep(self, repeat=4):
+
+        for _ in range(repeat):
+            for pulse in range(400):
+                GPIO.output(PinConfig.BUZZER_PIN, True)
+                time.sleep(0.0002)
+                GPIO.output(PinConfig.BUZZER_PIN, False)
+                time.sleep(0.0002)
+            time.sleep(0.02)
+
+    # MAIN LOOP
     def run(self):
-        print("\n--- Starting Unified Smart Home Monitor ---")
-        print(f"Temperature threshold: {TEMP_THRESHOLD_C}°C")
-        print(f"Motion cooldown: {MOTION_COOLDOWN}s")
-        print(f"Read interval: {READ_INTERVAL_SECONDS}s")
+        print("[Pi] Starting Smart Home Monitor...")
+        subscribe_to_updates(self.handle_command)
 
-        last_motion_state = self._gpio.LOW
+        last_motion = GPIO.LOW
         last_motion_time = 0
 
-        try:
-            while True:
-                ts = int(time.time())
-                temp_c = None
-                humidity = None
+        while True:
+            ts = int(time.time())
+            temp_c = None
 
-                # DHT22 sensor read
-                if self.dht_device:
-                    try:
-                        temp_c = self.dht_device.temperature
-                        humidity = self.dht_device.humidity
+            # Read DHT22
+            if self.dht_device:
+                try:
+                    temp_c = self.dht_device.temperature
+                    humidity = self.dht_device.humidity
 
-                        if temp_c is not None and humidity is not None:
-                            print(
-                                f"[DHT22] Temp: {temp_c:5.1f}°C | Humidity: {humidity:3.1f}%"
-                            )
-                            publish_data(
-                                {
-                                    "event": "dht22_reading",
-                                    "device_uid": "dht22_sensor_01",
-                                    "temperature_c": round(float(temp_c), 2),
-                                    "humidity": round(float(humidity), 2),
-                                    "at": ts,
-                                }
-                            )
-                        else:
-                            print("[DHT22] Sensor read returned None")
-
-                    except Exception as e:
-                        print(f"[DHT22] Unexpected Error: {e}")
-
-                # PIR motion detection
-                current_pir_state = self._gpio.input(PinConfig.PIR_PIN)
-                motion_detected = current_pir_state == self._gpio.HIGH
-
-                # Logging PIR state
-                print(
-                    f"[PIR] Current state: {'HIGH' if current_pir_state else 'LOW'}, "
-                    f"Last state: {'HIGH' if last_motion_state else 'LOW'}"
-                )
-
-                # Motion start event
-                if motion_detected and last_motion_state == self._gpio.LOW:
-                    print("[PIR] MOTION DETECTED!")
-                    last_motion_state = self._gpio.HIGH
-                    last_motion_time = ts
-                    publish_data(
-                        {
-                            "event": "motion",
-                            "device_uid": "pir_sensor_01",
-                            "occupied": 1,
-                            "at": ts,
-                        }
-                    )
-
-                # Motion stop event
-                elif not motion_detected and last_motion_state == self._gpio.HIGH:
-                    if ts - last_motion_time >= MOTION_COOLDOWN:
-                        print("[PIR] No motion")
-                        last_motion_state = self._gpio.LOW
+                    if temp_c is not None:
                         publish_data(
                             {
-                                "event": "motion",
-                                "device_uid": "pir_sensor_01",
-                                "occupied": 0,
+                                "event": "dht22_reading",
+                                "device_uid": "dht22_sensor_01",
+                                "temperature_c": round(float(temp_c), 2),
+                                "humidity": round(float(humidity), 2),
                                 "at": ts,
                             }
                         )
 
-                # Actuators
-                self._control_actuators(temp_c, motion_detected)
+                except Exception as e:
+                    print(f"[DHT22] Error: {e}")
 
-                time.sleep(READ_INTERVAL_SECONDS)
+            # PIR Motion
+            current_motion = GPIO.input(PinConfig.PIR_PIN)
+            motion_detected = current_motion == GPIO.HIGH
 
-        except KeyboardInterrupt:
-            print("\n Stopping monitor service...")
+            if motion_detected and last_motion == GPIO.LOW:
+                print("[PIR] MOTION DETECTED")
+                publish_data(
+                    {
+                        "event": "motion",
+                        "device_uid": "pir_sensor_01",
+                        "occupied": 1,
+                        "at": ts,
+                    }
+                )
+                GPIO.output(PinConfig.LED_PIN, GPIO.HIGH)
+                # GPIO.output(PinConfig.BUZZER_PIN, GPIO.HIGH)
+                # time.sleep(0.3)
+                # GPIO.output(PinConfig.BUZZER_PIN, GPIO.LOW)
+                self._buzzer_loud_beep(repeat=2)
 
-        finally:
-            self.cleanup()
+            elif not motion_detected and last_motion == GPIO.HIGH:
+                if ts - last_motion_time >= 2:
+                    print("[PIR] Motion stopped")
+                    publish_data(
+                        {
+                            "event": "motion",
+                            "device_uid": "pir_sensor_01",
+                            "occupied": 0,
+                            "at": ts,
+                        }
+                    )
+                GPIO.output(PinConfig.LED_PIN, GPIO.LOW)
 
-    def cleanup(self):
-        print("\n[Monitor] Cleaning up resources...")
-        self._gpio.output(PinConfig.BUZZER_PIN, self._gpio.LOW)
-        self._gpio.output(PinConfig.LED_PIN, self._gpio.LOW)
-        self._gpio.output(PinConfig.FAN_PIN, self._gpio.LOW)
-        self._gpio.cleanup()
-        print("[Monitor] GPIO cleaned up")
+            last_motion = current_motion
 
-        if self.dht_device:
-            self.dht_device.exit()
-            print("[Monitor] DHT device exited")
+            # FAN AUTO MODE with MANUAL TIMEOUT
+            global AUTO_MODE
+            if time.time() - LAST_MANUAL > MANUAL_TIMEOUT:
+                AUTO_MODE = True
+
+            if AUTO_MODE:
+                self.auto_fan(temp_c)
+
+            time.sleep(2)
 
 
+# Run Monitor
 if __name__ == "__main__":
     monitor = SmartHomeMonitor()
     monitor.run()

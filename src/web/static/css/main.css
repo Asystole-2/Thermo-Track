@@ -23,12 +23,6 @@
   --text-muted-dark: #9ca3af;
   --border-color-dark: #374151;
   --shadow-dark: 0 4px 6px rgba(0, 0, 0, 0.3);
-
-  /* Accent Colors (shared) */
-  --accent-green: #10b981;
-  --accent-red: #ef4444;
-  --accent-yellow: #eab308;
-  --accent-blue-hover: #2563eb;
 }
 
 /* Dark Mode */
@@ -55,66 +49,6 @@
     --border-color: var(--border-color-dark);
     --shadow: var(--shadow-dark);
   }
-}
-
-/* =========================
-   THEME UTILITY CLASSES
-   ========================= */
-
-.bg-primary {
-  background-color: var(--bg-primary);
-}
-
-.bg-secondary {
-  background-color: var(--bg-secondary);
-}
-
-.bg-tertiary {
-  background-color: var(--bg-tertiary);
-}
-
-.text-text-primary {
-  color: var(--text-primary);
-}
-
-.text-text-secondary {
-  color: var(--text-secondary);
-}
-
-.text-text-muted {
-  color: var(--text-muted);
-}
-
-.border-border {
-  border-color: var(--border-color);
-}
-
-/* Accent background helpers */
-.bg-accent-blue {
-  background-color: var(--accent-blue);
-}
-
-.bg-accent-blue-hover {
-  background-color: var(--accent-blue-hover);
-}
-
-.bg-accent-green\/20 {
-  background-color: rgba(16, 185, 129, 0.2);
-  color: var(--accent-green);
-}
-
-.bg-accent-yellow\/20 {
-  background-color: rgba(234, 179, 8, 0.2);
-  color: var(--accent-yellow);
-}
-
-.bg-accent-red\/20 {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: var(--accent-red);
-}
-
-.border-accent-yellow\/30 {
-  border-color: rgba(234, 179, 8, 0.3);
 }
 
 /* Prevent horizontal scrollbar globally */
@@ -239,7 +173,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--card-shadow);
   transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 
@@ -357,9 +291,6 @@ body {
 .header-content {
   display: flex;
   align-items: center;
-  width: 100%;
-  justify-content: space-between;
-  gap: 1rem;
 }
 
 .header-icon {
@@ -452,40 +383,7 @@ body {
   border-right: 1px solid var(--border-color);
   flex-shrink: 0;
   overflow: hidden;
-  width: 250px;
-  transition: width 0.3s ease-in-out;
 }
-
-/* Collapsed sidebar state */
-#sidebar.sidebar-collapsed {
-  width: 56px;
-}
-
-/* Collapsed: hide logo + labels + greeting/auth text, keep nav icons */
-#sidebar.sidebar-collapsed #logo-wrapper,
-#sidebar.sidebar-collapsed .link-text,
-#sidebar.sidebar-collapsed #user-greeting,
-#sidebar.sidebar-collapsed #auth-links {
-  display: none;
-}
-
-/* Icon spacing + centering */
-#sidebar a svg {
-  margin-right: 0.75rem;
-  transition: margin 0.3s ease-in-out;
-}
-
-#sidebar.sidebar-collapsed a svg {
-  margin-right: 0;
-}
-
-/* Center nav items when collapsed (icon-only) */
-#sidebar.sidebar-collapsed a {
-  padding-left: 0;
-  padding-right: 0;
-  justify-content: center;
-}
-
 
 #sidebar .border-gray-700 {
   border-color: var(--border-color);
@@ -503,7 +401,7 @@ body {
   background-color: var(--bg-tertiary);
 }
 
-/* Collapse icon / toggle button */
+/* Fix for sidebar collapse icon and scrollbar */
 #toggle-sidebar-btn {
   display: flex;
   align-items: center;
@@ -522,11 +420,18 @@ body {
   min-width: 40px;
 }
 
-/* When sidebar is collapsed, center the toggle button full width */
-#sidebar.sidebar-collapsed #toggle-sidebar-btn {
+/* When sidebar is collapsed, ensure proper spacing */
+#sidebar[style*="80px"] #toggle-sidebar-btn {
   width: 100%;
   justify-content: center;
   padding: 0.5rem;
+}
+
+#sidebar[style*="80px"] .px-4.py-2.border-t.border-gray-700 {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  display: flex;
+  justify-content: center;
 }
 
 /* Tailwind color overrides for theme compatibility */
@@ -560,614 +465,146 @@ body {
 
 /* Filter Button Styles */
 .filter-btn {
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
 }
 
 .filter-btn.active {
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-  color: white !important;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .filter-btn.inactive {
-  background-color: #4b5563 !important;
-  color: #d1d5db !important;
+    background-color: #4b5563 !important;
+    color: #d1d5db !important;
 }
 
 .filter-btn.inactive:hover {
-  background-color: #6b7280 !important;
-  color: white !important;
+    background-color: #6b7280 !important;
+    color: white !important;
+}
+/* Ensure the notification bell is properly positioned in the menu */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 1rem;
 }
 
-/* Notification bell layout */
 .notification-bell-container {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
 }
 
 .notification-bell {
-  position: relative;
+    position: relative;
 }
 
 .notification-dropdown {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 0.5rem;
-  width: 20rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-  z-index: 100;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 0.5rem;
+    width: 20rem;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    z-index: 100;
 }
 
 @media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
+    .header-content {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
 
-  .notification-bell-container {
-    align-self: flex-end;
-  }
+    .notification-bell-container {
+        align-self: flex-end;
+    }
 
-  .notification-dropdown {
-    right: -1rem;
-    width: 90vw;
-    max-width: 20rem;
-  }
+    .notification-dropdown {
+        right: -1rem;
+        width: 90vw;
+        max-width: 20rem;
+    }
 }
-
-/* Role badges */
 .role-badge {
-  padding: 0.2rem 0.6rem;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .role-admin {
-  background-color: #8b5cf6;
-  color: white;
+    background-color: #8b5cf6;
+    color: white;
 }
 
 .role-technician {
-  background-color: #3b82f6;
-  color: white;
+    background-color: #3b82f6;
+    color: white;
 }
 
 .role-user {
-  background-color: #10b981;
-  color: white;
+    background-color: #10b981;
+    color: white;
 }
 
 .role-viewer {
-  background-color: #6b7280;
-  color: white;
+    background-color: #6b7280;
+    color: white;
 }
+    #sidebar {
+        transition: width 0.3s ease-in-out;
+        width: 250px; /* Default expanded width */
+    }
 
-/* ========================= */
-/* Notifications / Modals CSS */
-/* ========================= */
+    #sidebar.collapsed {
+        width: 100px !important;
+    }
 
-@media (max-width: 480px) {
-  #requestDetailsModal > div {
-    margin: 0.25rem;
-    border-radius: 0.5rem;
-  }
+    /* When collapsed, force flex items to center */
+    #sidebar.collapsed nav a {
+        justify-content: center !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
 
-  #requestDetailsModal .p-4 {
-    padding: 0.75rem;
-  }
-}
-
-/* Enhanced button styles */
-.btn {
-  transition: all 0.2s ease-in-out;
-  font-weight: 500;
-  border: none;
-  cursor: pointer;
-}
-
-.btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.17);
-}
-
-/* Table header enhancements */
-thead th {
-  font-size: 0.875rem;
-  letter-spacing: 0.025em;
-}
-
-/* Table cell padding */
-tbody td {
-  padding: 0.75rem 1.5rem;
-  font-size: 0.875rem;
-  vertical-align: middle;
-}
-
-/* Hover effect for table rows */
-tbody tr {
-  transition: background-color 0.15s ease-in-out;
-}
-
-tbody tr:hover {
-  background-color: var(--bg-tertiary);
-}
-
-/* Ensure proper contrast for table headers */
-thead {
-  background-color: var(--bg-tertiary);
-}
-
-/* Border styling for better separation */
-.border-border {
-  border-color: var(--border-color);
-}
-
-.divide-border > * + * {
-  border-color: var(--border-color);
-}
-
-#deleteConfirmModal,
-#requestDetailsModal {
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.2s ease-out;
-}
-
-#deleteConfirmModal > div,
-#requestDetailsModal > div {
-  animation: modalSlideIn 0.3s ease-out;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3),
-              0 10px 10px -5px rgba(0, 0, 0, 0.2);
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Modal container */
-#deleteConfirmModal > div,
-#requestDetailsModal > div {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-}
-
-/* Modal header */
-#deleteConfirmModal .flex.items-center.justify-between,
-#requestDetailsModal .flex.items-center.justify-between {
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--bg-tertiary);
-  border-radius: 12px 12px 0 0;
-}
-
-#deleteConfirmModal h3,
-#requestDetailsModal h3 {
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 1.125rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-#deleteConfirmModal h3 i,
-#requestDetailsModal h3 i {
-  font-size: 1.1em;
-}
-
-/* Close button */
-#deleteConfirmModal button.text-text-muted,
-#requestDetailsModal button.text-text-muted {
-  transition: all 0.2s ease-in-out;
-  font-size: 1.5rem;
-  line-height: 1;
-  padding: 0.25rem;
-  border-radius: 4px;
-}
-
-#deleteConfirmModal button.text-text-muted:hover,
-#requestDetailsModal button.text-text-muted:hover {
-  color: var(--text-primary) !important;
-  background: var(--bg-tertiary);
-  transform: scale(1.1);
-}
-
-/* Modal content */
-#deleteConfirmModal .p-6,
-#requestDetailsModal .p-4.sm\:p-6 {
-  padding: 1.5rem;
-}
-
-/* Delete modal specific content */
-#deleteMessage {
-  color: var(--text-primary);
-  font-size: 0.95rem;
-  line-height: 1.5;
-  margin-bottom: 1.5rem;
-}
-
-/* Request details modal specific content */
-#requestDetailsContent {
-  color: var(--text-primary);
-}
-
-#requestDetailsContent .space-y-4 {
-  space-y: 1rem;
-}
-
-#requestDetailsContent .space-y-6 {
-  space-y: 1.5rem;
-}
-
-#requestDetailsContent h4 {
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 0.75rem;
-}
-
-#requestDetailsContent .bg-tertiary {
-  background: var(--bg-tertiary);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-}
-
-#requestDetailsContent .text-text-secondary {
-  color: var(--text-muted);
-}
-
-#requestDetailsContent .text-text-primary {
-  color: var(--text-primary);
-}
-
-#requestDetailsContent .text-xs {
-  font-size: 0.75rem;
-}
-
-#requestDetailsContent .text-sm {
-  font-size: 0.875rem;
-}
-
-/* Button container */
-#deleteConfirmModal .flex.gap-3,
-#requestDetailsModal .flex.gap-2 {
-  gap: 0.75rem;
-}
-
-/* Buttons inside modals */
-#deleteConfirmModal .btn,
-#requestDetailsModal .btn {
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 0.875rem;
-  transition: all 0.2s ease-in-out;
-  border: 1px solid transparent;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2.5rem;
-}
-
-#deleteConfirmModal .btn:hover,
-#requestDetailsModal .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* Cancel/Close buttons */
-#deleteConfirmModal .btn.bg-tertiary,
-#requestDetailsModal .btn.bg-tertiary {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border-color: var(--border-color);
-}
-
-#deleteConfirmModal .btn.bg-tertiary:hover,
-#requestDetailsModal .btn.bg-tertiary:hover {
-  background: var(--bg-secondary);
-  border-color: var(--text-muted);
-}
-
-/* Delete button */
-#deleteConfirmModal .btn.bg-red-600 {
-  background: #dc2626;
-  color: white;
-  border-color: #dc2626;
-}
-
-#deleteConfirmModal .btn.bg-red-600:hover {
-  background: #b91c1c;
-  border-color: #b91c1c;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-}
-
-/* Primary/Accent buttons */
-#requestDetailsModal .btn.bg-accent-blue {
-  background: var(--accent-blue);
-  color: white;
-  border-color: var(--accent-blue);
-}
-
-#requestDetailsModal .btn.bg-accent-blue:hover {
-  background: var(--accent-blue-hover);
-  border-color: var(--accent-blue-hover);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-/* Status badges in request details */
-#requestDetailsContent .px-2.py-1.text-xs.rounded-full {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-/* Grid layouts in request details */
-#requestDetailsContent .grid {
-  display: grid;
-  gap: 1rem;
-}
-
-#requestDetailsContent .grid-cols-1 {
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-}
-
-#requestDetailsContent .grid-cols-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-/* Alert/warning boxes */
-#requestDetailsContent .bg-accent-yellow\/10 {
-  background: rgba(234, 179, 8, 0.1);
-  border: 1px solid rgba(234, 179, 8, 0.2);
-}
-
-#requestDetailsContent .bg-accent-red\/10 {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-}
-
-/* Responsive design for modals */
-@media (max-width: 640px) {
-  #deleteConfirmModal,
-  #requestDetailsModal {
-    padding: 0.5rem;
-  }
-
-  #deleteConfirmModal > div,
-  #requestDetailsModal > div {
-    margin: 0.25rem;
-    border-radius: 8px;
-    max-height: 95vh;
-  }
-
-  #deleteConfirmModal .flex.items-center.justify-between,
-  #requestDetailsModal .flex.items-center.justify-between,
-  #deleteConfirmModal .p-6,
-  #requestDetailsModal .p-4.sm\:p-6 {
-    padding: 1rem;
-  }
-
-  #deleteConfirmModal h3,
-  #requestDetailsModal h3 {
-    font-size: 1rem;
-  }
-
-  #deleteConfirmModal .btn,
-  #requestDetailsModal .btn {
-    padding: 0.625rem 1rem;
-    font-size: 0.875rem;
-    width: 100%;
-  }
-
-  #deleteConfirmModal .flex.gap-3,
-  #requestDetailsModal .flex.gap-2 {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  /* Request details responsive */
-  #requestDetailsContent .grid-cols-2 {
-    grid-template-columns: 1fr;
-  }
-
-  #requestDetailsContent .flex-col.xs\:flex-row {
-    flex-direction: column;
-  }
-
-  #requestDetailsContent .space-y-4 {
-    space-y: 0.75rem;
-  }
-
-  #requestDetailsContent .space-y-6 {
-    space-y: 1rem;
-  }
-}
-
-/* Ensure modals are above other content */
-#deleteConfirmModal,
-#requestDetailsModal {
-  z-index: 1000;
-}
-
-/* Backdrop blur effect */
-#deleteConfirmModal.bg-black\/60,
-#requestDetailsModal.bg-black\/60 {
-  background: rgba(0, 0, 0, 0.6);
-}
-
-/* Modal content scroll handling */
-#deleteConfirmModal .overflow-y-auto,
-#requestDetailsModal .overflow-y-auto {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-color) transparent;
-}
-
-#deleteConfirmModal .overflow-y-auto::-webkit-scrollbar,
-#requestDetailsModal .overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-#deleteConfirmModal .overflow-y-auto::-webkit-scrollbar-track,
-#requestDetailsModal .overflow-y-auto::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-#deleteConfirmModal .overflow-y-auto::-webkit-scrollbar-thumb,
-#requestDetailsModal .overflow-y-auto::-webkit-scrollbar-thumb {
-  background-color: var(--border-color);
-  border-radius: 3px;
-}
-
-/* Focus states for accessibility */
-#deleteConfirmModal button:focus,
-#requestDetailsModal button:focus {
-  outline: 2px solid var(--accent-blue);
-  outline-offset: 2px;
-}
-
-/* Icon styling */
-#deleteConfirmModal .fa-exclamation-triangle {
-  color: #ef4444;
-}
-
-#requestDetailsModal .fa-info-circle {
-  color: var(--accent-blue);
-}
-
-#requestDetailsModal .fa-door-open,
-#requestDetailsModal .fa-calendar,
-#requestDetailsModal .fa-clipboard-list,
-#requestDetailsModal .fa-edit,
-#requestDetailsModal .fa-clock,
-#requestDetailsModal .fa-cog {
-  color: var(--accent-blue);
-}
-
-/* Ensure proper text contrast */
-#deleteConfirmModal .text-text-primary,
-#requestDetailsModal .text-text-primary {
-  color: var(--text-primary);
-}
-
-#deleteConfirmModal .text-text-muted,
-#requestDetailsModal .text-text-muted {
-  color: var(--text-muted);
-}
-
-/* Modal border and shadow enhancements */
-#deleteConfirmModal > div,
-#requestDetailsModal > div {
-  border: 1px solid var(--border-color);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 25px 50px -12px rgba(0, 0, 0, 0.5);
-}
-
-/* Button hover animations inside modals */
-#deleteConfirmModal .btn,
-#requestDetailsModal .btn {
-  position: relative;
-  overflow: hidden;
-}
-
-#deleteConfirmModal .btn::before,
-#requestDetailsModal .btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s;
-}
+    #sidebar.collapsed nav a svg {
+        margin-right: 0 !important;
+    }
 
-#deleteConfirmModal .btn:hover::before,
-#requestDetailsModal .btn:hover::before {
-  left: 100%;
-}
-
-/* Request details specific improvements */
-#requestDetailsContent .bg-secondary {
-  background: var(--bg-secondary);
-}
-
-#requestDetailsContent .border-border {
-  border-color: var(--border-color);
-}
-
-#requestDetailsContent .whitespace-pre-wrap {
-  white-space: pre-wrap;
-}
+    #sidebar.collapsed .link-text {
+        display: none !important;
+    }
 
-#requestDetailsContent .break-words {
-  word-wrap: break-word;
-}
 
-/* Loading spinner */
-#requestDetailsContent .animate-spin {
-  animation: spin 1s linear infinite;
+    .sidebar-collapsed-initial #sidebar {
+    width: 80px !important;
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
 
-/* Code styling in request details */
-#requestDetailsContent code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  background: var(--bg-tertiary);
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  color: var(--text-primary);
+.sidebar-collapsed-initial #sidebar .link-text {
+    display: none !important;
 }
 
-/* Ensure proper max-height for request details content */
-#requestDetailsModal .overflow-y-auto[style*="max-height"] {
-  max-height: calc(90vh - 140px) !important;
+.sidebar-collapsed-initial #sidebar nav a {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
 
-@media (max-width: 640px) {
-  #requestDetailsModal .overflow-y-auto[style*="max-height"] {
-    max-height: calc(95vh - 120px) !important;
-  }
+.sidebar-collapsed-initial #sidebar nav a svg {
+    margin-right: 0 !important;
 }
