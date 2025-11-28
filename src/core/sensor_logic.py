@@ -1,245 +1,106 @@
+import os
 import time
-from typing import Optional
+import adafruit_dht
+import board
+from datetime import datetime
+from pubnub_client import publish_data
 
-# --- Hardware Libraries ---
+#PubNub publisher
+
+# --- CONFIGURATION ---
+# Sensor is connected to GPIO 4 (BCM numbering)
+DHT_PIN = board.D4
+LOG_FILE_PATH = 'CA/Thermo-Track/src/core/dht22/humidity.csv'
+READ_INTERVAL_SECONDS = 15.0 # Log and print every 15 seconds
+
+# Initialize the DHT22 device
 try:
-    import RPi.GPIO as GPIO
-except ImportError:
+    dht_device = adafruit_dht.DHT22(DHT_PIN)
+    print(f"DHT22 sensor initialized on pin {DHT_PIN}.")
+except Exception as e:
+    print(f"Error initializing DHT22: {e}")
+    exit()
 
-    class MockGPIO:
-        BOARD, BCM, IN, OUT, LOW, HIGH = 1, 2, 3, 4, 0, 1
-        PUD_DOWN, PUD_UP = 5, 6
-
-        def setmode(self, mode):
-            print(f"Mock GPIO: Set mode {mode}")
-
-        def setup(self, pin, mode, initial=None, pull_up_down=None):
-            print(f"Mock GPIO: Setup pin {pin} as {mode}")
-
-        def output(self, pin, value):
-            print(f"Mock GPIO: Pin {pin} → {'HIGH' if value else 'LOW'}")
-
-        def input(self, pin):
-            return 0
-
-        def cleanup(self):
-            print("Mock GPIO: Cleanup")
-
-        def setwarnings(self, flag):
-            print(f"Mock GPIO: Warnings {flag}")
-
-    GPIO = MockGPIO()
-
+# --- CSV LOGGING SETUP ---
 try:
-    import adafruit_dht
-    import board
-except ImportError:
-    print("Warning: adafruit_dht or board not found. DHT reading will be skipped.")
-    adafruit_dht = None
-    board = None
+    # 1. Ensure the directory exists
+    os.makedirs(os.path.dirname(LOG_FILE_PATH), exist_ok=True)
+    
+    # 2. Check if the file needs a header
+    file_exists = os.path.exists(LOG_FILE_PATH) and os.stat(LOG_FILE_PATH).st_size > 0
+    
+    f = open(LOG_FILE_PATH, 'a', buffering=1) 
+    if not file_exists:
+        f.write('Date,Time,Temperature C,Temperature F,Humidity %\r\n')
+        print(f"Created new log file and wrote header: {LOG_FILE_PATH}")
+        
+except Exception as e:
+    print(f"FATAL: Could not set up log file at {LOG_FILE_PATH}. Logging disabled.")
+    print(f"Error details: {e}")
+    # Set log file handle to None so we don't try to write to it later
+    f = None
 
-# --- PubNub Client Import ---
-try:
-    from pubnub_client import publish_data
-except ImportError:
-    print("Warning: Could not import pubnub_client. Using fallback.")
+print("\n--- Starting Unified DHT22 Monitoring and Logging + PubNub ---")
 
-    def publish_data(payload):
-        print(f"[PubNub Fallback] Would publish: {payload}")
+# --- MAIN LOOP ---
+while True:
+    try:
+        # 1. Read the sensor data
+        temperature_c = dht_device.temperature
+        humidity = dht_device.humidity
+        
+        # Check for bad reads (sometimes they return None)
+        if temperature_c is None or humidity is None:
+             print(f"[{datetime.now().strftime('%H:%M:%S')}] Sensor read failed (returned None). Retrying...")
+             time.sleep(2.0)
+             continue
+             
+        # 2. Calculate Fahrenheit
+        temperature_f = temperature_c * (9 / 5) + 32
 
-
-# --- PIN CONFIGURATION (BCM numbering) ---
-class PinConfig:
-    PIR_PIN = 6
-    DHT_PIN = 4
-    BUZZER_PIN = 27
-    LED_PIN = 22
-    FAN_PIN = 14
-
-
-# --- LOGIC THRESHOLDS ---
-READ_INTERVAL_SECONDS = 2.0
-TEMP_THRESHOLD_C = 24.0  # FAN turns ON only if > 24°C
-MOTION_COOLDOWN = 2.0
-BUZZER_DURATION = 0.8
-
-
-class SmartHomeMonitor:
-
-    def __init__(self):
-        self._gpio = GPIO
-        self.dht_device = None
-
-        self._gpio.setwarnings(False)
-
-        if self._gpio.__class__.__name__ == "MockGPIO":
-            print(" Running in Mock Mode (No physical GPIO control)")
-
-        self._setup_dht()
-        self._setup_gpio()
-        print("[Monitor] All components initialized")
-
-    def _setup_dht(self):
-        if adafruit_dht and board:
-            try:
-                self.dht_device = adafruit_dht.DHT22(board.D4)
-                print("[Monitor] DHT22 sensor initialized on BCM 4")
-            except Exception as e:
-                print(f"[Monitor] Error initializing DHT22: {e}")
-                self.dht_device = None
-        else:
-            print("[Monitor] DHT22 libraries not available")
-
-    def _setup_gpio(self):
+        # 3. Console Output (Real-time monitoring)
+        current_time = datetime.now().strftime('%H:%M:%S')
+        print(f"[{current_time}] Temp:{temperature_c:5.1f} C / {temperature_f:5.1f} F    Humidity: {humidity:3.1f}%")
+        
+        # 4. CSV Logging
+        if f:
+            # Format time/date for CSV logging
+            date_str = datetime.now().strftime('%m/%d/%y')
+            time_str = datetime.now().strftime('%H:%M:%S')
+            ts = int(time.time())
+            
+            # Write to CSV
+            log_line = f"{date_str},{time_str},{temperature_c:0.1f},{temperature_f:0.1f},{humidity:0.1f}\r\n"
+            f.write(log_line)
+            #publish to PubNub
         try:
-            self._gpio.cleanup()
-        except Exception:
-            pass
+            payload = {
+                "event": "dht22_reading",
+                "temperature_c": round(float(temperature_c), 2),
+                "humidity": round(float(humidity), 2),
+                "at": ts
+            }
+            publish_data(payload)
+        except Exception as e:
+            print(f"[DHT22] PubNub publish error: {e}")
 
-        self._gpio.setmode(self._gpio.BCM)
+    except RuntimeError as err:
+        # Handle specific sensor read errors (like bad checksum)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Sensor Read Error: {err.args[0]}")
+    except KeyboardInterrupt:
+        print("\n[DHT22] stopping...")
+        break
+    
+    except Exception as e:
+        # Handle all other unexpected errors
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] An unexpected error occurred: {e}")
+        # Optionally break the loop if a severe non-RuntimeError occurs
+        # break 
 
-        self._gpio.setup(
-            PinConfig.PIR_PIN, self._gpio.IN, pull_up_down=self._gpio.PUD_DOWN
-        )
-        self._gpio.setup(PinConfig.BUZZER_PIN, self._gpio.OUT, initial=self._gpio.LOW)
-        self._gpio.setup(PinConfig.LED_PIN, self._gpio.OUT, initial=self._gpio.LOW)
-        self._gpio.setup(PinConfig.FAN_PIN, self._gpio.OUT, initial=self._gpio.LOW)
+    # 5. Wait for the next read cycle
+    time.sleep(READ_INTERVAL_SECONDS)
 
-        print(
-            f"[Monitor] GPIO configured (BCM mode) - PIR:{PinConfig.PIR_PIN}, "
-            f"Buzzer:{PinConfig.BUZZER_PIN}, LED:{PinConfig.LED_PIN}, Fan:{PinConfig.FAN_PIN}"
-        )
-
-    def _beep_buzzer(self, duration=BUZZER_DURATION):
-        self._gpio.output(PinConfig.BUZZER_PIN, self._gpio.HIGH)
-        time.sleep(duration)
-        self._gpio.output(PinConfig.BUZZER_PIN, self._gpio.LOW)
-
-    def _control_actuators(self, temp_c: Optional[float], motion_detected: bool):
-
-        # Motion handling
-        if motion_detected:
-            self._gpio.output(PinConfig.LED_PIN, self._gpio.HIGH)
-            self._beep_buzzer()
-            print("  [Actuator] Motion detected: LED ON, Buzzer beeped")
-        else:
-            self._gpio.output(PinConfig.LED_PIN, self._gpio.LOW)
-
-        # Temperature / Fan Logic (UPDATED)
-        if temp_c is not None:
-            if temp_c > TEMP_THRESHOLD_C:
-                self._gpio.output(PinConfig.FAN_PIN, self._gpio.HIGH)
-                print(
-                    f"  [Actuator] Temp {temp_c:.1f}°C > {TEMP_THRESHOLD_C}°C: Fan ON"
-                )
-            else:
-                self._gpio.output(PinConfig.FAN_PIN, self._gpio.LOW)
-                print(
-                    f"  [Actuator] Temp {temp_c:.1f}°C ≤ {TEMP_THRESHOLD_C}°C: Fan OFF"
-                )
-
-    def run(self):
-        print("\n--- Starting Unified Smart Home Monitor ---")
-        print(f"Temperature threshold: {TEMP_THRESHOLD_C}°C")
-        print(f"Motion cooldown: {MOTION_COOLDOWN}s")
-        print(f"Read interval: {READ_INTERVAL_SECONDS}s")
-
-        last_motion_state = self._gpio.LOW
-        last_motion_time = 0
-
-        try:
-            while True:
-                ts = int(time.time())
-                temp_c = None
-                humidity = None
-
-                # DHT22 sensor read
-                if self.dht_device:
-                    try:
-                        temp_c = self.dht_device.temperature
-                        humidity = self.dht_device.humidity
-
-                        if temp_c is not None and humidity is not None:
-                            print(
-                                f"[DHT22] Temp: {temp_c:5.1f}°C | Humidity: {humidity:3.1f}%"
-                            )
-                            publish_data(
-                                {
-                                    "event": "dht22_reading",
-                                    "device_uid": "dht22_sensor_01",
-                                    "temperature_c": round(float(temp_c), 2),
-                                    "humidity": round(float(humidity), 2),
-                                    "at": ts,
-                                }
-                            )
-                        else:
-                            print("[DHT22] Sensor read returned None")
-
-                    except Exception as e:
-                        print(f"[DHT22] Unexpected Error: {e}")
-
-                # PIR motion detection
-                current_pir_state = self._gpio.input(PinConfig.PIR_PIN)
-                motion_detected = current_pir_state == self._gpio.HIGH
-
-                # Logging PIR state
-                print(
-                    f"[PIR] Current state: {'HIGH' if current_pir_state else 'LOW'}, "
-                    f"Last state: {'HIGH' if last_motion_state else 'LOW'}"
-                )
-
-                # Motion start event
-                if motion_detected and last_motion_state == self._gpio.LOW:
-                    print("[PIR] MOTION DETECTED!")
-                    last_motion_state = self._gpio.HIGH
-                    last_motion_time = ts
-                    publish_data(
-                        {
-                            "event": "motion",
-                            "device_uid": "pir_sensor_01",
-                            "occupied": 1,
-                            "at": ts,
-                        }
-                    )
-
-                # Motion stop event
-                elif not motion_detected and last_motion_state == self._gpio.HIGH:
-                    if ts - last_motion_time >= MOTION_COOLDOWN:
-                        print("[PIR] No motion")
-                        last_motion_state = self._gpio.LOW
-                        publish_data(
-                            {
-                                "event": "motion",
-                                "device_uid": "pir_sensor_01",
-                                "occupied": 0,
-                                "at": ts,
-                            }
-                        )
-
-                # Actuators
-                self._control_actuators(temp_c, motion_detected)
-
-                time.sleep(READ_INTERVAL_SECONDS)
-
-        except KeyboardInterrupt:
-            print("\n Stopping monitor service...")
-
-        finally:
-            self.cleanup()
-
-    def cleanup(self):
-        print("\n[Monitor] Cleaning up resources...")
-        self._gpio.output(PinConfig.BUZZER_PIN, self._gpio.LOW)
-        self._gpio.output(PinConfig.LED_PIN, self._gpio.LOW)
-        self._gpio.output(PinConfig.FAN_PIN, self._gpio.LOW)
-        self._gpio.cleanup()
-        print("[Monitor] GPIO cleaned up")
-
-        if self.dht_device:
-            self.dht_device.exit()
-            print("[Monitor] DHT device exited")
-
-
-if __name__ == "__main__":
-    monitor = SmartHomeMonitor()
-    monitor.run()
+# Ensure the log file is closed if the loop is somehow exited
+if f:
+    f.close()
+    print("Script terminated. Log file closed.")
