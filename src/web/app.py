@@ -909,6 +909,9 @@ def logout():
     return redirect(url_for("index"))
 
 
+from flask import session  # make sure this is imported at the top
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -944,6 +947,7 @@ def register():
 
         cur = db_cursor()
         try:
+            # uniqueness checks
             cur.execute(
                 "SELECT 1 FROM users WHERE LOWER(username)=%s LIMIT 1", (username_lc,)
             )
@@ -959,14 +963,24 @@ def register():
             if errors:
                 return render_template("register.html", errors=errors, values=values)
 
+            # create user
             pwd_hash = generate_password_hash(password)
             cur.execute(
                 "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
                 (username_lc, email_lc, pwd_hash),
             )
+
+            # get new user id
+            new_user_id = cur.lastrowid
+
             mysql.connection.commit()
-            flash("Registration successful! You can now log in.", "success")
-            return redirect(url_for("login"))
+
+            # 🔥 auto-login & go to dashboard
+            session.clear()
+            session["user_id"] = new_user_id
+            session["username"] = username  # or username_lc if you prefer
+            flash("Registration successful. Welcome to Thermo-Track!", "success")
+            return redirect(url_for("dashboard"))
 
         except IntegrityError as e:
             mysql.connection.rollback()

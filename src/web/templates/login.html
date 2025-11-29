@@ -1,71 +1,155 @@
 {% extends "layout.html" %}
 
 {% block body %}
-<div class="flex-center min-h-screen bg-gray-900">
-  <div class="form-container space-y-6">
-    <h2 class="text-2xl font-bold text-center text-white">Sign In to Thermo-Track</h2>
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-10">
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash {{ category }} text-center rounded-md">
-            {{ message }}
+  <div class="w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden bg-slate-900/90 border border-slate-800 backdrop-blur">
+    <div class="grid md:grid-cols-2">
+
+      {# LEFT SIDE – branding / features #}
+      <div class="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 px-8 py-10 md:px-10 md:py-12 text-slate-50">
+        <div class="flex flex-col justify-between h-full gap-8">
+
+          {# Brand row with logo card + tagline #}
+          <div class="flex items-center gap-5">
+            <div class="w-24 h-24 rounded-3xl bg-slate-900/80 shadow-2xl p-3 flex items-center justify-center overflow-hidden">
+              <img
+                src="{{ url_for('static', filename='images/lightLogo.png') }}"
+                alt="ThermoTrack Logo"
+                class="w-full h-full object-contain"
+              >
+            </div>
+
+            <p class="text-xs md:text-sm text-slate-100/80 leading-snug tracking-wide">
+              Smart<br>
+              Environment<br>
+              Monitoring
+            </p>
           </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
 
-    <!-- Normal login form -->
-    <form id="loginForm" action="{{ url_for('login') }}" method="post" class="space-y-4" novalidate>
-      <div>
-        <input
-          type="text"
-          name="identifier"
-          placeholder="Email or Username"
-          autocomplete="off"
-          required
-          class="form-input"
-        />
+          {# Main copy #}
+          <div class="space-y-4">
+            <h1 class="text-3xl md:text-4xl font-semibold leading-tight">
+              Welcome back to<br>
+              Thermo-Track
+            </h1>
+            <p class="text-sm md:text-[0.9rem] text-slate-100/90 max-w-md">
+              Monitor room occupancy, temperature and humidity in real time,
+              and get recommendations to keep every space comfortable and efficient.
+            </p>
+
+            <ul class="space-y-2.5 text-sm md:text-[0.9rem]">
+              <li class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.4)]"></span>
+                <span>Live sensor readings &amp; historical charts.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.4)]"></span>
+                <span>Occupancy-aware HVAC recommendations.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.4)]"></span>
+                <span>Alerts when rooms move out of range.</span>
+              </li>
+            </ul>
+          </div>
+
+          <p class="text-[0.7rem] text-slate-200/70">
+            Powered by Thermo-Track · First release
+          </p>
+        </div>
       </div>
 
-      <div>
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          required
-          class="form-input"
-        />
+      {# RIGHT SIDE – login form #}
+      <div class="bg-slate-950 px-8 py-10 md:px-10 md:py-12 flex flex-col justify-center">
+        <div class="flex items-baseline justify-between gap-3 mb-6">
+          <div>
+            <h2 class="text-xl md:text-2xl font-semibold text-slate-50">Access your account</h2>
+            <p class="text-xs md:text-sm text-slate-400 mt-1">
+              Use your Thermo-Track credentials or sign in with Google.
+            </p>
+          </div>
+          <p class="text-xs md:text-sm text-slate-400">
+            No account?
+            <a href="{{ url_for('register') }}" class="text-blue-400 hover:text-blue-300 font-medium">
+              Register
+            </a>
+          </p>
+        </div>
+
+        {# Flash messages #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="space-y-2 mb-4">
+              {% for category, message in messages %}
+                <div class="flash {{ category }} text-center rounded-md text-sm px-3 py-2">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {# Normal login form #}
+        <form id="loginForm"
+              action="{{ url_for('login') }}"
+              method="post"
+              class="space-y-4"
+              novalidate>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">
+              Email or Username
+            </label>
+            <input
+              type="text"
+              name="identifier"
+              placeholder="you@example.com"
+              autocomplete="off"
+              required
+              class="form-input bg-slate-900/80 border border-slate-700/80 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              placeholder="••••••••"
+              required
+              class="form-input bg-slate-900/80 border border-slate-700/80 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div id="formMsg"
+               class="hidden text-center text-red-200 bg-red-900/40 border border-red-700 px-3 py-2 rounded-lg text-sm">
+          </div>
+
+          <button type="submit" class="btn btn-primary w-full text-[0.95rem] py-2.5 mt-1">
+            Log in
+          </button>
+        </form>
+
+        {# Divider #}
+        <div class="flex items-center gap-3 my-5">
+          <div class="h-px bg-slate-800 w-full"></div>
+          <span class="text-slate-500 text-xs tracking-[0.16em] uppercase">or</span>
+          <div class="h-px bg-slate-800 w-full"></div>
+        </div>
+
+        {# Google Login Button #}
+        <a href="{{ url_for('login_google') }}"
+           class="w-full flex items-center justify-center gap-3 bg-white text-gray-800 py-2.5 rounded-full font-medium hover:bg-gray-100 transition border border-gray-300 text-sm">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+               alt="Google Logo" class="w-5 h-5">
+          <span>Continue with Google</span>
+        </a>
+
       </div>
-
-      <div id="formMsg" class="hidden text-center text-red-200 bg-red-900/40 border border-red-700 p-3 rounded-lg"></div>
-
-      <button type="submit" class="btn btn-primary w-full text-lg">
-        Login
-      </button>
-    </form>
-
-    <!-- Divider -->
-    <div class="flex items-center gap-3 mt-3">
-      <div class="h-px bg-gray-700 w-full"></div>
-      <span class="text-gray-400 text-sm">OR</span>
-      <div class="h-px bg-gray-700 w-full"></div>
     </div>
-
-    <!-- Google Login Button -->
-    <a href="{{ url_for('login_google') }}"
-       class="w-full flex items-center justify-center gap-3 bg-white text-gray-800 py-2.5 rounded-lg font-medium hover:bg-gray-100 transition border border-gray-300">
-      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-           alt="Google Logo" class="w-5 h-5">
-      Sign in with Google
-    </a>
-
-    <p class="text-sm text-center text-muted mt-4">
-      No Account?
-      <a href="{{ url_for('register') }}" class="text-blue-400 hover:text-blue-300 font-medium transition duration-300">
-        Register
-      </a>
-    </p>
   </div>
 </div>
 
