@@ -1,99 +1,90 @@
-class ThemeManager {
-    constructor() {
-        this.theme = this.getStoredTheme() || 'dark';
-        this.init();
-    }
+// static/js/theme.js
 
-    init() {
-        this.applyTheme(this.theme);
-        this.setupSidebarToggle();
-        this.addEventListeners();
-        this.updateSidebarIcons();
+document.addEventListener('DOMContentLoaded', () => {
+    const root = document.documentElement;          // <html>
+    const body = document.body;
+    const THEME_KEY = 'tt-theme';
 
-        this.revealContent();
-    }
+    // Sidebar-specific elements
+    const sidebarToggle = document.getElementById('sidebar-theme-toggle');
+    const logoLight     = document.getElementById('logo-light');
+    const logoDark      = document.getElementById('logo-dark');
+    const sunIcon       = document.getElementById('sidebar-sun-icon');
+    const moonIcon      = document.getElementById('sidebar-moon-icon');
 
-    getStoredTheme() {
-        // Try localStorage first, then session, then default to dark
-        return localStorage.getItem('theme') || 'dark';
-    }
+    function getInitialTheme() {
+        // 1. Stored preference
+        const stored = localStorage.getItem(THEME_KEY);
+        if (stored === 'light' || stored === 'dark') return stored;
 
-    applyTheme(theme) {
-        // Apply to document
-        document.documentElement.setAttribute('data-theme', theme);
+        // 2. Attribute on <html>
+        const attrTheme = root.getAttribute('data-theme');
+        if (attrTheme === 'light' || attrTheme === 'dark') return attrTheme;
 
-        // Store in localStorage for persistence
-        localStorage.setItem('theme', theme);
-        this.theme = theme;
-
-        // Update UI
-        this.updateSidebarIcons();
-
-        // Dispatch event for other components
-        window.dispatchEvent(new CustomEvent('themeChange', { detail: { theme } }));
-    }
-
-    revealContent() {
-        document.body.classList.remove('no-flash');
-        setTimeout(() => {
-            document.body.classList.add('content-loaded');
-        }, 10);
-    }
-
-    setupSidebarToggle() {
-        const sidebarThemeToggle = document.getElementById('sidebar-theme-toggle');
-        if (sidebarThemeToggle) {
-            // Remove any existing event listeners
-            sidebarThemeToggle.replaceWith(sidebarThemeToggle.cloneNode(true));
-
-            const freshToggle = document.getElementById('sidebar-theme-toggle');
-            freshToggle.addEventListener('click', () => this.toggleTheme());
-            freshToggle.setAttribute('aria-label', `Switch to ${this.theme === 'dark' ? 'light' : 'dark'} mode`);
-        }
-    }
-
-    updateSidebarIcons() {
-        const sidebarSunIcon = document.getElementById('sidebar-sun-icon');
-        const sidebarMoonIcon = document.getElementById('sidebar-moon-icon');
-        const sidebarThemeToggle = document.getElementById('sidebar-theme-toggle');
-
-        if (sidebarSunIcon && sidebarMoonIcon) {
-            const isDark = this.theme === 'dark';
-            sidebarSunIcon.classList.toggle('hidden', !isDark);
-            sidebarMoonIcon.classList.toggle('hidden', isDark);
+        // 3. System preference
+        if (window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
         }
 
-        if (sidebarThemeToggle) {
-            sidebarThemeToggle.setAttribute('aria-label', `Switch to ${this.theme === 'dark' ? 'light' : 'dark'} mode`);
-            sidebarThemeToggle.setAttribute('title', `Switch to ${this.theme === 'dark' ? 'light' : 'dark'} mode`);
-        }
+        return 'light';
     }
 
-    toggleTheme() {
-        const newTheme = this.theme === 'dark' ? 'light' : 'dark';
-        this.applyTheme(newTheme);
-
-        // Update settings page buttons if they exist
-        if (typeof updateThemeButtons === 'function') {
-            updateThemeButtons(newTheme);
-        }
-    }
-
-    addEventListeners() {
-        window.addEventListener('themeChange', (event) => {
-            this.theme = event.detail.theme;
-            this.updateSidebarIcons();
-
-            // Update settings page buttons if they exist
-            if (typeof updateThemeButtons === 'function') {
-                updateThemeButtons(this.theme);
+    function updateLogoAndIcons(theme) {
+        // swap sidebar logos
+        if (logoLight && logoDark) {
+            if (theme === 'dark') {
+                logoLight.classList.add('hidden');
+                logoDark.classList.remove('hidden');
+            } else {
+                logoDark.classList.add('hidden');
+                logoLight.classList.remove('hidden');
             }
+        }
+
+        // swap sun / moon icons
+        if (sunIcon && moonIcon) {
+            if (theme === 'dark') {
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+    }
+
+    function applyTheme(theme) {
+        if (theme !== 'light' && theme !== 'dark') {
+            theme = 'light';
+        }
+
+        root.setAttribute('data-theme', theme);
+        localStorage.setItem(THEME_KEY, theme);
+
+        // Let the browser know both schemes are supported
+        const colorMeta = document.querySelector('meta[name="color-scheme"]');
+        if (colorMeta) {
+            colorMeta.setAttribute('content', 'light dark');
+        }
+
+        updateLogoAndIcons(theme);
+    }
+
+    // ---- Initial setup ----
+    const initialTheme = getInitialTheme();
+    applyTheme(initialTheme);
+
+    // Remove "no-flash" class and enable transitions
+    body.classList.remove('no-flash');
+    body.classList.add('content-loaded');
+
+    // ---- Sidebar toggle button ----
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
         });
     }
-}
-
-// Initialize theme manager immediately
-new ThemeManager();
-
-// Export for use in other modules
-window.ThemeManager = ThemeManager;
+});
