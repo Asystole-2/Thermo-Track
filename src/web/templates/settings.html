@@ -433,7 +433,6 @@
                         {{ u.role }}
                       </span>
                                                 </td>
-
                                                 {% if session.get('role') == 'admin' %}
                                                     <td class="py-3">
                                                         <form action="{{ url_for('update_user_role', user_id=u.id) }}"
