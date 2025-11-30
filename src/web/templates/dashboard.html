@@ -94,6 +94,83 @@
                 </div>
             </div>
 
+<!-- Delete Reading Confirmation Modal -->
+<div id="deleteReadingModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+    <div class="bg-secondary rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between p-6 border-b border-border">
+            <h3 class="text-xl font-bold text-text-primary">Delete Reading</h3>
+            <button onclick="closeDeleteReadingModal()" class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                &times;
+            </button>
+        </div>
+        <div class="flex-1 overflow-hidden p-6">
+            <div class="text-center">
+                <div class="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-2xl"></i>
+                </div>
+                <h4 class="text-lg font-semibold text-text-primary mb-2">Confirm Deletion</h4>
+                <p class="text-text-secondary mb-6" id="deleteReadingMessage">
+                    Are you sure you want to delete this sensor reading? This action cannot be undone.
+                </p>
+            </div>
+        </div>
+        <div class="flex gap-3 justify-end p-6 border-t border-border">
+            <button onclick="closeDeleteReadingModal()" class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary px-4 py-2">
+                Cancel
+            </button>
+            <button id="confirmDeleteReading" class="btn bg-red-600 hover:bg-red-700 text-white px-4 py-2">
+                <i class="fas fa-trash mr-2"></i>Delete Reading
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete All Readings Confirmation Modal -->
+<div id="deleteAllReadingsModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+    <div class="bg-secondary rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between p-6 border-b border-border">
+            <h3 class="text-xl font-bold text-text-primary">Delete All Readings</h3>
+            <button onclick="closeDeleteAllReadingsModal()" class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                &times;
+            </button>
+        </div>
+        <div class="flex-1 overflow-hidden p-6">
+            <div class="text-center">
+                <div class="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-2xl"></i>
+                </div>
+                <h4 class="text-lg font-semibold text-text-primary mb-2">Double Confirmation Required</h4>
+                <p class="text-text-secondary mb-4">
+                    You are about to delete <strong>ALL</strong> sensor readings. This action will permanently remove all reading data and cannot be undone.
+                </p>
+                <div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                    <p class="text-yellow-400 text-sm">
+                        <i class="fas fa-exclamation-circle mr-2"></i>
+                        This is a destructive operation. Please type <strong>DELETE ALL</strong> below to confirm.
+                    </p>
+                </div>
+                <input
+                    type="text"
+                    id="deleteAllConfirmation"
+                    placeholder="Type DELETE ALL to confirm"
+                    class="w-full p-3 border border-border rounded-lg bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500"
+                    oninput="validateDeleteAllConfirmation()"
+                >
+                <p id="deleteAllError" class="text-red-400 text-sm mt-2 hidden">
+                    Please type "DELETE ALL" exactly as shown to confirm.
+                </p>
+            </div>
+        </div>
+        <div class="flex gap-3 justify-end p-6 border-t border-border">
+            <button onclick="closeDeleteAllReadingsModal()" class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary px-4 py-2">
+                Cancel
+            </button>
+            <button id="confirmDeleteAllReadings" class="btn bg-red-600 hover:bg-red-700 text-white px-4 py-2" disabled>
+                <i class="fas fa-trash mr-2"></i>Delete All Readings
+            </button>
+        </div>
+    </div>
+</div>
             <!-- Search Bar -->
             {% include 'components/search_bar.html' %}
 
@@ -223,83 +300,112 @@
             <!-- ===================== RECENT READINGS ===================== -->
             {% if rows and rows|length > 0 %}
                 <section class="mt-8" id="readingsSection">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-gray-300">
-                            {% if session.role in ['admin', 'technician'] %}
-                                All Recent Sensor Readings
-                            {% else %}
-                                Your Recent Readings
-                            {% endif %}
-                        </h3>
-                        <span class="text-xs text-gray-400 readings-count">
-                    {{ rows|length }} reading{% if rows|length != 1 %}s{% endif %}
-                            {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
-                </span>
-                    </div>
+<div class="flex items-center justify-between mb-4">
+    <h3 class="text-xl font-semibold text-gray-300">
+        {% if session.role in ['admin', 'technician'] %}
+            All Recent Sensor Readings
+        {% else %}
+            Your Recent Readings
+        {% endif %}
+    </h3>
+    <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-400 readings-count">
+            {{ rows|length }} reading{% if rows|length != 1 %}s{% endif %}
+            {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
+        </span>
+        {% if session.role in ['admin', 'technician'] and rows|length > 0 %}
+            <button
+                onclick="showDeleteAllReadingsConfirm()"
+                class="btn bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 flex items-center gap-2"
+                title="Delete All Readings"
+            >
+                <i class="fas fa-trash mr-1"></i>
+                Delete All
+            </button>
+        {% endif %}
+    </div>
+</div>
 
                     <div class="overflow-x-auto">
                         <table class="min-w-full border border-gray-700 text-gray-300">
-                            <thead class="bg-gray-800">
-                            <tr>
-                                <th class="p-2 text-left">Device</th>
-                                <th class="p-2 text-left">UID</th>
-                                <th class="p-2 text-left">Type</th>
-                                {% if session.role in ['admin', 'technician'] %}
-                                    <th class="p-2 text-left">Room</th>
-                                    <th class="p-2 text-left">Owner</th>
-                                {% endif %}
-                                <th class="p-2 text-left">Temp (°C)</th>
-                                <th class="p-2 text-left">Humidity (%)</th>
-                                <th class="p-2 text-left">Motion</th>
-                                <th class="p-2 text-left">Recorded</th>
-                            </tr>
-                            </thead>
-                            <tbody id="readingsTable">
-                            {% for r in rows %}
-                                <tr class="hover:bg-gray-700/40 transition reading-row"
-                                    data-device-name="{{ (r.device_name or 'N/A').lower() }}"
-                                    data-device-uid="{{ (r.device_uid or '').lower() }}"
-                                    data-device-type="{{ ((r.device_type if r.device_type is defined else r.type) or '').lower() }}"
-                                    data-temp="{{ r.temperature or '' }}"
-                                    data-humidity="{{ r.humidity or '' }}"
-                                    data-motion="{{ r.motion_detected or '' }}"
-                                        {% if session.role in ['admin', 'technician'] %}
-                                    data-room-name="{{ (r.room_name or '').lower() }}"
-                                    data-owner="{{ (r.room_owner or '').lower() }}"
-                                        {% endif %}
-                                >
-                                    <td class="p-2 reading-device">{{ r.device_name or 'N/A' }}</td>
-                                    <td class="p-2 text-gray-400 reading-uid">{{ r.device_uid or '—' }}</td>
-                                    <td class="p-2 reading-type">
-                                        {{ r.device_type if r.device_type is defined else (r.type or '—') }}
-                                    </td>
-                                    {% if session.role in ['admin', 'technician'] %}
-                                        <td class="p-2 reading-room">
-                                            <a href="{{ url_for('room', room_id=r.room_id) }}"
-                                               class="text-blue-400 hover:text-blue-300">
-                                                {{ r.room_name or '—' }}
-                                            </a>
-                                        </td>
-                                        <td class="p-2 reading-owner">{{ r.room_owner or '—' }}</td>
-                                    {% endif %}
-                                    <td class="p-2 reading-temp">{{ r.temperature if r.temperature is not none else '—' }}</td>
-                                    <td class="p-2 reading-humidity">{{ r.humidity if r.humidity is not none else '—' }}</td>
-                                    <td class="p-2 reading-motion">
-                                        {% if r.motion_detected == 1 %}
-                                            <span class="text-green-400 font-semibold">Yes</span>
-                                        {% elif r.motion_detected == 0 %}
-                                            <span class="text-red-400">No</span>
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-                                    <td class="p-2 whitespace-nowrap reading-time">
-                                        {% if r.recorded_at %}{{ (r.recorded_at|string).replace('T',' ') }}{% else %}
-                                            —{% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
+               <!-- Update the table header to include Actions column -->
+<thead class="bg-gray-800">
+<tr>
+    <th class="p-2 text-left">Device</th>
+    <th class="p-2 text-left">UID</th>
+    <th class="p-2 text-left">Type</th>
+    {% if session.role in ['admin', 'technician'] %}
+        <th class="p-2 text-left">Room</th>
+        <th class="p-2 text-left">Owner</th>
+    {% endif %}
+    <th class="p-2 text-left">Temp (°C)</th>
+    <th class="p-2 text-left">Humidity (%)</th>
+    <th class="p-2 text-left">Motion</th>
+    <th class="p-2 text-left">Recorded</th>
+    {% if session.role in ['admin', 'technician'] %}
+        <th class="p-2 text-left">Actions</th>
+    {% endif %}
+</tr>
+</thead>
+
+<!-- Update each table row to include delete button -->
+<tbody id="readingsTable">
+{% for r in rows %}
+    <tr class="hover:bg-gray-700/40 transition reading-row"
+        data-reading-id="{{ r.id }}"
+        data-device-name="{{ (r.device_name or 'N/A').lower() }}"
+        data-device-uid="{{ (r.device_uid or '').lower() }}"
+        data-device-type="{{ ((r.device_type if r.device_type is defined else r.type) or '').lower() }}"
+        data-temp="{{ r.temperature or '' }}"
+        data-humidity="{{ r.humidity or '' }}"
+        data-motion="{{ r.motion_detected or '' }}"
+        {% if session.role in ['admin', 'technician'] %}
+        data-room-name="{{ (r.room_name or '').lower() }}"
+        data-owner="{{ (r.room_owner or '').lower() }}"
+        {% endif %}
+    >
+        <td class="p-2 reading-device">{{ r.device_name or 'N/A' }}</td>
+        <td class="p-2 text-gray-400 reading-uid">{{ r.device_uid or '—' }}</td>
+        <td class="p-2 reading-type">
+            {{ r.device_type if r.device_type is defined else (r.type or '—') }}
+        </td>
+        {% if session.role in ['admin', 'technician'] %}
+            <td class="p-2 reading-room">
+                <a href="{{ url_for('room', room_id=r.room_id) }}"
+                   class="text-blue-400 hover:text-blue-300">
+                    {{ r.room_name or '—' }}
+                </a>
+            </td>
+            <td class="p-2 reading-owner">{{ r.room_owner or '—' }}</td>
+        {% endif %}
+        <td class="p-2 reading-temp">{{ r.temperature if r.temperature is not none else '—' }}</td>
+        <td class="p-2 reading-humidity">{{ r.humidity if r.humidity is not none else '—' }}</td>
+        <td class="p-2 reading-motion">
+            {% if r.motion_detected == 1 %}
+                <span class="text-green-400 font-semibold">Yes</span>
+            {% elif r.motion_detected == 0 %}
+                <span class="text-red-400">No</span>
+            {% else %}
+                —
+            {% endif %}
+        </td>
+        <td class="p-2 whitespace-nowrap reading-time">
+            {% if r.recorded_at %}{{ (r.recorded_at|string).replace('T',' ') }}{% else %}—{% endif %}
+        </td>
+        {% if session.role in ['admin', 'technician'] %}
+            <td class="p-2">
+                <button
+                    onclick="showDeleteReadingConfirm({{ r.id }}, '{{ r.device_name or 'N/A' }}', '{{ r.recorded_at }}')"
+                    class="btn bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-5 flex items-center gap-1"
+                    title="Delete Reading"
+                >
+                    <i class="fas fa-trash text-xs"></i>
+                </button>
+            </td>
+        {% endif %}
+    </tr>
+{% endfor %}
+</tbody>
                         </table>
                     </div>
                 </section>
@@ -345,500 +451,730 @@
         </main>
     </div>
 
-    <!-- Data Preview and Download Functions -->
     <script>
-        let currentPreviewData = null;
-        let currentPreviewType = null;
-        let currentPreviewFilename = null;
+    // Data Preview and Download Functions
+    let currentPreviewData = null;
+    let currentPreviewType = null;
+    let currentPreviewFilename = null;
 
-        function previewSensorLogs() {
-            showLoadingPreview();
-            currentPreviewType = 'sensor_logs';
-            currentPreviewFilename = 'sensor_logs.csv';
+    // Delete Reading Modal State
+    window.deleteReadingState = {
+        readingId: null,
+        deviceName: null,
+        recordedAt: null
+    };
 
-            // Create CSV content from the readings table
-            const rows = document.querySelectorAll('.reading-row');
-            let csvContent = 'Device Name,Device UID,Device Type,Room,Owner,Temperature (°C),Humidity (%),Motion,Recorded At\n';
+    // Data Preview Functions
+    function previewSensorLogs() {
+        showLoadingPreview();
+        currentPreviewType = 'sensor_logs';
+        currentPreviewFilename = 'sensor_logs.csv';
 
-            rows.forEach(row => {
-                const device = row.querySelector('.reading-device').textContent;
-                const uid = row.querySelector('.reading-uid').textContent;
-                const type = row.querySelector('.reading-type').textContent;
-                const room = row.querySelector('.reading-room') ? row.querySelector('.reading-room').textContent.trim() : '—';
-                const owner = row.querySelector('.reading-owner') ? row.querySelector('.reading-owner').textContent : '—';
-                const temp = row.querySelector('.reading-temp').textContent;
-                const humidity = row.querySelector('.reading-humidity').textContent;
-                const motion = row.querySelector('.reading-motion').textContent;
-                const time = row.querySelector('.reading-time').textContent;
+        // Create CSV content from the readings table
+        const rows = document.querySelectorAll('.reading-row');
+        let csvContent = 'Device Name,Device UID,Device Type,Room,Owner,Temperature (°C),Humidity (%),Motion,Recorded At\n';
 
-                csvContent += `"${device}","${uid}","${type}","${room}","${owner}","${temp}","${humidity}","${motion}","${time}"\n`;
+        rows.forEach(row => {
+            const device = row.querySelector('.reading-device').textContent;
+            const uid = row.querySelector('.reading-uid').textContent;
+            const type = row.querySelector('.reading-type').textContent;
+            const room = row.querySelector('.reading-room') ? row.querySelector('.reading-room').textContent.trim() : '—';
+            const owner = row.querySelector('.reading-owner') ? row.querySelector('.reading-owner').textContent : '—';
+            const temp = row.querySelector('.reading-temp').textContent;
+            const humidity = row.querySelector('.reading-humidity').textContent;
+            const motion = row.querySelector('.reading-motion').textContent;
+            const time = row.querySelector('.reading-time').textContent;
+
+            csvContent += `"${device}","${uid}","${type}","${room}","${owner}","${temp}","${humidity}","${motion}","${time}"\n`;
+        });
+
+        currentPreviewData = csvContent;
+        showPreviewModal('Sensor Logs Preview', formatCSVPreview(csvContent), 'CSV', rows.length);
+    }
+
+    function previewRoomsJSON() {
+        showLoadingPreview();
+        currentPreviewType = 'rooms_json';
+        currentPreviewFilename = 'rooms_data.json';
+
+        fetch('/api/rooms')
+            .then(response => response.json())
+            .then(data => {
+                const jsonContent = JSON.stringify(data, null, 2);
+                currentPreviewData = jsonContent;
+                showPreviewModal('Rooms Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
+            })
+            .catch(error => {
+                console.error('Error fetching rooms JSON:', error);
+                showPreviewError('Failed to load rooms data. Please try again.');
             });
+    }
 
-            currentPreviewData = csvContent;
-            showPreviewModal('Sensor Logs Preview', formatCSVPreview(csvContent), 'CSV', rows.length);
-        }
+    function previewReadingsJSON() {
+        showLoadingPreview();
+        currentPreviewType = 'readings_json';
+        currentPreviewFilename = 'readings_data.json';
 
-        function previewRoomsJSON() {
-            showLoadingPreview();
-            currentPreviewType = 'rooms_json';
-            currentPreviewFilename = 'rooms_data.json';
+        fetch('/api/readings?limit=1000')
+            .then(response => response.json())
+            .then(data => {
+                const jsonContent = JSON.stringify(data, null, 2);
+                currentPreviewData = jsonContent;
+                showPreviewModal('Readings Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
+            })
+            .catch(error => {
+                console.error('Error fetching readings JSON:', error);
+                showPreviewError('Failed to load readings data. Please try again.');
+            });
+    }
 
-            fetch('/api/rooms')
-                .then(response => response.json())
-                .then(data => {
-                    const jsonContent = JSON.stringify(data, null, 2);
-                    currentPreviewData = jsonContent;
-                    showPreviewModal('Rooms Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
-                })
-                .catch(error => {
-                    console.error('Error fetching rooms JSON:', error);
-                    showPreviewError('Failed to load rooms data. Please try again.');
-                });
-        }
+    function showPreviewModal(title, content, format, recordCount) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalContent').innerHTML = content;
+        document.getElementById('dataStats').textContent = `${recordCount} records • ${format} format`;
+        document.getElementById('fileInfo').textContent = `File: ${currentPreviewFilename}`;
 
-        function previewReadingsJSON() {
-            showLoadingPreview();
-            currentPreviewType = 'readings_json';
-            currentPreviewFilename = 'readings_data.json';
+        // Update download button
+        const downloadBtn = document.getElementById('downloadBtn');
+        downloadBtn.onclick = downloadCurrentPreview;
+        downloadBtn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Download ${currentPreviewFilename}
+        `;
 
-            fetch('/api/readings?limit=1000')
-                .then(response => response.json())
-                .then(data => {
-                    const jsonContent = JSON.stringify(data, null, 2);
-                    currentPreviewData = jsonContent;
-                    showPreviewModal('Readings Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
-                })
-                .catch(error => {
-                    console.error('Error fetching readings JSON:', error);
-                    showPreviewError('Failed to load readings data. Please try again.');
-                });
-        }
+        document.getElementById('dataPreviewModal').classList.remove('hidden');
+    }
 
-        function showPreviewModal(title, content, format, recordCount) {
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalContent').innerHTML = content;
-            document.getElementById('dataStats').textContent = `${recordCount} records • ${format} format`;
-            document.getElementById('fileInfo').textContent = `File: ${currentPreviewFilename}`;
-
-            // Update download button
-            const downloadBtn = document.getElementById('downloadBtn');
-            downloadBtn.onclick = downloadCurrentPreview;
-            downloadBtn.innerHTML = `
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    function showLoadingPreview() {
+        document.getElementById('modalContent').innerHTML = `
+            <div class="text-center text-text-muted py-8">
+                <svg class="w-12 h-12 mx-auto mb-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
-                Download ${currentPreviewFilename}
-            `;
+                <p>Loading data preview...</p>
+            </div>
+        `;
+        document.getElementById('dataPreviewModal').classList.remove('hidden');
+    }
 
-            document.getElementById('dataPreviewModal').classList.remove('hidden');
-        }
+    function showPreviewError(message) {
+        document.getElementById('modalContent').innerHTML = `
+            <div class="text-center text-red-400 py-8">
+                <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-lg font-semibold mb-2">Error</p>
+                <p>${message}</p>
+            </div>
+        `;
+        document.getElementById('downloadBtn').style.display = 'none';
+    }
 
-        function showLoadingPreview() {
-            document.getElementById('modalContent').innerHTML = `
-                <div class="text-center text-text-muted py-8">
-                    <svg class="w-12 h-12 mx-auto mb-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    function formatCSVPreview(csvContent) {
+        const lines = csvContent.split('\n').slice(0, 101); // Show first 100 records + header
+        const isTruncated = lines.length > 100;
+        const displayLines = isTruncated ? lines.slice(0, 100) : lines;
+
+        let html = `
+            <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                <div class="flex items-center gap-2 text-sm text-text-muted">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <p>Loading data preview...</p>
+                    Preview showing ${displayLines.length - 1} records${isTruncated ? ' (first 100)' : ''}
                 </div>
-            `;
-            document.getElementById('dataPreviewModal').classList.remove('hidden');
-        }
+            </div>
+            <div class="bg-primary border border-border rounded-lg overflow-hidden">
+                <pre class="text-sm p-4 overflow-auto max-h-96">${displayLines.join('\n')}</pre>
+            </div>
+        `;
 
-        function showPreviewError(message) {
-            document.getElementById('modalContent').innerHTML = `
-                <div class="text-center text-red-400 py-8">
-                    <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p class="text-lg font-semibold mb-2">Error</p>
-                    <p>${message}</p>
-                </div>
-            `;
-            document.getElementById('downloadBtn').style.display = 'none';
-        }
-
-        function formatCSVPreview(csvContent) {
-            const lines = csvContent.split('\n').slice(0, 101); // Show first 100 records + header
-            const isTruncated = lines.length > 100;
-            const displayLines = isTruncated ? lines.slice(0, 100) : lines;
-
-            let html = `
-                <div class="mb-4 p-3 bg-tertiary rounded-lg">
-                    <div class="flex items-center gap-2 text-sm text-text-muted">
+        if (isTruncated) {
+            html += `
+                <div class="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                    <div class="flex items-center gap-2 text-yellow-400 text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                         </svg>
-                        Preview showing ${displayLines.length - 1} records${isTruncated ? ' (first 100)' : ''}
+                        Preview truncated. Full download will include all ${lines.length - 1} records.
                     </div>
-                </div>
-                <div class="bg-primary border border-border rounded-lg overflow-hidden">
-                    <pre class="text-sm p-4 overflow-auto max-h-96">${displayLines.join('\n')}</pre>
                 </div>
             `;
-
-            if (isTruncated) {
-                html += `
-                    <div class="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
-                        <div class="flex items-center gap-2 text-yellow-400 text-sm">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                            </svg>
-                            Preview truncated. Full download will include all ${lines.length - 1} records.
-                        </div>
-                    </div>
-                `;
-            }
-
-            return html;
         }
 
-        function formatJSONPreview(jsonContent) {
-            const data = JSON.parse(jsonContent);
-            const previewData = data.slice(0, 10); // Show first 10 records
-            const isTruncated = data.length > 10;
+        return html;
+    }
 
-            let html = `
-                <div class="mb-4 p-3 bg-tertiary rounded-lg">
-                    <div class="flex items-center gap-2 text-sm text-text-muted">
+    function formatJSONPreview(jsonContent) {
+        const data = JSON.parse(jsonContent);
+        const previewData = data.slice(0, 10); // Show first 10 records
+        const isTruncated = data.length > 10;
+
+        let html = `
+            <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                <div class="flex items-center gap-2 text-sm text-text-muted">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Preview showing ${previewData.length} records${isTruncated ? ' (first 10)' : ''}
+                </div>
+            </div>
+            <div class="bg-primary border border-border rounded-lg overflow-hidden">
+                <pre class="text-sm p-4 overflow-auto max-h-96">${JSON.stringify(previewData, null, 2)}</pre>
+            </div>
+        `;
+
+        if (isTruncated) {
+            html += `
+                <div class="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                    <div class="flex items-center gap-2 text-yellow-400 text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                         </svg>
-                        Preview showing ${previewData.length} records${isTruncated ? ' (first 10)' : ''}
+                        Preview truncated. Full download will include all ${data.length} records.
                     </div>
-                </div>
-                <div class="bg-primary border border-border rounded-lg overflow-hidden">
-                    <pre class="text-sm p-4 overflow-auto max-h-96">${JSON.stringify(previewData, null, 2)}</pre>
                 </div>
             `;
+        }
 
-            if (isTruncated) {
-                html += `
-                    <div class="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
-                        <div class="flex items-center gap-2 text-yellow-400 text-sm">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                            </svg>
-                            Preview truncated. Full download will include all ${data.length} records.
-                        </div>
-                    </div>
-                `;
+        return html;
+    }
+
+    function downloadCurrentPreview() {
+        if (!currentPreviewData) return;
+
+        const contentType = currentPreviewType.includes('json') ? 'application/json' : 'text/csv';
+        downloadFile(currentPreviewData, currentPreviewFilename, contentType);
+        closePreviewModal();
+        showToast(`${currentPreviewFilename} downloaded successfully`, 'success');
+    }
+
+    function downloadFile(content, filename, contentType) {
+        const blob = new Blob([content], { type: contentType });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
+
+    function closePreviewModal() {
+        document.getElementById('dataPreviewModal').classList.add('hidden');
+        currentPreviewData = null;
+        currentPreviewType = null;
+        currentPreviewFilename = null;
+        document.getElementById('downloadBtn').style.display = 'flex';
+    }
+
+    // Delete Reading Functions
+    function showDeleteReadingConfirm(readingId, deviceName, recordedAt) {
+        window.deleteReadingState = {
+            readingId,
+            deviceName,
+            recordedAt
+        };
+
+        const modal = document.getElementById('deleteReadingModal');
+        const message = document.getElementById('deleteReadingMessage');
+
+        message.textContent = `Are you sure you want to delete the reading from device "${deviceName}" recorded at ${recordedAt}? This action cannot be undone.`;
+
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        // Set up the confirm button
+        const confirmBtn = document.getElementById('confirmDeleteReading');
+        confirmBtn.onclick = () => deleteReading(readingId);
+    }
+
+    function showDeleteAllReadingsConfirm() {
+        const modal = document.getElementById('deleteAllReadingsModal');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        // Reset confirmation input
+        document.getElementById('deleteAllConfirmation').value = '';
+        document.getElementById('deleteAllError').classList.add('hidden');
+        document.getElementById('confirmDeleteAllReadings').disabled = true;
+    }
+
+    function closeDeleteReadingModal() {
+        const modal = document.getElementById('deleteReadingModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        window.deleteReadingState = {
+            readingId: null,
+            deviceName: null,
+            recordedAt: null
+        };
+    }
+
+    function closeDeleteAllReadingsModal() {
+        const modal = document.getElementById('deleteAllReadingsModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    function validateDeleteAllConfirmation() {
+        const input = document.getElementById('deleteAllConfirmation');
+        const error = document.getElementById('deleteAllError');
+        const confirmBtn = document.getElementById('confirmDeleteAllReadings');
+
+        if (input.value === 'DELETE ALL') {
+            error.classList.add('hidden');
+            confirmBtn.disabled = false;
+        } else {
+            error.classList.remove('hidden');
+            confirmBtn.disabled = true;
+        }
+    }
+
+    function deleteReading(readingId) {
+        const confirmBtn = document.getElementById('confirmDeleteReading');
+        const originalText = confirmBtn.innerHTML;
+
+        // Show loading state
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
+        confirmBtn.disabled = true;
+
+        fetch(`/api/readings/${readingId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
             }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Failed to delete reading');
+            }
+        })
+        .then(data => {
+            if (data.success) {
+                showToast('Reading deleted successfully', 'success');
+                closeDeleteReadingModal();
 
-            return html;
-        }
+                // Remove the row from the table
+                const row = document.querySelector(`tr[data-reading-id="${readingId}"]`);
+                if (row) {
+                    row.remove();
 
-        function downloadCurrentPreview() {
-            if (!currentPreviewData) return;
-
-            const contentType = currentPreviewType.includes('json') ? 'application/json' : 'text/csv';
-            downloadFile(currentPreviewData, currentPreviewFilename, contentType);
-            closePreviewModal();
-            showDownloadFeedback(`${currentPreviewFilename} downloaded successfully`, 'success');
-        }
-
-        function downloadFile(content, filename, contentType) {
-            const blob = new Blob([content], { type: contentType });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        }
-
-        function closePreviewModal() {
-            document.getElementById('dataPreviewModal').classList.add('hidden');
-            currentPreviewData = null;
-            currentPreviewType = null;
-            currentPreviewFilename = null;
-            document.getElementById('downloadBtn').style.display = 'flex';
-        }
-
-        function showDownloadFeedback(message, type = 'info') {
-            const feedback = document.createElement('div');
-            feedback.className = `fixed top-4 right-4 p-3 rounded-lg shadow-lg z-50 ${
-                type === 'success' ? 'bg-green-600 text-white' :
-                type === 'error' ? 'bg-red-600 text-white' :
-                'bg-blue-600 text-white'
-            }`;
-            feedback.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="text-sm">${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-            `;
-            document.body.appendChild(feedback);
-
-            setTimeout(() => {
-                if (feedback.parentElement) {
-                    feedback.remove();
+                    // Update readings count
+                    updateReadingsCount();
                 }
-            }, 5000);
+
+                // Reload after a short delay to ensure UI is updated
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                throw new Error(data.error || 'Failed to delete reading');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting reading:', error);
+            showToast(`Failed to delete reading: ${error.message}`, 'error');
+
+            // Reset button state
+            confirmBtn.innerHTML = originalText;
+            confirmBtn.disabled = false;
+        });
+    }
+
+    function deleteAllReadings() {
+        const confirmBtn = document.getElementById('confirmDeleteAllReadings');
+        const originalText = confirmBtn.innerHTML;
+
+        // Show loading state
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting All...';
+        confirmBtn.disabled = true;
+
+        fetch('/api/readings', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Failed to delete all readings');
+            }
+        })
+        .then(data => {
+            if (data.success) {
+                showToast('All readings deleted successfully', 'success');
+                closeDeleteAllReadingsModal();
+
+                // Clear the table
+                const tableBody = document.getElementById('readingsTable');
+                if (tableBody) {
+                    tableBody.innerHTML = '';
+                }
+
+                // Update readings count
+                updateReadingsCount();
+
+                // Reload after a short delay to ensure UI is updated
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                throw new Error(data.error || 'Failed to delete all readings');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting all readings:', error);
+            showToast(`Failed to delete all readings: ${error.message}`, 'error');
+
+            // Reset button state
+            confirmBtn.innerHTML = originalText;
+            confirmBtn.disabled = false;
+        });
+    }
+
+    function updateReadingsCount() {
+        const tableBody = document.getElementById('readingsTable');
+        const readingsCount = document.querySelector('.readings-count');
+
+        if (tableBody && readingsCount) {
+            const remainingRows = tableBody.querySelectorAll('tr').length;
+            readingsCount.textContent = `${remainingRows} reading${remainingRows !== 1 ? 's' : ''}`;
+
+            // Hide delete all button if no readings left
+            const deleteAllBtn = document.querySelector('button[onclick="showDeleteAllReadingsConfirm()"]');
+            if (deleteAllBtn && remainingRows === 0) {
+                deleteAllBtn.style.display = 'none';
+            }
+        }
+    }
+
+    // Utility Functions
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-600' :
+            type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+        } text-white transition-all duration-300 transform translate-x-full`;
+        toast.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas ${
+                    type === 'success' ? 'fa-check-circle' :
+                    type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'
+                }"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+
+        // Animate in
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+            toast.classList.add('translate-x-0');
+        }, 10);
+
+        // Remove after delay
+        setTimeout(() => {
+            toast.classList.remove('translate-x-0');
+            toast.classList.add('translate-x-full');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300);
+        }, 5000);
+    }
+
+    // Enhanced Search Script with Admin/Technician Support
+    console.log('Debug: Page loaded');
+    console.log('User role:', '{{ session.role }}');
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        const searchResults = document.getElementById('searchResults');
+        const resultsCount = document.getElementById('resultsCount');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const statusFilter = document.getElementById('statusFilter');
+        const roomsSection = document.getElementById('roomsSection');
+        const readingsSection = document.getElementById('readingsSection');
+        const noResults = document.getElementById('noResults');
+
+        let currentFilter = 'rooms';
+        let currentStatusFilter = 'all';
+
+        // Check if user is admin/technician
+        const isAdminOrTechnician = '{{ session.role }}' === 'admin' || '{{ session.role }}' === 'technician';
+
+        function getRoomStatus(roomCard) {
+            // Extract status from the room card's status badge
+            const statusBadge = roomCard.querySelector('.inline-flex.items-center');
+            if (statusBadge) {
+                const statusText = statusBadge.textContent.trim().toLowerCase();
+                if (statusText.includes('normal')) return 'normal';
+                if (statusText.includes('warning')) return 'warning';
+                if (statusText.includes('critical')) return 'critical';
+            }
+            return 'no-data';
         }
 
-        // Close modal when clicking outside
-        document.getElementById('dataPreviewModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closePreviewModal();
+        function updateVisibility() {
+            const searchTerm = searchInput.value.toLowerCase();
+            let totalVisible = 0;
+            let hasVisibleRooms = false;
+            let hasVisibleReadings = false;
+
+            // Filter rooms
+            if (roomsSection) {
+                const roomCards = roomsSection.querySelectorAll('.room-card');
+                let visibleRooms = 0;
+
+                roomCards.forEach(card => {
+                    const roomName = card.dataset.roomName || '';
+                    const location = card.dataset.location || '';
+                    const devices = card.dataset.devices || '';
+                    const temp = card.dataset.temp || '';
+                    const humidity = card.dataset.humidity || '';
+                    const owner = card.dataset.owner || '';
+
+                    const matchesSearch = !searchTerm ||
+                        roomName.includes(searchTerm) ||
+                        location.includes(searchTerm) ||
+                        devices.includes(searchTerm) ||
+                        temp.includes(searchTerm) ||
+                        humidity.includes(searchTerm) ||
+                        (isAdminOrTechnician && owner.includes(searchTerm));
+
+                    // Check status filter for admin/technician
+                    let matchesStatus = true;
+                    if (isAdminOrTechnician && currentStatusFilter !== 'all') {
+                        const roomStatus = getRoomStatus(card);
+                        matchesStatus = roomStatus === currentStatusFilter;
+                    }
+
+                    if (matchesSearch && matchesStatus && (currentFilter === 'rooms' || currentFilter === 'all')) {
+                        card.style.display = 'block';
+                        visibleRooms++;
+                        totalVisible++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                hasVisibleRooms = visibleRooms > 0;
+                roomsSection.style.display = hasVisibleRooms ? 'block' : 'none';
+
+                // Update room count display
+                const roomCount = document.querySelector('.room-count');
+                if (roomCount) {
+                    const totalRooms = roomCards.length;
+                    const displayText = (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) ?
+                        `${visibleRooms}/${totalRooms} rooms` :
+                        `${totalRooms} room${totalRooms !== 1 ? 's' : ''}`;
+                    roomCount.textContent = displayText;
+                }
+            }
+
+            // Filter readings
+            if (readingsSection) {
+                const readingRows = readingsSection.querySelectorAll('.reading-row');
+                let visibleReadings = 0;
+
+                readingRows.forEach(row => {
+                    const deviceName = row.dataset.deviceName || '';
+                    const deviceUid = row.dataset.deviceUid || '';
+                    const deviceType = row.dataset.deviceType || '';
+                    const temp = row.dataset.temp || '';
+                    const humidity = row.dataset.humidity || '';
+                    const motion = row.dataset.motion || '';
+                    const roomName = row.dataset.roomName || '';
+                    const owner = row.dataset.owner || '';
+
+                    const matchesSearch = !searchTerm ||
+                        deviceName.includes(searchTerm) ||
+                        deviceUid.includes(searchTerm) ||
+                        deviceType.includes(searchTerm) ||
+                        temp.includes(searchTerm) ||
+                        humidity.includes(searchTerm) ||
+                        motion.includes(searchTerm) ||
+                        (isAdminOrTechnician && roomName.includes(searchTerm)) ||
+                        (isAdminOrTechnician && owner.includes(searchTerm));
+
+                    if (matchesSearch && (currentFilter === 'readings' || currentFilter === 'all')) {
+                        row.style.display = '';
+                        visibleReadings++;
+                        totalVisible++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                hasVisibleReadings = visibleReadings > 0;
+                readingsSection.style.display = hasVisibleReadings ? 'block' : 'none';
+
+                // Update readings count display
+                const readingsCount = document.querySelector('.readings-count');
+                if (readingsCount) {
+                    const totalReadings = readingRows.length;
+                    const displayText = searchTerm ?
+                        `${visibleReadings}/${totalReadings} readings` :
+                        `${totalReadings} reading${totalReadings !== 1 ? 's' : ''}`;
+                    readingsCount.textContent = displayText;
+                }
+            }
+
+            // Show/hide no results message
+            if (totalVisible === 0 && (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all'))) {
+                noResults.classList.remove('hidden');
+                if (roomsSection) roomsSection.style.display = 'none';
+                if (readingsSection) readingsSection.style.display = 'none';
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            // Update search results count
+            if (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) {
+                searchResults.classList.remove('hidden');
+                resultsCount.textContent = totalVisible;
+
+                // Update status summary
+                const statusSummary = document.getElementById('statusSummary');
+                if (statusSummary && isAdminOrTechnician) {
+                    if (currentStatusFilter === 'all') {
+                        statusSummary.textContent = `• ${totalVisible} rooms`;
+                    } else {
+                        const statusLabels = {
+                            'normal': 'Normal',
+                            'warning': 'Warning',
+                            'critical': 'Critical',
+                            'no-data': 'No Data'
+                        };
+                        statusSummary.textContent = `• ${statusLabels[currentStatusFilter]} (${totalVisible})`;
+                    }
+                }
+            } else {
+                searchResults.classList.add('hidden');
+            }
+
+            // Show/hide clear button
+            if (searchTerm) {
+                clearSearch.classList.remove('hidden');
+            } else {
+                clearSearch.classList.add('hidden');
+            }
+        }
+
+        // Search input event
+        if (searchInput) {
+            searchInput.addEventListener('input', updateVisibility);
+        }
+
+        // Clear search event
+        if (clearSearch) {
+            clearSearch.addEventListener('click', function () {
+                searchInput.value = '';
+                if (statusFilter) statusFilter.value = 'all';
+                currentStatusFilter = 'all';
+                updateVisibility();
+                searchInput.focus();
+            });
+        }
+
+        // Status filter event (admin/technician only)
+        if (statusFilter) {
+            statusFilter.addEventListener('change', function () {
+                currentStatusFilter = this.value;
+                console.log('Status filter changed to:', currentStatusFilter);
+                updateVisibility();
+            });
+        }
+
+        // Filter button events
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function () {
+                currentFilter = this.dataset.filter;
+
+                // Update button states
+                filterButtons.forEach(b => {
+                    if (b === this) {
+                        b.classList.remove('inactive', 'bg-gray-600', 'text-gray-300');
+                        b.classList.add('active', 'bg-blue-600', 'text-white');
+                    } else {
+                        b.classList.remove('active', 'bg-blue-600', 'text-white');
+                        b.classList.add('inactive', 'bg-gray-600', 'text-gray-300');
+                    }
+                });
+
+                updateVisibility();
+            });
+        });
+
+        // Delete functionality event listeners
+        const confirmDeleteAllBtn = document.getElementById('confirmDeleteAllReadings');
+        if (confirmDeleteAllBtn) {
+            confirmDeleteAllBtn.onclick = deleteAllReadings;
+        }
+
+        // Close modals when clicking outside
+        const modals = ['dataPreviewModal', 'deleteReadingModal', 'deleteAllReadingsModal'];
+        modals.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        if (modalId === 'dataPreviewModal') {
+                            closePreviewModal();
+                        } else if (modalId === 'deleteReadingModal') {
+                            closeDeleteReadingModal();
+                        } else {
+                            closeDeleteAllReadingsModal();
+                        }
+                    }
+                });
             }
         });
 
-        // Close modal with Escape key
+        // Close modals with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                closePreviewModal();
+                if (!document.getElementById('dataPreviewModal').classList.contains('hidden')) {
+                    closePreviewModal();
+                }
+                if (!document.getElementById('deleteReadingModal').classList.contains('hidden')) {
+                    closeDeleteReadingModal();
+                }
+                if (!document.getElementById('deleteAllReadingsModal').classList.contains('hidden')) {
+                    closeDeleteAllReadingsModal();
+                }
             }
         });
-    </script>
 
-    <!-- Enhanced Search Script with Admin/Technician Support -->
-    <script>
-        // ... (keep the existing search script exactly as it was)
-        console.log('Debug: Page loaded');
-        console.log('User role:', '{{ session.role }}');
+        // Initial visibility update
+        updateVisibility();
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const searchInput = document.getElementById('searchInput');
-            const clearSearch = document.getElementById('clearSearch');
-            const searchResults = document.getElementById('searchResults');
-            const resultsCount = document.getElementById('resultsCount');
-            const filterButtons = document.querySelectorAll('.filter-btn');
-            const statusFilter = document.getElementById('statusFilter');
-            const roomsSection = document.getElementById('roomsSection');
-            const readingsSection = document.getElementById('readingsSection');
-            const noResults = document.getElementById('noResults');
+        console.log('Search and filter system initialized');
+        console.log('Admin/Technician mode:', isAdminOrTechnician);
+    });
+</script>
 
-            let currentFilter = 'rooms';
-            let currentStatusFilter = 'all';
-
-            // Check if user is admin/technician
-            const isAdminOrTechnician = '{{ session.role }}' === 'admin' || '{{ session.role }}' === 'technician';
-
-            function getRoomStatus(roomCard) {
-                // Extract status from the room card's status badge
-                const statusBadge = roomCard.querySelector('.inline-flex.items-center');
-                if (statusBadge) {
-                    const statusText = statusBadge.textContent.trim().toLowerCase();
-                    if (statusText.includes('normal')) return 'normal';
-                    if (statusText.includes('warning')) return 'warning';
-                    if (statusText.includes('critical')) return 'critical';
-                }
-                return 'no-data';
-            }
-
-            function updateVisibility() {
-                const searchTerm = searchInput.value.toLowerCase();
-                let totalVisible = 0;
-                let hasVisibleRooms = false;
-                let hasVisibleReadings = false;
-
-                // Filter rooms
-                if (roomsSection) {
-                    const roomCards = roomsSection.querySelectorAll('.room-card');
-                    let visibleRooms = 0;
-
-                    roomCards.forEach(card => {
-                        const roomName = card.dataset.roomName || '';
-                        const location = card.dataset.location || '';
-                        const devices = card.dataset.devices || '';
-                        const temp = card.dataset.temp || '';
-                        const humidity = card.dataset.humidity || '';
-                        const owner = card.dataset.owner || '';
-
-                        const matchesSearch = !searchTerm ||
-                            roomName.includes(searchTerm) ||
-                            location.includes(searchTerm) ||
-                            devices.includes(searchTerm) ||
-                            temp.includes(searchTerm) ||
-                            humidity.includes(searchTerm) ||
-                            (isAdminOrTechnician && owner.includes(searchTerm));
-
-                        // Check status filter for admin/technician
-                        let matchesStatus = true;
-                        if (isAdminOrTechnician && currentStatusFilter !== 'all') {
-                            const roomStatus = getRoomStatus(card);
-                            matchesStatus = roomStatus === currentStatusFilter;
-                        }
-
-                        if (matchesSearch && matchesStatus && (currentFilter === 'rooms' || currentFilter === 'all')) {
-                            card.style.display = 'block';
-                            visibleRooms++;
-                            totalVisible++;
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
-
-                    hasVisibleRooms = visibleRooms > 0;
-                    roomsSection.style.display = hasVisibleRooms ? 'block' : 'none';
-
-                    // Update room count display
-                    const roomCount = document.querySelector('.room-count');
-                    if (roomCount) {
-                        const totalRooms = roomCards.length;
-                        const displayText = (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) ?
-                            `${visibleRooms}/${totalRooms} rooms` :
-                            `${totalRooms} room${totalRooms !== 1 ? 's' : ''}`;
-                        roomCount.textContent = displayText;
-                    }
-                }
-
-                // Filter readings
-                if (readingsSection) {
-                    const readingRows = readingsSection.querySelectorAll('.reading-row');
-                    let visibleReadings = 0;
-
-                    readingRows.forEach(row => {
-                        const deviceName = row.dataset.deviceName || '';
-                        const deviceUid = row.dataset.deviceUid || '';
-                        const deviceType = row.dataset.deviceType || '';
-                        const temp = row.dataset.temp || '';
-                        const humidity = row.dataset.humidity || '';
-                        const motion = row.dataset.motion || '';
-                        const roomName = row.dataset.roomName || '';
-                        const owner = row.dataset.owner || '';
-
-                        const matchesSearch = !searchTerm ||
-                            deviceName.includes(searchTerm) ||
-                            deviceUid.includes(searchTerm) ||
-                            deviceType.includes(searchTerm) ||
-                            temp.includes(searchTerm) ||
-                            humidity.includes(searchTerm) ||
-                            motion.includes(searchTerm) ||
-                            (isAdminOrTechnician && roomName.includes(searchTerm)) ||
-                            (isAdminOrTechnician && owner.includes(searchTerm));
-
-                        if (matchesSearch && (currentFilter === 'readings' || currentFilter === 'all')) {
-                            row.style.display = '';
-                            visibleReadings++;
-                            totalVisible++;
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    });
-
-                    hasVisibleReadings = visibleReadings > 0;
-                    readingsSection.style.display = hasVisibleReadings ? 'block' : 'none';
-
-                    // Update readings count display
-                    const readingsCount = document.querySelector('.readings-count');
-                    if (readingsCount) {
-                        const totalReadings = readingRows.length;
-                        const displayText = searchTerm ?
-                            `${visibleReadings}/${totalReadings} readings` :
-                            `${totalReadings} reading${totalReadings !== 1 ? 's' : ''}`;
-                        readingsCount.textContent = displayText;
-                    }
-                }
-
-                // Show/hide no results message
-                if (totalVisible === 0 && (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all'))) {
-                    noResults.classList.remove('hidden');
-                    if (roomsSection) roomsSection.style.display = 'none';
-                    if (readingsSection) readingsSection.style.display = 'none';
-                } else {
-                    noResults.classList.add('hidden');
-                }
-
-                // Update search results count
-                if (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) {
-                    searchResults.classList.remove('hidden');
-                    resultsCount.textContent = totalVisible;
-
-                    // Update status summary
-                    const statusSummary = document.getElementById('statusSummary');
-                    if (statusSummary && isAdminOrTechnician) {
-                        if (currentStatusFilter === 'all') {
-                            statusSummary.textContent = `• ${totalVisible} rooms`;
-                        } else {
-                            const statusLabels = {
-                                'normal': 'Normal',
-                                'warning': 'Warning',
-                                'critical': 'Critical',
-                                'no-data': 'No Data'
-                            };
-                            statusSummary.textContent = `• ${statusLabels[currentStatusFilter]} (${totalVisible})`;
-                        }
-                    }
-                } else {
-                    searchResults.classList.add('hidden');
-                }
-
-                // Show/hide clear button
-                if (searchTerm) {
-                    clearSearch.classList.remove('hidden');
-                } else {
-                    clearSearch.classList.add('hidden');
-                }
-            }
-
-            // Search input event
-            if (searchInput) {
-                searchInput.addEventListener('input', updateVisibility);
-            }
-
-            // Clear search event
-            if (clearSearch) {
-                clearSearch.addEventListener('click', function () {
-                    searchInput.value = '';
-                    if (statusFilter) statusFilter.value = 'all';
-                    currentStatusFilter = 'all';
-                    updateVisibility();
-                    searchInput.focus();
-                });
-            }
-
-            // Status filter event (admin/technician only)
-            if (statusFilter) {
-                statusFilter.addEventListener('change', function () {
-                    currentStatusFilter = this.value;
-                    console.log('Status filter changed to:', currentStatusFilter);
-                    updateVisibility();
-                });
-            }
-
-            // Filter button events
-            filterButtons.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    currentFilter = this.dataset.filter;
-
-                    // Update button states
-                    filterButtons.forEach(b => {
-                        if (b === this) {
-                            b.classList.remove('inactive', 'bg-gray-600', 'text-gray-300');
-                            b.classList.add('active', 'bg-blue-600', 'text-white');
-                        } else {
-                            b.classList.remove('active', 'bg-blue-600', 'text-white');
-                            b.classList.add('inactive', 'bg-gray-600', 'text-gray-300');
-                        }
-                    });
-
-                    updateVisibility();
-                });
-            });
-
-            // Initial visibility update
-            updateVisibility();
-
-            console.log('Search and filter system initialized');
-            console.log('Admin/Technician mode:', isAdminOrTechnician);
-        });
-    </script>
     <style>
         /* CSS Variables for Theme Support */
         :root {
