@@ -291,7 +291,7 @@
                                 </div>
 
                                 <div class="bg-blue-900 bg-opacity-20 border border-blue-500 rounded-lg p-3">
-                                    <p class="text-blue-300 text-sm">
+                                    <p class="text-sm">
                                         <i class="fas fa-info-circle mr-2"></i>
                                         Password must be at least 8 characters with uppercase, number, and symbol.
                                     </p>
@@ -365,7 +365,6 @@
                             <h3 class="text-lg font-semibold text-text-primary mb-4">
                                 Existing Users
                             </h3>
-
                             <div class="overflow-x-auto">
                                 <table class="table w-full">
                                     <thead>
@@ -651,7 +650,7 @@
 
                     <!-- Role Change Information -->
                     <div class="bg-blue-900 bg-opacity-20 border border-blue-500 rounded-lg p-3">
-                        <p class="text-blue-300 text-sm">
+                        <p class="text-sm">
                             <i class="fas fa-info-circle mr-2"></i>
                             Changing user roles affects their system permissions and access levels.
                         </p>
@@ -839,330 +838,14 @@
         }
     </style>
 
-<script>
-    // Confirmation Modal State
-    window.confirmState = {
-        pendingAction: null,
-        isModalOpen: false
-    };
-
-    // Role Change Modal State
-    window.roleChangeState = {
-        userId: null,
-        username: null,
-        currentRole: null,
-        newRole: null,
-        profilePicture: null
-    };
-
-    // Role descriptions
-    const roleDescriptions = {
-        admin: 'Full system access including user management, system configuration, and all administrative privileges.',
-        technician: 'Can manage rooms, handle maintenance requests, and access technical settings. Cannot manage users.',
-        user: 'Standard user with access to personal rooms and basic system features. Can create and manage own rooms.',
-        viewer: 'Read-only access. Can view rooms and system information but cannot make changes or create content.'
-    };
-
-    // Role icons and colors
-    const roleConfig = {
-        admin: {
-            icon: 'fa-crown',
-            color: 'role-admin',
-            badgeClass: 'bg-purple-600 text-white'
-        },
-        technician: {
-            icon: 'fa-tools',
-            color: 'role-technician',
-            badgeClass: 'bg-blue-600 text-white'
-        },
-        user: {
-            icon: 'fa-user',
-            color: 'role-user',
-            badgeClass: 'bg-green-600 text-white'
-        },
-        viewer: {
-            icon: 'fa-eye',
-            color: 'role-viewer',
-            badgeClass: 'bg-gray-600 text-white'
-        }
-    };
-
-    // Show confirmation modal for deleting user
-    function showDeleteUserConfirm(username, userId) {
-        window.confirmState.pendingAction = 'delete-user';
-        window.confirmState.userId = userId;
-
-        const modal = document.getElementById('confirmModal');
-        const title = document.getElementById('confirmModalTitle');
-        const message = document.getElementById('confirmModalMessage');
-        const proceedBtn = document.getElementById('proceedConfirm');
-
-        title.textContent = 'Delete User';
-        message.textContent = `Are you sure you want to delete user "${username}"? This action cannot be undone. All user data including rooms and preferences will be permanently removed.`;
-
-        proceedBtn.textContent = 'Delete User';
-        proceedBtn.className = 'btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
-        proceedBtn.dataset.action = 'delete-user';
-        proceedBtn.dataset.userId = userId;
-
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    }
-
-    // Show confirmation modal for updating profile
-    function showUpdateProfileConfirm() {
-        window.confirmState.pendingAction = 'update-profile';
-
-        const modal = document.getElementById('confirmModal');
-        const title = document.getElementById('confirmModalTitle');
-        const message = document.getElementById('confirmModalMessage');
-        const proceedBtn = document.getElementById('proceedConfirm');
-
-        title.textContent = 'Update Profile';
-        message.textContent = 'Are you sure you want to update your profile information? These changes will be applied immediately.';
-
-        proceedBtn.textContent = 'Update Profile';
-        proceedBtn.className = 'btn bg-accent-blue hover:bg-accent-blue-hover text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
-        proceedBtn.dataset.action = 'update-profile';
-
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    }
-
-    // Show confirmation modal for changing password
-    function showChangePasswordConfirm() {
-        window.confirmState.pendingAction = 'change-password';
-
-        const modal = document.getElementById('confirmModal');
-        const title = document.getElementById('confirmModalTitle');
-        const message = document.getElementById('confirmModalMessage');
-        const proceedBtn = document.getElementById('proceedConfirm');
-
-        title.textContent = 'Change Password';
-        message.textContent = 'Are you sure you want to change your password? You will need to use your new password for all future logins.';
-
-        proceedBtn.textContent = 'Change Password';
-        proceedBtn.className = 'btn bg-accent-blue hover:bg-accent-blue-hover text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
-        proceedBtn.dataset.action = 'change-password';
-
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    }
-
-    // Show confirmation modal for deleting profile picture
-    function showDeleteProfilePictureConfirm() {
-        window.confirmState.pendingAction = 'delete-profile-picture';
-
-        const modal = document.getElementById('confirmModal');
-        const title = document.getElementById('confirmModalTitle');
-        const message = document.getElementById('confirmModalMessage');
-        const proceedBtn = document.getElementById('proceedConfirm');
-
-        title.textContent = 'Remove Profile Picture';
-        message.textContent = 'Are you sure you want to remove your profile picture? This action cannot be undone.';
-
-        proceedBtn.textContent = 'Remove Picture';
-        proceedBtn.className = 'btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
-        proceedBtn.dataset.action = 'delete-profile-picture';
-
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    }
-
-    // Hide confirmation modal
-    function hideConfirmModal() {
-        const modal = document.getElementById('confirmModal');
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-        document.body.style.overflow = '';
-        window.confirmState.pendingAction = null;
-        window.confirmState.userId = null;
-    }
-
-    // Perform the confirmed action
-    function performConfirmedAction() {
-        const action = document.getElementById('proceedConfirm').dataset.action;
-        const userId = document.getElementById('proceedConfirm').dataset.userId;
-
-        switch (action) {
-            case 'delete-user':
-                deleteUser(userId);
-                break;
-            case 'update-profile':
-                document.getElementById('profileForm').submit();
-                break;
-            case 'change-password':
-                document.getElementById('passwordForm').submit();
-                break;
-            case 'delete-profile-picture':
-                removeProfilePicture();
-                break;
-        }
-
-        hideConfirmModal();
-    }
-
-    // Delete user function
-    function deleteUser(userId) {
-        fetch(`/delete-user/${userId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-            .then(response => {
-                if (response.ok) {
-                    showToast('User deleted successfully', 'success');
-                    // Reload the page to reflect changes
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    throw new Error('Failed to delete user');
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting user:', error);
-                showToast('Failed to delete user', 'error');
-            });
-    }
-
-    // Initialize confirmation modal
-    function initConfirmModal() {
-        const closeModal = document.getElementById('closeConfirmModal');
-        const cancelBtn = document.getElementById('cancelConfirm');
-        const proceedBtn = document.getElementById('proceedConfirm');
-
-        if (closeModal) closeModal.addEventListener('click', hideConfirmModal);
-        if (cancelBtn) cancelBtn.addEventListener('click', hideConfirmModal);
-        if (proceedBtn) proceedBtn.addEventListener('click', performConfirmedAction);
-
-        // ESC key support
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                const confirmModal = document.getElementById('confirmModal');
-                if (confirmModal && !confirmModal.classList.contains('hidden')) {
-                    hideConfirmModal();
-                }
-            }
-        });
-
-        // Click outside to close
-        const confirmModal = document.getElementById('confirmModal');
-        if (confirmModal) {
-            confirmModal.addEventListener('click', function (e) {
-                if (e.target === this) {
-                    hideConfirmModal();
-                }
-            });
-        }
-    }
-
-    // Show role change modal
-    function showRoleChangeModal(userId, username, currentRole, newRole, profilePicture = null) {
-        window.roleChangeState = {
-            userId,
-            username,
-            currentRole,
-            newRole,
-            profilePicture
+    <script>
+        // Confirmation Modal State
+        window.confirmState = {
+            pendingAction: null,
+            isModalOpen: false
         };
 
-        const modal = document.getElementById('roleChangeModal');
-
-        // Populate modal content
-        document.getElementById('roleChangeUsername').textContent = username;
-        document.getElementById('roleChangeCurrentRole').textContent = `Current: ${currentRole}`;
-
-        // Set profile picture or icon
-        const profileImage = document.getElementById('roleChangeProfileImage');
-        const profileIcon = document.getElementById('roleChangeProfileIcon');
-
-        if (profilePicture) {
-            profileImage.src = `/static/uploads/profiles/${profilePicture}?v=${new Date().getTime()}`;
-            profileImage.classList.remove('hidden');
-            profileIcon.classList.add('hidden');
-
-            profileImage.onerror = function() {
-                profileImage.classList.add('hidden');
-                profileIcon.classList.remove('hidden');
-                setRoleChangeProfileIcon(profileIcon, currentRole);
-            };
-        } else {
-            profileImage.classList.add('hidden');
-            profileIcon.classList.remove('hidden');
-            setRoleChangeProfileIcon(profileIcon, currentRole);
-        }
-
-        // Set role badges
-        setRoleBadge('currentRoleBadge', currentRole);
-        setRoleBadge('newRoleBadge', newRole);
-
-        // Set role description
-        document.getElementById('roleDescriptionText').textContent = roleDescriptions[newRole] || 'No description available.';
-
-        // Set form action and hidden input
-        const form = document.getElementById('roleChangeForm');
-        form.action = `/update-user-role/${userId}`;
-        document.getElementById('roleChangeInput').value = newRole;
-
-        // Set confirmation message
-        const action = getRoleChangeAction(currentRole, newRole);
-        const message = `Are you sure you want to ${action} ${username} from ${currentRole} to ${newRole}?`;
-        document.getElementById('roleChangeMessage').textContent = message;
-
-        // Show modal
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    }
-
-    // Set role badge with appropriate styling
-    function setRoleBadge(elementId, role) {
-        const element = document.getElementById(elementId);
-        const config = roleConfig[role] || roleConfig.viewer;
-
-        element.innerHTML = `
-            <i class="fas ${config.icon} mr-1"></i>
-            ${role}
-        `;
-        element.className = `role-badge ${config.color}`;
-    }
-
-    // Set profile icon for role change modal
-    function setRoleChangeProfileIcon(iconElement, role) {
-        const config = roleConfig[role] || roleConfig.viewer;
-        const style = config.badgeClass.replace('bg-', 'bg-').replace('text-', 'text-');
-
-        iconElement.className = `w-10 h-10 rounded-full flex items-center justify-center border-2 border-border text-sm ${style}`;
-        iconElement.innerHTML = `<i class="fas ${config.icon}"></i>`;
-    }
-
-    // Determine the action type for role change
-    function getRoleChangeAction(currentRole, newRole) {
-        if (newRole === 'admin') return 'promote to admin';
-        if (currentRole === 'admin') return 'demote from admin';
-        if (['admin', 'technician', 'user', 'viewer'].indexOf(newRole) <
-            ['admin', 'technician', 'user', 'viewer'].indexOf(currentRole)) {
-            return 'promote';
-        }
-        return 'demote';
-    }
-
-    // Hide role change modal
-    function hideRoleChangeModal() {
-        const modal = document.getElementById('roleChangeModal');
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-        document.body.style.overflow = '';
+        // Role Change Modal State
         window.roleChangeState = {
             userId: null,
             username: null,
@@ -1170,615 +853,932 @@
             newRole: null,
             profilePicture: null
         };
-    }
 
-    // Initialize role change modal
-    function initRoleChangeModal() {
-        const closeModal = document.getElementById('closeRoleChangeModal');
-        const cancelBtn = document.getElementById('cancelRoleChange');
+        // Role descriptions
+        const roleDescriptions = {
+            admin: 'Full system access including user management, system configuration, and all administrative privileges.',
+            technician: 'Can manage rooms, handle maintenance requests, and access technical settings. Cannot manage users.',
+            user: 'Standard user with access to personal rooms and basic system features. Can create and manage own rooms.',
+            viewer: 'Read-only access. Can view rooms and system information but cannot make changes or create content.'
+        };
 
-        if (closeModal) closeModal.addEventListener('click', hideRoleChangeModal);
-        if (cancelBtn) cancelBtn.addEventListener('click', hideRoleChangeModal);
-
-        // ESC key support
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                const roleChangeModal = document.getElementById('roleChangeModal');
-                if (roleChangeModal && !roleChangeModal.classList.contains('hidden')) {
-                    hideRoleChangeModal();
-                }
+        // Role icons and colors
+        const roleConfig = {
+            admin: {
+                icon: 'fa-crown',
+                color: 'role-admin',
+                badgeClass: 'bg-purple-600 text-white'
+            },
+            technician: {
+                icon: 'fa-tools',
+                color: 'role-technician',
+                badgeClass: 'bg-blue-600 text-white'
+            },
+            user: {
+                icon: 'fa-user',
+                color: 'role-user',
+                badgeClass: 'bg-green-600 text-white'
+            },
+            viewer: {
+                icon: 'fa-eye',
+                color: 'role-viewer',
+                badgeClass: 'bg-gray-600 text-white'
             }
-        });
+        };
 
-        // Click outside to close
-        const roleChangeModal = document.getElementById('roleChangeModal');
-        if (roleChangeModal) {
-            roleChangeModal.addEventListener('click', function (e) {
-                if (e.target === this) {
-                    hideRoleChangeModal();
-                }
-            });
+        // Show confirmation modal for deleting user
+        function showDeleteUserConfirm(username, userId) {
+            window.confirmState.pendingAction = 'delete-user';
+            window.confirmState.userId = userId;
+
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('confirmModalTitle');
+            const message = document.getElementById('confirmModalMessage');
+            const proceedBtn = document.getElementById('proceedConfirm');
+
+            title.textContent = 'Delete User';
+            message.textContent = `Are you sure you want to delete user "${username}"? This action cannot be undone. All user data including rooms and preferences will be permanently removed.`;
+
+            proceedBtn.textContent = 'Delete User';
+            proceedBtn.className = 'btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
+            proceedBtn.dataset.action = 'delete-user';
+            proceedBtn.dataset.userId = userId;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
         }
 
-        // Form submission handling
-        const form = document.getElementById('roleChangeForm');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
+        // Show confirmation modal for updating profile
+        function showUpdateProfileConfirm() {
+            window.confirmState.pendingAction = 'update-profile';
 
-                // Show loading state
-                const submitBtn = form.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
-                submitBtn.disabled = true;
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('confirmModalTitle');
+            const message = document.getElementById('confirmModalMessage');
+            const proceedBtn = document.getElementById('proceedConfirm');
 
-                // Submit the form
-                fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form)
-                })
+            title.textContent = 'Update Profile';
+            message.textContent = 'Are you sure you want to update your profile information? These changes will be applied immediately.';
+
+            proceedBtn.textContent = 'Update Profile';
+            proceedBtn.className = 'btn bg-accent-blue hover:bg-accent-blue-hover text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
+            proceedBtn.dataset.action = 'update-profile';
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Show confirmation modal for changing password
+        function showChangePasswordConfirm() {
+            window.confirmState.pendingAction = 'change-password';
+
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('confirmModalTitle');
+            const message = document.getElementById('confirmModalMessage');
+            const proceedBtn = document.getElementById('proceedConfirm');
+
+            title.textContent = 'Change Password';
+            message.textContent = 'Are you sure you want to change your password? You will need to use your new password for all future logins.';
+
+            proceedBtn.textContent = 'Change Password';
+            proceedBtn.className = 'btn bg-accent-blue hover:bg-accent-blue-hover text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
+            proceedBtn.dataset.action = 'change-password';
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Show confirmation modal for deleting profile picture
+        function showDeleteProfilePictureConfirm() {
+            window.confirmState.pendingAction = 'delete-profile-picture';
+
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('confirmModalTitle');
+            const message = document.getElementById('confirmModalMessage');
+            const proceedBtn = document.getElementById('proceedConfirm');
+
+            title.textContent = 'Remove Profile Picture';
+            message.textContent = 'Are you sure you want to remove your profile picture? This action cannot be undone.';
+
+            proceedBtn.textContent = 'Remove Picture';
+            proceedBtn.className = 'btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base order-1 sm:order-2 w-full sm:w-auto';
+            proceedBtn.dataset.action = 'delete-profile-picture';
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Hide confirmation modal
+        function hideConfirmModal() {
+            const modal = document.getElementById('confirmModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            document.body.style.overflow = '';
+            window.confirmState.pendingAction = null;
+            window.confirmState.userId = null;
+        }
+
+        // Perform the confirmed action
+        function performConfirmedAction() {
+            const action = document.getElementById('proceedConfirm').dataset.action;
+            const userId = document.getElementById('proceedConfirm').dataset.userId;
+
+            switch (action) {
+                case 'delete-user':
+                    deleteUser(userId);
+                    break;
+                case 'update-profile':
+                    document.getElementById('profileForm').submit();
+                    break;
+                case 'change-password':
+                    document.getElementById('passwordForm').submit();
+                    break;
+                case 'delete-profile-picture':
+                    removeProfilePicture();
+                    break;
+            }
+
+            hideConfirmModal();
+        }
+
+        // Delete user function
+        function deleteUser(userId) {
+            fetch(`/delete-user/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
                 .then(response => {
                     if (response.ok) {
-                        showToast('User role updated successfully!', 'success');
-                        hideRoleChangeModal();
+                        showToast('User deleted successfully', 'success');
                         // Reload the page to reflect changes
                         setTimeout(() => {
                             window.location.reload();
                         }, 1000);
                     } else {
-                        throw new Error('Failed to update user role');
+                        throw new Error('Failed to delete user');
                     }
                 })
                 .catch(error => {
-                    console.error('Error updating user role:', error);
-                    showToast('Failed to update user role', 'error');
-                    // Reset button state
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
+                    console.error('Error deleting user:', error);
+                    showToast('Failed to delete user', 'error');
+                });
+        }
+
+        // Initialize confirmation modal
+        function initConfirmModal() {
+            const closeModal = document.getElementById('closeConfirmModal');
+            const cancelBtn = document.getElementById('cancelConfirm');
+            const proceedBtn = document.getElementById('proceedConfirm');
+
+            if (closeModal) closeModal.addEventListener('click', hideConfirmModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', hideConfirmModal);
+            if (proceedBtn) proceedBtn.addEventListener('click', performConfirmedAction);
+
+            // ESC key support
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    const confirmModal = document.getElementById('confirmModal');
+                    if (confirmModal && !confirmModal.classList.contains('hidden')) {
+                        hideConfirmModal();
+                    }
+                }
+            });
+
+            // Click outside to close
+            const confirmModal = document.getElementById('confirmModal');
+            if (confirmModal) {
+                confirmModal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        hideConfirmModal();
+                    }
+                });
+            }
+        }
+
+        // Show role change modal
+        function showRoleChangeModal(userId, username, currentRole, newRole, profilePicture = null) {
+            window.roleChangeState = {
+                userId,
+                username,
+                currentRole,
+                newRole,
+                profilePicture
+            };
+
+            const modal = document.getElementById('roleChangeModal');
+
+            // Populate modal content
+            document.getElementById('roleChangeUsername').textContent = username;
+            document.getElementById('roleChangeCurrentRole').textContent = `Current: ${currentRole}`;
+
+            // Set profile picture or icon
+            const profileImage = document.getElementById('roleChangeProfileImage');
+            const profileIcon = document.getElementById('roleChangeProfileIcon');
+
+            if (profilePicture) {
+                profileImage.src = `/static/uploads/profiles/${profilePicture}?v=${new Date().getTime()}`;
+                profileImage.classList.remove('hidden');
+                profileIcon.classList.add('hidden');
+
+                profileImage.onerror = function () {
+                    profileImage.classList.add('hidden');
+                    profileIcon.classList.remove('hidden');
+                    setRoleChangeProfileIcon(profileIcon, currentRole);
+                };
+            } else {
+                profileImage.classList.add('hidden');
+                profileIcon.classList.remove('hidden');
+                setRoleChangeProfileIcon(profileIcon, currentRole);
+            }
+
+            // Set role badges
+            setRoleBadge('currentRoleBadge', currentRole);
+            setRoleBadge('newRoleBadge', newRole);
+
+            // Set role description
+            document.getElementById('roleDescriptionText').textContent = roleDescriptions[newRole] || 'No description available.';
+
+            // Set form action and hidden input
+            const form = document.getElementById('roleChangeForm');
+            form.action = `/update-user-role/${userId}`;
+            document.getElementById('roleChangeInput').value = newRole;
+
+            // Set confirmation message
+            const action = getRoleChangeAction(currentRole, newRole);
+            const message = `Are you sure you want to ${action} ${username} from ${currentRole} to ${newRole}?`;
+            document.getElementById('roleChangeMessage').textContent = message;
+
+            // Show modal
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Set role badge with appropriate styling
+        function setRoleBadge(elementId, role) {
+            const element = document.getElementById(elementId);
+            const config = roleConfig[role] || roleConfig.viewer;
+
+            element.innerHTML = `
+            <i class="fas ${config.icon} mr-1"></i>
+            ${role}
+        `;
+            element.className = `role-badge ${config.color}`;
+        }
+
+        // Set profile icon for role change modal
+        function setRoleChangeProfileIcon(iconElement, role) {
+            const config = roleConfig[role] || roleConfig.viewer;
+            const style = config.badgeClass.replace('bg-', 'bg-').replace('text-', 'text-');
+
+            iconElement.className = `w-10 h-10 rounded-full flex items-center justify-center border-2 border-border text-sm ${style}`;
+            iconElement.innerHTML = `<i class="fas ${config.icon}"></i>`;
+        }
+
+        // Determine the action type for role change
+        function getRoleChangeAction(currentRole, newRole) {
+            if (newRole === 'admin') return 'promote to admin';
+            if (currentRole === 'admin') return 'demote from admin';
+            if (['admin', 'technician', 'user', 'viewer'].indexOf(newRole) <
+                ['admin', 'technician', 'user', 'viewer'].indexOf(currentRole)) {
+                return 'promote';
+            }
+            return 'demote';
+        }
+
+        // Hide role change modal
+        function hideRoleChangeModal() {
+            const modal = document.getElementById('roleChangeModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            document.body.style.overflow = '';
+            window.roleChangeState = {
+                userId: null,
+                username: null,
+                currentRole: null,
+                newRole: null,
+                profilePicture: null
+            };
+        }
+
+        // Initialize role change modal
+        function initRoleChangeModal() {
+            const closeModal = document.getElementById('closeRoleChangeModal');
+            const cancelBtn = document.getElementById('cancelRoleChange');
+
+            if (closeModal) closeModal.addEventListener('click', hideRoleChangeModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', hideRoleChangeModal);
+
+            // ESC key support
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    const roleChangeModal = document.getElementById('roleChangeModal');
+                    if (roleChangeModal && !roleChangeModal.classList.contains('hidden')) {
+                        hideRoleChangeModal();
+                    }
+                }
+            });
+
+            // Click outside to close
+            const roleChangeModal = document.getElementById('roleChangeModal');
+            if (roleChangeModal) {
+                roleChangeModal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        hideRoleChangeModal();
+                    }
+                });
+            }
+
+            // Form submission handling
+            const form = document.getElementById('roleChangeForm');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    // Show loading state
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
+                    submitBtn.disabled = true;
+
+                    // Submit the form
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form)
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                showToast('User role updated successfully!', 'success');
+                                hideRoleChangeModal();
+                                // Reload the page to reflect changes
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                throw new Error('Failed to update user role');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating user role:', error);
+                            showToast('Failed to update user role', 'error');
+                            // Reset button state
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.disabled = false;
+                        });
+                });
+            }
+        }
+
+        // Updated role change confirmation function
+        function confirmRoleChange(username, currentRole, newRole, userId, profilePicture = null) {
+            if (currentRole === newRole) {
+                return; // No change needed
+            }
+
+            showRoleChangeModal(userId, username, currentRole, newRole, profilePicture);
+        }
+
+        // Update the existing role change handlers in the table
+        function initRoleChangeHandlers() {
+            document.querySelectorAll('select[name="role"]').forEach(select => {
+                select.addEventListener('change', function (e) {
+                    const row = this.closest('tr');
+                    const username = row.querySelector('.text-text-primary').textContent;
+                    const currentRole = row.querySelector('span').textContent.trim();
+                    const newRole = this.value;
+                    const userId = this.closest('form').id.replace('role-form-', '');
+
+                    // Get profile picture if available
+                    const profileImg = row.querySelector('img');
+                    const profilePicture = profileImg ? profileImg.src.split('/').pop().split('?')[0] : null;
+
+                    confirmRoleChange(username, currentRole, newRole, userId, profilePicture);
                 });
             });
         }
-    }
 
-    // Updated role change confirmation function
-    function confirmRoleChange(username, currentRole, newRole, userId, profilePicture = null) {
-        if (currentRole === newRole) {
-            return; // No change needed
-        }
+        // Debug function to check if modal elements exist
+        function debugModalElements() {
+            const elements = [
+                'modalUsername', 'modalUserEmail', 'modalUserRole', 'modalFullName',
+                'modalMemberSince', 'modalOwnedRooms', 'modalActiveRequests',
+                'modalUserBio', 'modalRecentActivity', 'modalProfileImage', 'modalProfileIcon',
+                'userProfileModal', 'userProfileContent'
+            ];
 
-        showRoleChangeModal(userId, username, currentRole, newRole, profilePicture);
-    }
-
-    // Update the existing role change handlers in the table
-    function initRoleChangeHandlers() {
-        document.querySelectorAll('select[name="role"]').forEach(select => {
-            select.addEventListener('change', function(e) {
-                const row = this.closest('tr');
-                const username = row.querySelector('.text-text-primary').textContent;
-                const currentRole = row.querySelector('span').textContent.trim();
-                const newRole = this.value;
-                const userId = this.closest('form').id.replace('role-form-', '');
-
-                // Get profile picture if available
-                const profileImg = row.querySelector('img');
-                const profilePicture = profileImg ? profileImg.src.split('/').pop().split('?')[0] : null;
-
-                confirmRoleChange(username, currentRole, newRole, userId, profilePicture);
+            console.log('=== Debugging Modal Elements ===');
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                console.log(`${id}:`, element ? 'FOUND' : 'NOT FOUND');
+                if (element) {
+                    console.log(`  - Tag: ${element.tagName}, Classes: ${element.className}`);
+                }
             });
-        });
-    }
+            console.log('=== End Debug ===');
+        }
 
-    // Debug function to check if modal elements exist
-    function debugModalElements() {
-        const elements = [
-            'modalUsername', 'modalUserEmail', 'modalUserRole', 'modalFullName',
-            'modalMemberSince', 'modalOwnedRooms', 'modalActiveRequests',
-            'modalUserBio', 'modalRecentActivity', 'modalProfileImage', 'modalProfileIcon',
-            'userProfileModal', 'userProfileContent'
-        ];
+        // User Profile Modal Functions
+        function viewUserProfile(userId) {
+            console.log('Loading profile for user ID:', userId);
 
-        console.log('=== Debugging Modal Elements ===');
-        elements.forEach(id => {
-            const element = document.getElementById(id);
-            console.log(`${id}:`, element ? 'FOUND' : 'NOT FOUND');
-            if (element) {
-                console.log(`  - Tag: ${element.tagName}, Classes: ${element.className}`);
+            // Show modal first
+            const modal = document.getElementById('userProfileModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                console.error('User profile modal not found');
+                showToast('Error: Modal not found', 'error');
+                return;
             }
-        });
-        console.log('=== End Debug ===');
-    }
 
-    // User Profile Modal Functions
-    function viewUserProfile(userId) {
-        console.log('Loading profile for user ID:', userId);
+            // Get the content container
+            const userProfileContent = document.getElementById('userProfileContent');
+            if (!userProfileContent) {
+                console.error('userProfileContent element not found');
+                showToast('Error: Modal content not found', 'error');
+                return;
+            }
 
-        // Show modal first
-        const modal = document.getElementById('userProfileModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        } else {
-            console.error('User profile modal not found');
-            showToast('Error: Modal not found', 'error');
-            return;
-        }
+            // Store the original HTML structure
+            const originalHTML = userProfileContent.innerHTML;
 
-        // Get the content container
-        const userProfileContent = document.getElementById('userProfileContent');
-        if (!userProfileContent) {
-            console.error('userProfileContent element not found');
-            showToast('Error: Modal content not found', 'error');
-            return;
-        }
-
-        // Store the original HTML structure
-        const originalHTML = userProfileContent.innerHTML;
-
-        // Show loading state WITHOUT replacing the entire structure
-        const loadingHTML = `
+            // Show loading state WITHOUT replacing the entire structure
+            const loadingHTML = `
         <div class="text-center py-8">
             <i class="fas fa-spinner fa-spin text-2xl text-accent-blue mb-2"></i>
             <p class="text-text-muted">Loading user profile...</p>
         </div>
     `;
 
-        // Create a temporary loading container
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = loadingHTML;
+            // Create a temporary loading container
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = loadingHTML;
 
-        // Hide the main content, show loading
-        const mainContent = userProfileContent.querySelector('#modalMainContent');
-        if (mainContent) {
-            mainContent.classList.add('hidden');
-        }
-        userProfileContent.appendChild(tempContainer);
-
-        // Fetch user data
-        fetch(`/api/user/${userId}/profile`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('User not found');
-                }
-                return response.json();
-            })
-            .then(userData => {
-                console.log('User data loaded:', userData);
-                // Remove loading element
-                tempContainer.remove();
-                // Show main content again
-                if (mainContent) {
-                    mainContent.classList.remove('hidden');
-                }
-                populateUserProfileModal(userData);
-            })
-            .catch(error => {
-                console.error('Error loading user profile:', error);
-                // Remove loading element and show error
-                tempContainer.remove();
-                if (mainContent) {
-                    mainContent.classList.remove('hidden');
-                }
-                showToast(`Error loading user profile: ${error.message}`, 'error');
-            });
-    }
-
-    function populateUserProfileModal(userData) {
-        console.log('Populating modal with data:', userData);
-
-        const {
-            username,
-            email,
-            role,
-            profile_picture,
-            first_name,
-            last_name,
-            bio,
-            created_at,
-            owned_rooms_count = 0,
-            active_requests_count = 0,
-            recent_activity = []
-        } = userData;
-
-        // Safe element setting function
-        function safeSetElement(id, value, defaultValue = '—') {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = value !== null && value !== undefined ? value : defaultValue;
-                console.log(`Set ${id} to:`, value);
-            } else {
-                console.warn(`Element with id '${id}' not found`);
+            // Hide the main content, show loading
+            const mainContent = userProfileContent.querySelector('#modalMainContent');
+            if (mainContent) {
+                mainContent.classList.add('hidden');
             }
+            userProfileContent.appendChild(tempContainer);
+
+            // Fetch user data
+            fetch(`/api/user/${userId}/profile`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('User not found');
+                    }
+                    return response.json();
+                })
+                .then(userData => {
+                    console.log('User data loaded:', userData);
+                    // Remove loading element
+                    tempContainer.remove();
+                    // Show main content again
+                    if (mainContent) {
+                        mainContent.classList.remove('hidden');
+                    }
+                    populateUserProfileModal(userData);
+                })
+                .catch(error => {
+                    console.error('Error loading user profile:', error);
+                    // Remove loading element and show error
+                    tempContainer.remove();
+                    if (mainContent) {
+                        mainContent.classList.remove('hidden');
+                    }
+                    showToast(`Error loading user profile: ${error.message}`, 'error');
+                });
         }
 
-        function safeSetInnerHTML(id, html) {
-            const element = document.getElementById(id);
-            if (element) {
-                element.innerHTML = html;
-                console.log(`Set ${id} HTML to:`, html);
-            } else {
-                console.warn(`Element with id '${id}' not found`);
+        function populateUserProfileModal(userData) {
+            console.log('Populating modal with data:', userData);
+
+            const {
+                username,
+                email,
+                role,
+                profile_picture,
+                first_name,
+                last_name,
+                bio,
+                created_at,
+                owned_rooms_count = 0,
+                active_requests_count = 0,
+                recent_activity = []
+            } = userData;
+
+            // Safe element setting function
+            function safeSetElement(id, value, defaultValue = '—') {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value !== null && value !== undefined ? value : defaultValue;
+                    console.log(`Set ${id} to:`, value);
+                } else {
+                    console.warn(`Element with id '${id}' not found`);
+                }
             }
-        }
 
-        // Set basic info
-        safeSetElement('modalUsername', username);
-        safeSetElement('modalUserEmail', email);
+            function safeSetInnerHTML(id, html) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.innerHTML = html;
+                    console.log(`Set ${id} HTML to:`, html);
+                } else {
+                    console.warn(`Element with id '${id}' not found`);
+                }
+            }
 
-        // Set role badge
-        const roleColors = {
-            'admin': 'bg-purple-600 text-white',
-            'technician': 'bg-blue-600 text-white',
-            'user': 'bg-green-600 text-white',
-            'viewer': 'bg-gray-600 text-white'
-        };
+            // Set basic info
+            safeSetElement('modalUsername', username);
+            safeSetElement('modalUserEmail', email);
 
-        const roleIcons = {
-            'admin': 'fa-crown',
-            'technician': 'fa-tools',
-            'user': 'fa-user',
-            'viewer': 'fa-eye'
-        };
+            // Set role badge
+            const roleColors = {
+                'admin': 'bg-purple-600 text-white',
+                'technician': 'bg-blue-600 text-white',
+                'user': 'bg-green-600 text-white',
+                'viewer': 'bg-gray-600 text-white'
+            };
 
-        const roleClass = roleColors[role] || roleColors.viewer;
-        const roleIcon = roleIcons[role] || roleIcons.viewer;
+            const roleIcons = {
+                'admin': 'fa-crown',
+                'technician': 'fa-tools',
+                'user': 'fa-user',
+                'viewer': 'fa-eye'
+            };
 
-        safeSetInnerHTML('modalUserRole',
-            `<i class="fas ${roleIcon}"></i><span>${role}</span>`
-        );
+            const roleClass = roleColors[role] || roleColors.viewer;
+            const roleIcon = roleIcons[role] || roleIcons.viewer;
 
-        const roleBadge = document.getElementById('modalUserRole');
-        if (roleBadge) {
-            roleBadge.className = `inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium mb-2 ${roleClass}`;
-        }
+            safeSetInnerHTML('modalUserRole',
+                `<i class="fas ${roleIcon}"></i><span>${role}</span>`
+            );
 
-        // Set profile image
-        const profileImage = document.getElementById('modalProfileImage');
-        const profileIcon = document.getElementById('modalProfileIcon');
+            const roleBadge = document.getElementById('modalUserRole');
+            if (roleBadge) {
+                roleBadge.className = `inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium mb-2 ${roleClass}`;
+            }
 
-        if (profileImage && profileIcon) {
-            if (profile_picture) {
-                profileImage.src = `/static/uploads/profiles/${profile_picture}?v=${new Date().getTime()}`;
-                profileImage.classList.remove('hidden');
-                profileIcon.classList.add('hidden');
-                console.log('Setting profile image to:', profile_picture);
+            // Set profile image
+            const profileImage = document.getElementById('modalProfileImage');
+            const profileIcon = document.getElementById('modalProfileIcon');
 
-                // Add error handling for broken images
-                profileImage.onerror = function () {
-                    console.log('Profile image failed to load, falling back to icon');
+            if (profileImage && profileIcon) {
+                if (profile_picture) {
+                    profileImage.src = `/static/uploads/profiles/${profile_picture}?v=${new Date().getTime()}`;
+                    profileImage.classList.remove('hidden');
+                    profileIcon.classList.add('hidden');
+                    console.log('Setting profile image to:', profile_picture);
+
+                    // Add error handling for broken images
+                    profileImage.onerror = function () {
+                        console.log('Profile image failed to load, falling back to icon');
+                        profileImage.classList.add('hidden');
+                        profileIcon.classList.remove('hidden');
+                        setProfileIconStyle(profileIcon, role);
+                    };
+                } else {
+                    console.log('No profile picture, using icon');
                     profileImage.classList.add('hidden');
                     profileIcon.classList.remove('hidden');
                     setProfileIconStyle(profileIcon, role);
-                };
-            } else {
-                console.log('No profile picture, using icon');
-                profileImage.classList.add('hidden');
-                profileIcon.classList.remove('hidden');
-                setProfileIconStyle(profileIcon, role);
+                }
             }
-        }
 
-        // Set personal information
-        safeSetElement('modalFullName',
-            (first_name || last_name) ? `${first_name || ''} ${last_name || ''}`.trim() : '—'
-        );
+            // Set personal information
+            safeSetElement('modalFullName',
+                (first_name || last_name) ? `${first_name || ''} ${last_name || ''}`.trim() : '—'
+            );
 
-        safeSetElement('modalMemberSince',
-            created_at ? new Date(created_at).toLocaleDateString() : '—'
-        );
+            safeSetElement('modalMemberSince',
+                created_at ? new Date(created_at).toLocaleDateString() : '—'
+            );
 
-        // Set statistics
-        safeSetElement('modalOwnedRooms', owned_rooms_count, '0');
-        safeSetElement('modalActiveRequests', active_requests_count, '0');
+            // Set statistics
+            safeSetElement('modalOwnedRooms', owned_rooms_count, '0');
+            safeSetElement('modalActiveRequests', active_requests_count, '0');
 
-        // Set bio
-        const bioElement = document.getElementById('modalUserBio');
-        if (bioElement) {
-            if (bio && bio.trim() !== '') {
-                bioElement.textContent = bio;
-                bioElement.className = 'text-text-primary text-sm';
-                console.log('Set bio to:', bio);
-            } else {
-                bioElement.innerHTML = '<span class="text-text-muted italic">No bio provided</span>';
-                console.log('No bio provided');
+            // Set bio
+            const bioElement = document.getElementById('modalUserBio');
+            if (bioElement) {
+                if (bio && bio.trim() !== '') {
+                    bioElement.textContent = bio;
+                    bioElement.className = 'text-text-primary text-sm';
+                    console.log('Set bio to:', bio);
+                } else {
+                    bioElement.innerHTML = '<span class="text-text-muted italic">No bio provided</span>';
+                    console.log('No bio provided');
+                }
             }
-        }
 
-        // Set recent activity
-        const activityElement = document.getElementById('modalRecentActivity');
-        if (activityElement) {
-            if (recent_activity && recent_activity.length > 0) {
-                activityElement.innerHTML = recent_activity.map(activity => `
+            // Set recent activity
+            const activityElement = document.getElementById('modalRecentActivity');
+            if (activityElement) {
+                if (recent_activity && recent_activity.length > 0) {
+                    activityElement.innerHTML = recent_activity.map(activity => `
         <div class="flex items-center justify-between py-1">
           <span class="text-text-primary">${activity.action}</span>
           <span class="text-text-muted text-xs">${activity.time}</span>
         </div>
       `).join('');
-                console.log('Set recent activity with', recent_activity.length, 'items');
-            } else {
-                activityElement.innerHTML = '<div class="text-text-muted italic">No recent activity</div>';
-                console.log('No recent activity');
-            }
-        }
-    }
-
-    function setProfileIconStyle(iconElement, role) {
-        const roleStyles = {
-            admin: 'bg-purple-100 text-purple-600',
-            technician: 'bg-blue-100 text-blue-600',
-            user: 'bg-green-100 text-green-600',
-            viewer: 'bg-gray-100 text-gray-600'
-        };
-
-        const roleIcons = {
-            admin: 'fa-crown',
-            technician: 'fa-tools',
-            user: 'fa-user',
-            viewer: 'fa-eye'
-        };
-
-        const style = roleStyles[role] || roleStyles.viewer;
-        const icon = roleIcons[role] || roleIcons.viewer;
-
-        iconElement.className = `w-24 h-24 rounded-full flex items-center justify-center border-4 border-border mx-auto text-2xl ${style}`;
-        iconElement.innerHTML = `<i class="fas ${icon}"></i>`;
-    }
-
-    function editUserProfile() {
-        const userId = document.getElementById('userProfileModal')?.dataset.userId;
-        if (userId) {
-            // Redirect to user edit page or open edit modal
-            alert(`Edit user ${userId} - This would open an edit form in a real implementation`);
-        }
-    }
-
-    // Modal event listeners
-    function initUserProfileModal() {
-        const modal = document.getElementById('userProfileModal');
-        const closeBtn = document.getElementById('closeUserProfileModal');
-        const closeUserProfileBtn = document.getElementById('closeUserProfileBtn');
-
-        if (!modal) {
-            console.error('User profile modal not found');
-            return;
-        }
-
-        function closeModal() {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        if (closeBtn) closeBtn.addEventListener('click', closeModal);
-        if (closeUserProfileBtn) closeUserProfileBtn.addEventListener('click', closeModal);
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                closeModal();
-            }
-        });
-    }
-
-    // Utility Functions
-    function showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-            type === 'success' ? 'bg-green-600' :
-                type === 'error' ? 'bg-red-600' : 'bg-blue-600'
-        } text-white`;
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        setTimeout(() => {
-            toast.remove();
-        }, 3000);
-    }
-
-    // Simple Theme Functions (No dependency on ThemeManager)
-    function setTheme(theme) {
-        console.log('Setting theme to:', theme);
-
-        // Apply theme directly
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-
-        // Update UI
-        updateThemeButtons(theme);
-        updateSidebarIcons(theme);
-
-        // Show success message
-        showToast(`Theme changed to ${theme} mode`, 'success');
-
-        // If ThemeManager exists, sync with it
-        if (window.ThemeManager && typeof window.ThemeManager.applyTheme === 'function') {
-            window.ThemeManager.applyTheme(theme);
-        }
-    }
-
-    function updateThemeButtons(theme) {
-        console.log('Updating theme buttons for:', theme);
-
-        // Remove active styles from all buttons
-        document.querySelectorAll('.theme-option').forEach(option => {
-            option.classList.remove('bg-accent-blue', 'bg-opacity-20', 'border-accent-blue');
-        });
-
-        // Hide all checkmarks
-        document.querySelectorAll('.theme-option .fa-check').forEach(check => {
-            check.classList.add('hidden');
-        });
-
-        // Add active styles to selected theme
-        const selectedButton = document.getElementById(`${theme}-theme-btn`);
-        const selectedCheck = document.getElementById(`${theme}-check`);
-
-        if (selectedButton && selectedCheck) {
-            selectedButton.classList.add('bg-accent-blue', 'bg-opacity-20', 'border-accent-blue');
-            selectedCheck.classList.remove('hidden');
-            console.log('Updated button for theme:', theme);
-        }
-    }
-
-    function updateSidebarIcons(theme) {
-        const sidebarSunIcon = document.getElementById('sidebar-sun-icon');
-        const sidebarMoonIcon = document.getElementById('sidebar-moon-icon');
-
-        if (sidebarSunIcon && sidebarMoonIcon) {
-            const isDark = theme === 'dark';
-            sidebarSunIcon.classList.toggle('hidden', !isDark);
-            sidebarMoonIcon.classList.toggle('hidden', isDark);
-        }
-    }
-
-    function getCurrentTheme() {
-        // Get theme from localStorage, or default to system
-        const storedTheme = localStorage.getItem('theme');
-        if (storedTheme) {
-            return storedTheme;
-        }
-
-        // Check system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            return 'dark';
-        }
-
-        return 'light';
-    }
-
-    // Tab Functions
-    function switchTab(tabName) {
-        console.log('Switching to tab:', tabName);
-
-        // Hide all tab contents
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.classList.remove('active');
-            tab.classList.add('hidden');
-        });
-
-        // Remove active class from all tab buttons
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.classList.remove('active', 'border-accent-blue', 'text-accent-blue');
-            button.classList.add('border-transparent', 'text-text-muted');
-        });
-
-        // Show selected tab content
-        const selectedTab = document.getElementById(`${tabName}-content`);
-        if (selectedTab) {
-            selectedTab.classList.add('active');
-            selectedTab.classList.remove('hidden');
-            console.log('Showing tab content:', tabName);
-        }
-
-        // Activate selected tab button
-        const selectedButton = document.getElementById(`${tabName}-tab`);
-        if (selectedButton) {
-            selectedButton.classList.add('active', 'border-accent-blue', 'text-accent-blue');
-            selectedButton.classList.remove('border-transparent', 'text-text-muted');
-        }
-    }
-
-    // Profile Picture Functions
-    document.getElementById('profile-upload')?.addEventListener('change', function (e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                document.getElementById('profile-preview').src = e.target.result;
-                uploadProfilePicture(file);
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    function uploadProfilePicture(file) {
-        const formData = new FormData();
-        formData.append('profile_picture', file);
-
-        fetch('/api/upload-profile-picture', {
-            method: 'POST',
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Profile picture updated successfully!', 'success');
-                    if (data.url) {
-                        document.getElementById('profile-preview').src = data.url + '?v=' + new Date().getTime();
-                    }
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                    console.log('Set recent activity with', recent_activity.length, 'items');
                 } else {
-                    showToast('Failed to upload profile picture: ' + data.error, 'error');
+                    activityElement.innerHTML = '<div class="text-text-muted italic">No recent activity</div>';
+                    console.log('No recent activity');
+                }
+            }
+        }
+
+        function setProfileIconStyle(iconElement, role) {
+            const roleStyles = {
+                admin: 'bg-purple-100 text-purple-600',
+                technician: 'bg-blue-100 text-blue-600',
+                user: 'bg-green-100 text-green-600',
+                viewer: 'bg-gray-100 text-gray-600'
+            };
+
+            const roleIcons = {
+                admin: 'fa-crown',
+                technician: 'fa-tools',
+                user: 'fa-user',
+                viewer: 'fa-eye'
+            };
+
+            const style = roleStyles[role] || roleStyles.viewer;
+            const icon = roleIcons[role] || roleIcons.viewer;
+
+            iconElement.className = `w-24 h-24 rounded-full flex items-center justify-center border-4 border-border mx-auto text-2xl ${style}`;
+            iconElement.innerHTML = `<i class="fas ${icon}"></i>`;
+        }
+
+        function editUserProfile() {
+            const userId = document.getElementById('userProfileModal')?.dataset.userId;
+            if (userId) {
+                // Redirect to user edit page or open edit modal
+                alert(`Edit user ${userId} - This would open an edit form in a real implementation`);
+            }
+        }
+
+        // Modal event listeners
+        function initUserProfileModal() {
+            const modal = document.getElementById('userProfileModal');
+            const closeBtn = document.getElementById('closeUserProfileModal');
+            const closeUserProfileBtn = document.getElementById('closeUserProfileBtn');
+
+            if (!modal) {
+                console.error('User profile modal not found');
+                return;
+            }
+
+            function closeModal() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            if (closeBtn) closeBtn.addEventListener('click', closeModal);
+            if (closeUserProfileBtn) closeUserProfileBtn.addEventListener('click', closeModal);
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    closeModal();
+                }
+            });
+        }
+
+        // Utility Functions
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-600' :
+                    type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+            } text-white`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Simple Theme Functions (No dependency on ThemeManager)
+        function setTheme(theme) {
+            console.log('Setting theme to:', theme);
+
+            // Apply theme directly
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+
+            // Update UI
+            updateThemeButtons(theme);
+            updateSidebarIcons(theme);
+
+            // Show success message
+            showToast(`Theme changed to ${theme} mode`, 'success');
+
+            // If ThemeManager exists, sync with it
+            if (window.ThemeManager && typeof window.ThemeManager.applyTheme === 'function') {
+                window.ThemeManager.applyTheme(theme);
+            }
+        }
+
+        function updateThemeButtons(theme) {
+            console.log('Updating theme buttons for:', theme);
+
+            // Remove active styles from all buttons
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.classList.remove('bg-accent-blue', 'bg-opacity-20', 'border-accent-blue');
+            });
+
+            // Hide all checkmarks
+            document.querySelectorAll('.theme-option .fa-check').forEach(check => {
+                check.classList.add('hidden');
+            });
+
+            // Add active styles to selected theme
+            const selectedButton = document.getElementById(`${theme}-theme-btn`);
+            const selectedCheck = document.getElementById(`${theme}-check`);
+
+            if (selectedButton && selectedCheck) {
+                selectedButton.classList.add('bg-accent-blue', 'bg-opacity-20', 'border-accent-blue');
+                selectedCheck.classList.remove('hidden');
+                console.log('Updated button for theme:', theme);
+            }
+        }
+
+        function updateSidebarIcons(theme) {
+            const sidebarSunIcon = document.getElementById('sidebar-sun-icon');
+            const sidebarMoonIcon = document.getElementById('sidebar-moon-icon');
+
+            if (sidebarSunIcon && sidebarMoonIcon) {
+                const isDark = theme === 'dark';
+                sidebarSunIcon.classList.toggle('hidden', !isDark);
+                sidebarMoonIcon.classList.toggle('hidden', isDark);
+            }
+        }
+
+        function getCurrentTheme() {
+            // Get theme from localStorage, or default to system
+            const storedTheme = localStorage.getItem('theme');
+            if (storedTheme) {
+                return storedTheme;
+            }
+
+            // Check system preference
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
+
+            return 'light';
+        }
+
+        // Tab Functions
+        function switchTab(tabName) {
+            console.log('Switching to tab:', tabName);
+
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+                tab.classList.add('hidden');
+            });
+
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active', 'border-accent-blue', 'text-accent-blue');
+                button.classList.add('border-transparent', 'text-text-muted');
+            });
+
+            // Show selected tab content
+            const selectedTab = document.getElementById(`${tabName}-content`);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+                selectedTab.classList.remove('hidden');
+                console.log('Showing tab content:', tabName);
+            }
+
+            // Activate selected tab button
+            const selectedButton = document.getElementById(`${tabName}-tab`);
+            if (selectedButton) {
+                selectedButton.classList.add('active', 'border-accent-blue', 'text-accent-blue');
+                selectedButton.classList.remove('border-transparent', 'text-text-muted');
+            }
+        }
+
+        // Profile Picture Functions
+        document.getElementById('profile-upload')?.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('profile-preview').src = e.target.result;
+                    uploadProfilePicture(file);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function uploadProfilePicture(file) {
+            const formData = new FormData();
+            formData.append('profile_picture', file);
+
+            fetch('/api/upload-profile-picture', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Profile picture updated successfully!', 'success');
+                        if (data.url) {
+                            document.getElementById('profile-preview').src = data.url + '?v=' + new Date().getTime();
+                        }
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showToast('Failed to upload profile picture: ' + data.error, 'error');
+                        document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error uploading profile picture:', error);
+                    showToast('Error uploading profile picture.', 'error');
                     document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
+                });
+        }
+
+        function removeProfilePicture() {
+            fetch('/api/remove-profile-picture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
                 }
             })
-            .catch(error => {
-                console.error('Error uploading profile picture:', error);
-                showToast('Error uploading profile picture.', 'error');
-                document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
-            });
-    }
-
-    function removeProfilePicture() {
-        fetch('/api/remove-profile-picture', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Profile picture removed successfully!', 'success');
-                    document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    showToast('Failed to remove profile picture.', 'error');
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Profile picture removed successfully!', 'success');
+                        document.getElementById('profile-preview').src = '{{ url_for("static", filename="images/default-avatar.png") }}';
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showToast('Failed to remove profile picture.', 'error');
                     }
-            })
-            .catch(error => {
-                console.error('Error removing profile picture:', error);
-                showToast('Error removing profile picture.', 'error');
-            });
-    }
-
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        console.log('Settings page loaded');
-
-        // Initialize theme buttons
-        const currentTheme = getCurrentTheme();
-        console.log('Current theme:', currentTheme);
-        updateThemeButtons(currentTheme);
-
-        // Initialize user profile modal
-        initUserProfileModal();
-
-        // Initialize confirmation modal
-        initConfirmModal();
-
-        // Initialize role change modal
-        initRoleChangeModal();
-        initRoleChangeHandlers();
-
-        // Set initial tab based on user role
-        const userRole = '{{ session.get("role", "user") }}';
-        console.log('User role:', userRole);
-
-        if (userRole === 'user') {
-            switchTab('profile');
+                })
+                .catch(error => {
+                    console.error('Error removing profile picture:', error);
+                    showToast('Error removing profile picture.', 'error');
+                });
         }
-    });
 
-    // Listen for theme changes from sidebar
-    window.addEventListener('themeChange', function (event) {
-        console.log('Theme change detected:', event.detail.theme);
-        updateThemeButtons(event.detail.theme);
-    });
-</script>{% endblock %}
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Settings page loaded');
+
+            // Initialize theme buttons
+            const currentTheme = getCurrentTheme();
+            console.log('Current theme:', currentTheme);
+            updateThemeButtons(currentTheme);
+
+            // Initialize user profile modal
+            initUserProfileModal();
+
+            // Initialize confirmation modal
+            initConfirmModal();
+
+            // Initialize role change modal
+            initRoleChangeModal();
+            initRoleChangeHandlers();
+
+            // Set initial tab based on user role
+            const userRole = '{{ session.get("role", "user") }}';
+            console.log('User role:', userRole);
+
+            if (userRole === 'user') {
+                switchTab('profile');
+            }
+        });
+
+        // Listen for theme changes from sidebar
+        window.addEventListener('themeChange', function (event) {
+            console.log('Theme change detected:', event.detail.theme);
+            updateThemeButtons(event.detail.theme);
+        });
+    </script>
+{% endblock %}
