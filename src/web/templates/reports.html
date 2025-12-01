@@ -1,49 +1,244 @@
 {% extends "layout.html" %}
 
 {% block body %}
-    <div class="app-container">
-        {% include 'components/menu.html' %}
+<div class="app-container">
+  {% include 'components/menu.html' %}
 
-        <main class="main-content">
-            <header class="page-header">
-                <div class="header-content">
-                    <div>
-                        <h1 class="text-4xl font-extrabold text-text-primary mb-2">Performance Reports</h1>
-                        <p class="header-subtitle">Generate and view historical data and energy usage charts.</p>
-                    </div>
-                    <!-- Right side: Notification bell -->
-                    {% include 'components/notification_bell.html' %}
-                </div>
-            </header>
+  <main class="main-content">
+    <!-- Hero / Header -->
+    <section class="card mb-6 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <div class="inline-flex items-center gap-2 text-xs font-medium text-blue-700 bg-blue-50 px-3 py-1 rounded-full mb-2">
+          <span>📊 Environment Analytics</span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-text-primary mb-1">
+          Performance Reports
+        </h1>
+        <p class="text-sm text-text-secondary max-w-xl">
+          Explore historical sensor readings across all rooms to spot comfort issues,
+          trends in occupancy and unusual environmental changes.
+        </p>
+      </div>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="mb-6">
-                        {% for category, message in messages %}
-                            <div class="flash {{ category }} rounded-lg text-sm" role="alert">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
+      <div class="flex flex-wrap gap-2 md:gap-3">
+        <a href="{{ url_for('export_reports_csv', **request.args) }}"
+           class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary text-xs md:text-sm px-4 py-2">
+          Export CSV
+        </a>
+        <a href="{{ url_for('download_reports_summary', **request.args) }}"
+           class="btn bg-accent-blue hover:bg-accent-blue-hover text-white text-xs md:text-sm px-4 py-2">
+          Download Summary
+        </a>
+      </div>
+    </section>
 
-            <section>
-                <h3 class="text-xl font-semibold mb-4 text-gray-300">Report Generation</h3>
-                <div class="card">
-                    <div class="card-placeholder">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-blue-400" fill="none"
-                             viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        <h3 class="mt-2 text-xl font-medium text-gray-200">Feature In Progress</h3>
-                        <p class="mt-1 text-muted">Analytics and energy reports are currently being developed.</p>
-                        <p class="mt-4 text-sm text-gray-500">Your connected rooms ({{ rooms|length }} total) will
-                            appear here soon.</p>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
+    <!-- Summary cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="card p-4 flex flex-col gap-1.5">
+        <p class="text-[0.7rem] font-medium tracking-[0.14em] text-text-muted uppercase">
+          Total readings
+        </p>
+        <p class="text-2xl font-semibold text-text-primary">
+          {{ readings|length if readings is defined else 0 }}
+        </p>
+        <p class="text-[0.75rem] text-text-secondary">
+          Latest {{ readings|length if readings is defined else 0 }} records shown.
+        </p>
+      </div>
+
+      <div class="card p-4 flex flex-col gap-1.5">
+        <p class="text-[0.7rem] font-medium tracking-[0.14em] text-text-muted uppercase">
+          Rooms covered
+        </p>
+        <p class="text-2xl font-semibold text-text-primary">
+          {{ rooms|length if rooms is defined else '—' }}
+        </p>
+        <p class="text-[0.75rem] text-text-secondary">
+          Unique rooms with associated devices.
+        </p>
+      </div>
+
+      <div class="card p-4 flex flex-col gap-1.5">
+        <p class="text-[0.7rem] font-medium tracking-[0.14em] text-text-muted uppercase">
+          Motion events
+        </p>
+        <p class="text-2xl font-semibold text-text-primary">
+          {{
+            readings
+            |selectattr('motion_detected', 'equalto', 1)
+            |list
+            |length
+            if readings is defined else 0
+          }}
+        </p>
+        <p class="text-[0.75rem] text-text-secondary">
+          Records where motion was detected.
+        </p>
+      </div>
+
+      <div class="card p-4 flex flex-col gap-1.5">
+        <p class="text-[0.7rem] font-medium tracking-[0.14em] text-text-muted uppercase">
+          Latest timestamp
+        </p>
+        <p class="text-sm font-semibold text-text-primary">
+          {% if readings and readings[0].recorded_at %}
+            {{ readings[0].recorded_at }}
+          {% else %}
+            —
+          {% endif %}
+        </p>
+        <p class="text-[0.75rem] text-text-secondary">
+          Most recent reading in this view.
+        </p>
+      </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="card mb-6 p-4">
+      <form class="flex flex-col md:flex-row md:items-end md:justify-between gap-4" method="get">
+        <div class="flex flex-wrap gap-4">
+          <div>
+            <label class="form-label text-xs text-text-muted mb-1">
+              Room
+            </label>
+            <select
+              name="room_id"
+              class="form-input bg-secondary"
+            >
+              <option value="">All rooms</option>
+              {% for room in rooms or [] %}
+                <option value="{{ room.id }}"
+                        {% if request.args.get('room_id', type=int) == room.id %}selected{% endif %}>
+                  {{ room.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label text-xs text-text-muted mb-1">
+              From
+            </label>
+            <input
+              type="date"
+              name="from"
+              value="{{ request.args.get('from', '') }}"
+              class="form-input bg-secondary"
+            >
+          </div>
+
+          <div>
+            <label class="form-label text-xs text-text-muted mb-1">
+              To
+            </label>
+            <input
+              type="date"
+              name="to"
+              value="{{ request.args.get('to', '') }}"
+              class="form-input bg-secondary"
+            >
+          </div>
+        </div>
+
+        <div class="flex gap-2 md:gap-3">
+          <button type="submit" class="btn bg-accent-blue hover:bg-accent-blue-hover text-white text-xs md:text-sm px-4 py-2">
+            Apply filters
+          </button>
+          <a href="{{ url_for('reports') }}" class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary text-xs md:text-sm px-4 py-2">
+            Reset
+          </a>
+        </div>
+      </form>
+    </section>
+
+    <!-- Readings table -->
+    <section class="card p-0 overflow-hidden">
+      <div class="px-5 py-3 border-b border-border flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-text-primary">
+          Sensor readings
+        </h2>
+        <span class="text-[0.75rem] text-text-muted">
+          {{ readings|length if readings is defined else 0 }} entries
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="table w-full text-sm text-left">
+          <thead class="bg-tertiary text-xs uppercase tracking-wide text-text-muted">
+            <tr>
+              <th class="px-5 py-3">Device</th>
+              <th class="px-5 py-3">Room</th>
+              <th class="px-5 py-3">Temperature (°C)</th>
+              <th class="px-5 py-3">Humidity (%)</th>
+              <th class="px-5 py-3">Motion</th>
+              <th class="px-5 py-3">Pressure (hPa)</th>
+              <th class="px-5 py-3">Light</th>
+              <th class="px-5 py-3">Recorded at</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if readings %}
+              {% for r in readings %}
+              <tr class="border-b border-border hover:bg-tertiary/40">
+                <td class="px-5 py-3 font-medium text-text-primary">
+                  {{ r.device_name }}
+                </td>
+                <td class="px-5 py-3">
+                  {{ r.room_name }}
+                </td>
+                <td class="px-5 py-3">
+                  {% if r.temperature is not none %}
+                    {{ r.temperature }}°
+                  {% else %}
+                    <span class="text-text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3">
+                  {% if r.humidity is not none %}
+                    {{ r.humidity }}%
+                  {% else %}
+                    <span class="text-text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3">
+                  {% if r.motion_detected == 1 %}
+                    <span class="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.7rem] font-medium text-emerald-700">
+                      Detected
+                    </span>
+                  {% else %}
+                    <span class="text-text-muted text-[0.8rem]">None</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3">
+                  {% if r.pressure is not none %}
+                    {{ r.pressure }}
+                  {% else %}
+                    <span class="text-text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3">
+                  {% if r.light_level is not none %}
+                    {{ r.light_level }}
+                  {% else %}
+                    <span class="text-text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3 text-text-muted">
+                  {{ r.recorded_at }}
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="8" class="px-5 py-10 text-center text-sm text-text-muted">
+                  No readings found for the selected filters.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
 {% endblock %}
