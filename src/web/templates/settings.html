@@ -291,7 +291,7 @@
                                 </div>
 
                                 <div class="bg-blue-900 bg-opacity-20 border border-blue-500 rounded-lg p-3">
-                                    <p class="text-blue-300 text-sm">
+                                    <p class="text-sm">
                                         <i class="fas fa-info-circle mr-2"></i>
                                         Password must be at least 8 characters with uppercase, number, and symbol.
                                     </p>
@@ -365,7 +365,6 @@
                             <h3 class="text-lg font-semibold text-text-primary mb-4">
                                 Existing Users
                             </h3>
-
                             <div class="overflow-x-auto">
                                 <table class="table w-full">
                                     <thead>
@@ -434,7 +433,6 @@
                         {{ u.role }}
                       </span>
                                                 </td>
-
                                                 {% if session.get('role') == 'admin' %}
                                                     <td class="py-3">
                                                         <form action="{{ url_for('update_user_role', user_id=u.id) }}"
@@ -613,6 +611,91 @@
         </div>
     </div>
 
+    <!-- Role Change Confirmation Modal -->
+    <div id="roleChangeModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4">
+        <div class="bg-secondary rounded-xl shadow-xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] overflow-hidden border border-border mx-2 sm:mx-0">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-4 sm:p-6 border-b border-border">
+                <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
+                    <i class="fas fa-user-cog text-accent-blue"></i>
+                    <span class="text-sm sm:text-base">Change User Role</span>
+                </h3>
+                <button id="closeRoleChangeModal"
+                        class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                    &times;
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-4 sm:p-6 overflow-y-auto">
+                <div class="space-y-4">
+                    <!-- User Info -->
+                    <div class="flex items-center gap-3 p-3 bg-tertiary rounded-lg">
+                        <div class="relative">
+                            <img id="roleChangeProfileImage"
+                                 src=""
+                                 alt="Profile Picture"
+                                 class="w-10 h-10 rounded-full object-cover border-2 border-border hidden">
+                            <div id="roleChangeProfileIcon"
+                                 class="w-10 h-10 rounded-full flex items-center justify-center border-2 border-border text-sm">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 id="roleChangeUsername" class="text-text-primary font-semibold text-sm"></h4>
+                            <p id="roleChangeCurrentRole" class="text-text-muted text-xs"></p>
+                        </div>
+                    </div>
+
+                    <!-- Role Change Information -->
+                    <div class="bg-blue-900 bg-opacity-20 border border-blue-500 rounded-lg p-3">
+                        <p class="text-sm">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Changing user roles affects their system permissions and access levels.
+                        </p>
+                    </div>
+
+                    <!-- Current and New Role Display -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <label class="block text-text-muted text-sm mb-2">Current Role</label>
+                            <div id="currentRoleBadge" class="px-3 py-2 rounded-lg text-sm font-medium"></div>
+                        </div>
+                        <div class="text-center">
+                            <label class="block text-text-muted text-sm mb-2">New Role</label>
+                            <div id="newRoleBadge" class="px-3 py-2 rounded-lg text-sm font-medium"></div>
+                        </div>
+                    </div>
+
+                    <!-- Role Description -->
+                    <div id="roleDescription" class="bg-tertiary rounded-lg p-3">
+                        <h5 class="text-text-primary font-semibold text-sm mb-2">Role Permissions</h5>
+                        <p id="roleDescriptionText" class="text-text-secondary text-xs"></p>
+                    </div>
+
+                    <!-- Confirmation Message -->
+                    <p class="text-text-primary text-sm" id="roleChangeMessage">
+                        Are you sure you want to change this user's role?
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-end p-4 sm:p-6 border-t border-border">
+                <button id="cancelRoleChange"
+                        class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary px-4 py-2 text-sm sm:text-base order-2 sm:order-1 w-full sm:w-auto">
+                    Cancel
+                </button>
+                <form id="roleChangeForm" method="post" class="order-1 sm:order-2 w-full sm:w-auto">
+                    <input type="hidden" name="role" id="roleChangeInput">
+                    <button type="submit"
+                            class="btn bg-accent-blue hover:bg-accent-blue-hover text-white px-4 py-2 text-sm sm:text-base w-full">
+                        <i class="fas fa-sync-alt mr-2"></i>Update Role
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Confirmation Modal -->
     <div id="confirmModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-2 sm:p-4">
         <div class="bg-secondary rounded-xl shadow-xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] overflow-hidden border border-border mx-2 sm:mx-0">
@@ -679,6 +762,49 @@
             border-color: var(--accent-blue);
         }
 
+        /* Role change Modal Styles */
+        #roleChangeModal {
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        #roleChangeModal > div {
+            animation: modalSlideIn 0.3s ease-out;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .role-badge {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .role-admin {
+            background-color: rgba(147, 51, 234, 0.2);
+            color: rgb(192, 132, 252);
+            border: 1px solid rgba(147, 51, 234, 0.3);
+        }
+
+        .role-technician {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: rgb(96, 165, 250);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .role-user {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: rgb(74, 222, 128);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .role-viewer {
+            background-color: rgba(107, 114, 128, 0.2);
+            color: rgb(156, 163, 175);
+            border: 1px solid rgba(107, 114, 128, 0.3);
+        }
+
         /* Confirmation Modal Styles */
         #confirmModal {
             backdrop-filter: blur(4px);
@@ -716,6 +842,47 @@
         window.confirmState = {
             pendingAction: null,
             isModalOpen: false
+        };
+
+        // Role Change Modal State
+        window.roleChangeState = {
+            userId: null,
+            username: null,
+            currentRole: null,
+            newRole: null,
+            profilePicture: null
+        };
+
+        // Role descriptions
+        const roleDescriptions = {
+            admin: 'Full system access including user management, system configuration, and all administrative privileges.',
+            technician: 'Can manage rooms, handle maintenance requests, and access technical settings. Cannot manage users.',
+            user: 'Standard user with access to personal rooms and basic system features. Can create and manage own rooms.',
+            viewer: 'Read-only access. Can view rooms and system information but cannot make changes or create content.'
+        };
+
+        // Role icons and colors
+        const roleConfig = {
+            admin: {
+                icon: 'fa-crown',
+                color: 'role-admin',
+                badgeClass: 'bg-purple-600 text-white'
+            },
+            technician: {
+                icon: 'fa-tools',
+                color: 'role-technician',
+                badgeClass: 'bg-blue-600 text-white'
+            },
+            user: {
+                icon: 'fa-user',
+                color: 'role-user',
+                badgeClass: 'bg-green-600 text-white'
+            },
+            viewer: {
+                icon: 'fa-eye',
+                color: 'role-viewer',
+                badgeClass: 'bg-gray-600 text-white'
+            }
         };
 
         // Show confirmation modal for deleting user
@@ -895,7 +1062,210 @@
             }
         }
 
-        // Rest of your existing JavaScript functions remain the same...
+        // Show role change modal
+        function showRoleChangeModal(userId, username, currentRole, newRole, profilePicture = null) {
+            window.roleChangeState = {
+                userId,
+                username,
+                currentRole,
+                newRole,
+                profilePicture
+            };
+
+            const modal = document.getElementById('roleChangeModal');
+
+            // Populate modal content
+            document.getElementById('roleChangeUsername').textContent = username;
+            document.getElementById('roleChangeCurrentRole').textContent = `Current: ${currentRole}`;
+
+            // Set profile picture or icon
+            const profileImage = document.getElementById('roleChangeProfileImage');
+            const profileIcon = document.getElementById('roleChangeProfileIcon');
+
+            if (profilePicture) {
+                profileImage.src = `/static/uploads/profiles/${profilePicture}?v=${new Date().getTime()}`;
+                profileImage.classList.remove('hidden');
+                profileIcon.classList.add('hidden');
+
+                profileImage.onerror = function () {
+                    profileImage.classList.add('hidden');
+                    profileIcon.classList.remove('hidden');
+                    setRoleChangeProfileIcon(profileIcon, currentRole);
+                };
+            } else {
+                profileImage.classList.add('hidden');
+                profileIcon.classList.remove('hidden');
+                setRoleChangeProfileIcon(profileIcon, currentRole);
+            }
+
+            // Set role badges
+            setRoleBadge('currentRoleBadge', currentRole);
+            setRoleBadge('newRoleBadge', newRole);
+
+            // Set role description
+            document.getElementById('roleDescriptionText').textContent = roleDescriptions[newRole] || 'No description available.';
+
+            // Set form action and hidden input
+            const form = document.getElementById('roleChangeForm');
+            form.action = `/update-user-role/${userId}`;
+            document.getElementById('roleChangeInput').value = newRole;
+
+            // Set confirmation message
+            const action = getRoleChangeAction(currentRole, newRole);
+            const message = `Are you sure you want to ${action} ${username} from ${currentRole} to ${newRole}?`;
+            document.getElementById('roleChangeMessage').textContent = message;
+
+            // Show modal
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Set role badge with appropriate styling
+        function setRoleBadge(elementId, role) {
+            const element = document.getElementById(elementId);
+            const config = roleConfig[role] || roleConfig.viewer;
+
+            element.innerHTML = `
+            <i class="fas ${config.icon} mr-1"></i>
+            ${role}
+        `;
+            element.className = `role-badge ${config.color}`;
+        }
+
+        // Set profile icon for role change modal
+        function setRoleChangeProfileIcon(iconElement, role) {
+            const config = roleConfig[role] || roleConfig.viewer;
+            const style = config.badgeClass.replace('bg-', 'bg-').replace('text-', 'text-');
+
+            iconElement.className = `w-10 h-10 rounded-full flex items-center justify-center border-2 border-border text-sm ${style}`;
+            iconElement.innerHTML = `<i class="fas ${config.icon}"></i>`;
+        }
+
+        // Determine the action type for role change
+        function getRoleChangeAction(currentRole, newRole) {
+            if (newRole === 'admin') return 'promote to admin';
+            if (currentRole === 'admin') return 'demote from admin';
+            if (['admin', 'technician', 'user', 'viewer'].indexOf(newRole) <
+                ['admin', 'technician', 'user', 'viewer'].indexOf(currentRole)) {
+                return 'promote';
+            }
+            return 'demote';
+        }
+
+        // Hide role change modal
+        function hideRoleChangeModal() {
+            const modal = document.getElementById('roleChangeModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            document.body.style.overflow = '';
+            window.roleChangeState = {
+                userId: null,
+                username: null,
+                currentRole: null,
+                newRole: null,
+                profilePicture: null
+            };
+        }
+
+        // Initialize role change modal
+        function initRoleChangeModal() {
+            const closeModal = document.getElementById('closeRoleChangeModal');
+            const cancelBtn = document.getElementById('cancelRoleChange');
+
+            if (closeModal) closeModal.addEventListener('click', hideRoleChangeModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', hideRoleChangeModal);
+
+            // ESC key support
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    const roleChangeModal = document.getElementById('roleChangeModal');
+                    if (roleChangeModal && !roleChangeModal.classList.contains('hidden')) {
+                        hideRoleChangeModal();
+                    }
+                }
+            });
+
+            // Click outside to close
+            const roleChangeModal = document.getElementById('roleChangeModal');
+            if (roleChangeModal) {
+                roleChangeModal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        hideRoleChangeModal();
+                    }
+                });
+            }
+
+            // Form submission handling
+            const form = document.getElementById('roleChangeForm');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    // Show loading state
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
+                    submitBtn.disabled = true;
+
+                    // Submit the form
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form)
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                showToast('User role updated successfully!', 'success');
+                                hideRoleChangeModal();
+                                // Reload the page to reflect changes
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                throw new Error('Failed to update user role');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating user role:', error);
+                            showToast('Failed to update user role', 'error');
+                            // Reset button state
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.disabled = false;
+                        });
+                });
+            }
+        }
+
+        // Updated role change confirmation function
+        function confirmRoleChange(username, currentRole, newRole, userId, profilePicture = null) {
+            if (currentRole === newRole) {
+                return; // No change needed
+            }
+
+            showRoleChangeModal(userId, username, currentRole, newRole, profilePicture);
+        }
+
+        // Update the existing role change handlers in the table
+        function initRoleChangeHandlers() {
+            document.querySelectorAll('select[name="role"]').forEach(select => {
+                select.addEventListener('change', function (e) {
+                    const row = this.closest('tr');
+                    const username = row.querySelector('.text-text-primary').textContent;
+                    const currentRole = row.querySelector('span').textContent.trim();
+                    const newRole = this.value;
+                    const userId = this.closest('form').id.replace('role-form-', '');
+
+                    // Get profile picture if available
+                    const profileImg = row.querySelector('img');
+                    const profilePicture = profileImg ? profileImg.src.split('/').pop().split('?')[0] : null;
+
+                    confirmRoleChange(username, currentRole, newRole, userId, profilePicture);
+                });
+            });
+        }
+
         // Debug function to check if modal elements exist
         function debugModalElements() {
             const elements = [
@@ -1308,27 +1678,6 @@
             }
         }
 
-        // Role Change Confirmation
-        function confirmRoleChange(username, currentRole, newRole, userId) {
-            if (currentRole === newRole) {
-                return; // No change needed
-            }
-
-            const action = newRole === 'admin' ? 'promote' :
-                currentRole === 'admin' ? 'demote' :
-                    newRole > currentRole ? 'promote' : 'demote';
-
-            const message = `Are you sure you want to ${action} ${username} from ${currentRole} to ${newRole}?`;
-
-            if (confirm(message)) {
-                document.getElementById(`role-form-${userId}`).submit();
-            } else {
-                // Reset the select to original value
-                const select = document.querySelector(`#role-form-${userId} select`);
-                select.value = currentRole;
-            }
-        }
-
         // Profile Picture Functions
         document.getElementById('profile-upload')?.addEventListener('change', function (e) {
             const file = e.target.files[0];
@@ -1411,6 +1760,10 @@
 
             // Initialize confirmation modal
             initConfirmModal();
+
+            // Initialize role change modal
+            initRoleChangeModal();
+            initRoleChangeHandlers();
 
             // Set initial tab based on user role
             const userRole = '{{ session.get("role", "user") }}';

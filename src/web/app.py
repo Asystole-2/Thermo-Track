@@ -1477,6 +1477,63 @@ def api_readings():
         log.exception("/api/readings error: %s", e)
         return jsonify({"error": "Failed to load readings"}), 500
 
+@app.route("/api/readings/<int:reading_id>", methods=["DELETE"])
+@login_required
+@role_required("admin", "technician")
+def delete_reading(reading_id):
+    """Delete a single sensor reading"""
+    cursor = db_cursor()
+    try:
+        # First check if the reading exists
+        cursor.execute("SELECT id FROM readings WHERE id = %s", (reading_id,))
+        if not cursor.fetchone():
+            return jsonify({"success": False, "error": "Reading not found"}), 404
+
+        # Delete the reading
+        cursor.execute("DELETE FROM readings WHERE id = %s", (reading_id,))
+        mysql.connection.commit()
+
+        return jsonify({"success": True, "message": "Reading deleted successfully"})
+
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error deleting reading {reading_id}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        cursor.close()
+
+
+@app.route("/api/readings", methods=["DELETE"])
+@login_required
+@role_required("admin", "technician")
+def delete_all_readings():
+    """Delete all sensor readings with double confirmation"""
+    cursor = db_cursor()
+    try:
+        # Get count of readings to be deleted
+        cursor.execute("SELECT COUNT(*) as count FROM readings")
+        count_result = cursor.fetchone()
+        total_readings = count_result["count"] if count_result else 0
+
+        if total_readings == 0:
+            return jsonify({"success": False, "error": "No readings to delete"}), 404
+
+        # Delete all readings
+        cursor.execute("DELETE FROM readings")
+        mysql.connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"All {total_readings} readings deleted successfully",
+            "deleted_count": total_readings
+        })
+
+    except Exception as e:
+        mysql.connection.rollback()
+        log.error(f"Error deleting all readings: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        cursor.close()
 
 # =============================================================================
 # ROOM CONDITION REQUEST ROUTES
