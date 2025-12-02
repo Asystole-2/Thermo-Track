@@ -1,5 +1,7 @@
 import os
 import re
+import csv
+import io
 import atexit
 import logging
 import secrets
@@ -18,11 +20,16 @@ from flask import (
     flash,
     url_for,
     jsonify,
+    Response,
+    send_file
 )
 from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from MySQLdb._exceptions import IntegrityError, Error
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
 
 # from utils.weather_gemini import WeatherAIAnalyzer
 
@@ -909,6 +916,9 @@ def logout():
     return redirect(url_for("index"))
 
 
+from flask import session  # make sure this is imported at the top
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -1264,19 +1274,251 @@ def room_apply_ai(room_id):
     return redirect(url_for("room", room_id=room_id))
 
 
+# =============================================================================
+# REPORT ROUTES
+# =============================================================================
+
+def fetch_report_readings(user_id=None, user_role=None,
+                          room_id=None, start_date=None, end_date=None):
+    """
+    Returns individual readings joined with devices + rooms.
+    - Admin/technician: all rooms.
+    - Others: only rooms the user is linked to via user_rooms.
+    Optional filters: room_id, date range.
+    """
+    c = db_cursor()
+
+    sql = """
+        SELECT
+            r.id,
+            r.temperature,
+            r.humidity,
+            r.motion_detected,
+            r.pressure,
+            r.light_level,
+            r.recorded_at,
+            d.name AS device_name,
+            rm.name AS room_name,
+            rm.id   AS room_id
+        FROM readings r
+        JOIN devices d ON d.id = r.device_id
+        JOIN rooms   rm ON rm.id = d.room_id
+    """
+
+    params = []
+
+    # Restrict by role
+    if user_role not in ["admin", "technician"]:
+        sql += """
+            JOIN user_rooms ur ON ur.room_id = rm.id
+            WHERE ur.user_id = %s
+        """
+        params.append(user_id)
+    else:
+        sql += " WHERE 1=1"
+
+    if room_id:
+        sql += " AND rm.id = %s"
+        params.append(room_id)
+
+    if start_date:
+        sql += " AND r.recorded_at >= %s"
+        params.append(start_date)
+
+    if end_date:
+        sql += " AND r.recorded_at <= %s"
+        params.append(end_date)
+
+    sql += " ORDER BY r.recorded_at DESC LIMIT 500"
+
+    c.execute(sql, tuple(params))
+    rows = c.fetchall()
+    c.close()
+    return rows
+
 @app.route("/reports")
 @login_required
 def reports():
     user_id = session.get("user_id")
     user_role = session.get("role")
-    rooms = []
 
-    try:
-        rooms = get_rooms_summary(user_id=user_id, user_role=user_role)
-    except Exception as e:
-        log.exception("[reports] error: %s", e)
+    # filters from query string
+    room_id = request.args.get("room_id", type=int)
+    start_date = request.args.get("from") or None
+    end_date = request.args.get("to") or None
 
-    return render_template("reports.html", active_page="reports", rooms=rooms)
+    # role-aware room summary (you already have this helper)
+    rooms_summary = get_rooms_summary(user_id=user_id, user_role=user_role)
+
+    # small list for dropdown
+    rooms_for_dropdown = [
+        {"id": r["id"], "name": r["room_name"]}
+        for r in rooms_summary
+    ]
+
+    # readings for table
+    readings = fetch_report_readings(
+        user_id=user_id,
+        user_role=user_role,
+        room_id=room_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    return render_template(
+        "reports.html",
+        readings=readings,
+        rooms=rooms_for_dropdown,
+        rooms_summary=rooms_summary,  # in case you want extra cards later
+    )
+
+@app.route("/reports/export/csv")
+def export_reports_csv():
+    user_id = session.get("user_id")
+    user_role = session.get("role")
+
+    room_id = request.args.get("room_id", type=int)
+    start_date = request.args.get("from") or None
+    end_date = request.args.get("to") or None
+
+    readings = fetch_report_readings(
+        user_id=user_id,
+        user_role=user_role,
+        room_id=room_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow([
+        "Device",
+        "Room",
+        "Temperature",
+        "Humidity",
+        "MotionDetected",
+        "Pressure",
+        "LightLevel",
+        "RecordedAt",
+    ])
+
+    for r in readings:
+        writer.writerow([
+            r["device_name"],
+            r["room_name"],
+            r["temperature"],
+            r["humidity"],
+            r["motion_detected"],
+            r["pressure"],
+            r["light_level"],
+            r["recorded_at"],
+        ])
+
+    output.seek(0)
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=thermotrack_readings.csv"
+        },
+    )
+
+@app.route("/reports/summary")
+def download_reports_summary():
+    user_id = session.get("user_id")
+    user_role = session.get("role")
+
+    # reuse your existing helper – no new SQL
+    rooms = get_rooms_summary(user_id=user_id, user_role=user_role)
+
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    y = height - 25 * mm
+
+    # Title
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(20 * mm, y, "ThermoTrack – Rooms Summary Report")
+    y -= 8 * mm
+
+    c.setFont("Helvetica", 9)
+    username = session.get("username", "Unknown")
+    c.drawString(20 * mm, y, f"Generated for: {username}")
+    y -= 12 * mm
+
+    # Table header
+    def draw_header(cur_y):
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(20 * mm, cur_y, "Room")
+        c.drawString(60 * mm, cur_y, "Location")
+        c.drawString(100 * mm, cur_y, "Devices")
+        c.drawString(120 * mm, cur_y, "Avg Temp")
+        c.drawString(145 * mm, cur_y, "Avg Humidity")
+        c.drawString(175 * mm, cur_y, "Last Update")
+        cur_y -= 4 * mm
+        c.setLineWidth(0.5)
+        c.line(20 * mm, cur_y, width - 20 * mm, cur_y)
+        return cur_y - 4 * mm
+
+    y = draw_header(y)
+    c.setFont("Helvetica", 9)
+
+    for r in rooms:
+        if y < 25 * mm:
+            c.showPage()
+            width, height = A4
+            y = height - 25 * mm
+            y = draw_header(y)
+            c.setFont("Helvetica", 9)
+
+        room_name = r["room_name"] or "—"
+        location = r["location"] or "—"
+        devices_count = r["devices_count"] or 0
+
+        # temp
+        if r["avg_temp"] is not None:
+            temp_str = f"{float(r['avg_temp']):.1f}°C"
+        else:
+            temp_str = "—"
+
+        # humidity
+        if r["avg_humidity"] is not None:
+            hum_str = f"{float(r['avg_humidity']):.1f}%"
+        else:
+            hum_str = "—"
+
+        last_update = r["last_update"]
+        if last_update:
+            last_str = str(last_update).replace("T", " ")
+        else:
+            last_str = "—"
+
+        c.drawString(20 * mm, y, room_name[:22])
+        c.drawString(60 * mm, y, location[:22])
+        c.drawRightString(115 * mm, y, str(devices_count))
+        c.drawString(120 * mm, y, temp_str)
+        c.drawString(145 * mm, y, hum_str)
+        c.drawString(175 * mm, y, last_str[:18])
+
+        y -= 7 * mm
+
+    if not rooms:
+        c.drawString(20 * mm, y, "No rooms available for this user / role.")
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name="thermotrack_rooms_summary.pdf",
+    )
+
 
 
 @app.route("/policies")

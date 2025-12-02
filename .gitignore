@@ -6,8 +6,6 @@ __pycache__/
 # Flask session cache
 src/web/flask_session/
 
-
-
 # C extensions
 *.so
 
