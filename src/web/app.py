@@ -11,6 +11,7 @@ from datetime import datetime, date
 
 from src.core.pubnub_client import publish_data
 
+# from hardware.pubnub_client import publish_data
 from flask import (
     Flask,
     render_template,
@@ -21,7 +22,7 @@ from flask import (
     url_for,
     jsonify,
     Response,
-    send_file
+    send_file,
 )
 from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
@@ -32,7 +33,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 
 # from utils.weather_gemini import WeatherAIAnalyzer
-
+# from ThermoTrack.utils.weather_gemini import WeatherAIAnalyzer
 from src.web.utils.weather_gemini import WeatherAIAnalyzer
 
 # Google OAuth (Authlib)
@@ -1278,8 +1279,10 @@ def room_apply_ai(room_id):
 # REPORT ROUTES
 # =============================================================================
 
-def fetch_report_readings(user_id=None, user_role=None,
-                          room_id=None, start_date=None, end_date=None):
+
+def fetch_report_readings(
+    user_id=None, user_role=None, room_id=None, start_date=None, end_date=None
+):
     """
     Returns individual readings joined with devices + rooms.
     - Admin/technician: all rooms.
@@ -1336,6 +1339,7 @@ def fetch_report_readings(user_id=None, user_role=None,
     c.close()
     return rows
 
+
 @app.route("/reports")
 @login_required
 def reports():
@@ -1352,8 +1356,7 @@ def reports():
 
     # small list for dropdown
     rooms_for_dropdown = [
-        {"id": r["id"], "name": r["room_name"]}
-        for r in rooms_summary
+        {"id": r["id"], "name": r["room_name"]} for r in rooms_summary
     ]
 
     # readings for table
@@ -1371,6 +1374,7 @@ def reports():
         rooms=rooms_for_dropdown,
         rooms_summary=rooms_summary,  # in case you want extra cards later
     )
+
 
 @app.route("/reports/export/csv")
 def export_reports_csv():
@@ -1392,28 +1396,32 @@ def export_reports_csv():
     output = io.StringIO()
     writer = csv.writer(output)
 
-    writer.writerow([
-        "Device",
-        "Room",
-        "Temperature",
-        "Humidity",
-        "MotionDetected",
-        "Pressure",
-        "LightLevel",
-        "RecordedAt",
-    ])
+    writer.writerow(
+        [
+            "Device",
+            "Room",
+            "Temperature",
+            "Humidity",
+            "MotionDetected",
+            "Pressure",
+            "LightLevel",
+            "RecordedAt",
+        ]
+    )
 
     for r in readings:
-        writer.writerow([
-            r["device_name"],
-            r["room_name"],
-            r["temperature"],
-            r["humidity"],
-            r["motion_detected"],
-            r["pressure"],
-            r["light_level"],
-            r["recorded_at"],
-        ])
+        writer.writerow(
+            [
+                r["device_name"],
+                r["room_name"],
+                r["temperature"],
+                r["humidity"],
+                r["motion_detected"],
+                r["pressure"],
+                r["light_level"],
+                r["recorded_at"],
+            ]
+        )
 
     output.seek(0)
 
@@ -1424,6 +1432,7 @@ def export_reports_csv():
             "Content-Disposition": "attachment; filename=thermotrack_readings.csv"
         },
     )
+
 
 @app.route("/reports/summary")
 def download_reports_summary():
@@ -1518,7 +1527,6 @@ def download_reports_summary():
         as_attachment=True,
         download_name="thermotrack_rooms_summary.pdf",
     )
-
 
 
 @app.route("/policies")
@@ -1716,6 +1724,7 @@ def api_readings():
         log.exception("/api/readings error: %s", e)
         return jsonify({"error": "Failed to load readings"}), 500
 
+
 @app.route("/api/readings/<int:reading_id>", methods=["DELETE"])
 @login_required
 @role_required("admin", "technician")
@@ -1761,11 +1770,13 @@ def delete_all_readings():
         cursor.execute("DELETE FROM readings")
         mysql.connection.commit()
 
-        return jsonify({
-            "success": True,
-            "message": f"All {total_readings} readings deleted successfully",
-            "deleted_count": total_readings
-        })
+        return jsonify(
+            {
+                "success": True,
+                "message": f"All {total_readings} readings deleted successfully",
+                "deleted_count": total_readings,
+            }
+        )
 
     except Exception as e:
         mysql.connection.rollback()
@@ -1773,6 +1784,7 @@ def delete_all_readings():
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
         cursor.close()
+
 
 # =============================================================================
 # ROOM CONDITION REQUEST ROUTES
