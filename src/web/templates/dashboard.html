@@ -15,7 +15,7 @@
                                 Complete system-wide overview of all rooms and sensor data.
                             {% else %}
                                 Overview of your assigned rooms and devices.
-                                <span class="ml-2 inline-block px-2 py-0.5 rounded bg-accent-blue text-white text-xs align-middle">
+                                <span class="ml-2 inline-block px-2 py-0.5 rounded bg-blue-900/40 text-blue-200 text-xs align-middle">
                                    Your readings only
                                </span>
                             {% endif %}
@@ -23,9 +23,10 @@
                     </div>
                     <div class="flex items-center gap-3">
                         {% if session.get('role') in ['admin', 'technician'] %}
+                            <!-- Download Buttons -->
                             <div class="flex items-center gap-2">
                                 <button onclick="previewSensorLogs()"
-                                        class="btn p-2 bg-tertiary hover:bg-tertiary-hover text-text-secondary text-sm flex items-center gap-2">
+                                        class="btn p-2 hover:bg-gray-700 text-sm flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                               d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -33,7 +34,7 @@
                                     Sensor Logs
                                 </button>
                                 <button onclick="previewRoomsJSON()"
-                                        class="btn p-2 bg-tertiary hover:bg-tertiary-hover text-text-secondary text-sm flex items-center gap-2">
+                                        class="btn p-2 hover:bg-gray-700 text-sm flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                               d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -41,7 +42,7 @@
                                     Rooms JSON
                                 </button>
                                 <button onclick="previewReadingsJSON()"
-                                        class="btn p-2 bg-tertiary hover:bg-tertiary-hover text-text-secondary text-sm flex items-center gap-2">
+                                        class="btn p-2 hover:bg-gray-700 text-sm flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                               d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -50,32 +51,39 @@
                                 </button>
                             </div>
                         {% endif %}
+                        <!-- Right side: Notification bell -->
                         {% include 'components/notification_bell.html' %}
                     </div>
                 </div>
             </header>
 
-            <div id="dataPreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <!-- Data Preview Modal -->
+            <div id="dataPreviewModal"
+                 class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
                 <div class="bg-secondary rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
                     <div class="flex items-center justify-between p-6 border-b border-border">
                         <h3 id="modalTitle" class="text-xl font-bold text-text-primary">Data Preview</h3>
                         <div class="flex items-center gap-2">
-                            <button id="downloadBtn" class="btn bg-accent-blue hover:bg-accent-blue-hover text-white text-sm py-2 px-4 flex items-center gap-2">
+                            <button id="downloadBtn"
+                                    class="btn bg-accent-blue hover:bg-accent-blue-hover text-white text-sm py-2 px-4 flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
                                 Download
                             </button>
-                            <button onclick="closePreviewModal()" class="bg-tertiary hover:bg-tertiary-hover text-text-primary text-sm py-2 px-4 rounded-lg">
+                            <button onclick="closePreviewModal()"
+                                    class="bg-tertiary hover:bg-tertiary-hover text-text-primary text-sm py-2 px-4 rounded-lg">
                                 Close
                             </button>
                         </div>
                     </div>
                     <div class="flex-1 overflow-hidden">
                         <div id="modalContent" class="h-full overflow-auto p-6">
+                            <!-- Content will be populated dynamically -->
                             <div class="text-center text-text-muted py-8">
-                                <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor"
+                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
@@ -90,8 +98,96 @@
                 </div>
             </div>
 
+            <!-- Delete Reading Confirmation Modal -->
+            <div id="deleteReadingModal"
+                 class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                <div class="bg-secondary rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+                    <div class="flex items-center justify-between p-6 border-b border-border">
+                        <h3 class="text-xl font-bold text-text-primary">Delete Reading</h3>
+                        <button onclick="closeDeleteReadingModal()"
+                                class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                            &times;
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-hidden p-6">
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                                <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-2xl"></i>
+                            </div>
+                            <h4 class="text-lg font-semibold text-text-primary mb-2">Confirm Deletion</h4>
+                            <p class="text-text-secondary mb-6" id="deleteReadingMessage">
+                                Are you sure you want to delete this sensor reading? This action cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 justify-end p-6 border-t border-border">
+                        <button onclick="closeDeleteReadingModal()"
+                                class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary px-4 py-2">
+                            Cancel
+                        </button>
+                        <button id="confirmDeleteReading" class="btn bg-red-600 hover:bg-red-700 text-white px-4 py-2">
+                            <i class="fas fa-trash mr-2"></i>Delete Reading
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete All Readings Confirmation Modal -->
+            <div id="deleteAllReadingsModal"
+                 class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                <div class="bg-secondary rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+                    <div class="flex items-center justify-between p-6 border-b border-border">
+                        <h3 class="text-xl font-bold text-text-primary">Delete All Readings</h3>
+                        <button onclick="closeDeleteAllReadingsModal()"
+                                class="text-text-muted hover:text-text-primary text-xl transition-colors">
+                            &times;
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-hidden p-6">
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                                <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-2xl"></i>
+                            </div>
+                            <h4 class="text-lg font-semibold text-text-primary mb-2">Double Confirmation Required</h4>
+                            <p class="text-text-secondary mb-4">
+                                You are about to delete <strong>ALL</strong> sensor readings. This action will
+                                permanently remove all reading data and cannot be undone.
+                            </p>
+                            <div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                                <p class="text-yellow-400 text-sm">
+                                    <i class="fas fa-exclamation-circle mr-2"></i>
+                                    This is a destructive operation. Please type <strong>DELETE ALL</strong> below to
+                                    confirm.
+                                </p>
+                            </div>
+                            <input
+                                    type="text"
+                                    id="deleteAllConfirmation"
+                                    placeholder="Type DELETE ALL to confirm"
+                                    class="w-full p-3 border border-border rounded-lg bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    oninput="validateDeleteAllConfirmation()"
+                            >
+                            <p id="deleteAllError" class="text-red-400 text-sm mt-2 hidden">
+                                Please type "DELETE ALL" exactly as shown to confirm.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 justify-end p-6 border-t border-border">
+                        <button onclick="closeDeleteAllReadingsModal()"
+                                class="btn bg-tertiary hover:bg-tertiary-hover text-text-primary px-4 py-2">
+                            Cancel
+                        </button>
+                        <button id="confirmDeleteAllReadings"
+                                class="btn bg-red-600 hover:bg-red-700 text-white px-4 py-2" disabled>
+                            <i class="fas fa-trash mr-2"></i>Delete All Readings
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Search Bar -->
             {% include 'components/search_bar.html' %}
 
+            <!-- ===================== ROOMS ===================== -->
             {% if rooms and rooms|length > 0 %}
                 <section class="mt-4" id="roomsSection">
                     <div class="flex items-center justify-between mb-4">
@@ -103,15 +199,15 @@
                             {% endif %}
                         </h3>
                         <span class="text-xs text-text-muted room-count">
-                            {{ rooms|length }} room{% if rooms|length != 1 %}s{% endif %}
+                {{ rooms|length }} room{% if rooms|length != 1 %}s{% endif %}
                             {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
-                        </span>
+            </span>
                     </div>
 
                     <div class="grid-cards" id="roomsGrid">
                         {% for r in rooms %}
                             <a href="{{ url_for('room', room_id=r.id) }}"
-                               class="card hover:ring-2 hover:ring-accent-blue/50 transition duration-150 ease-in-out room-card"
+                               class="card hover:ring-2 hover:ring-accent-blue/50 transition duration-150 ease-in-out room-card bg-secondary"
                                data-room-name="{{ r.room_name.lower() }}"
                                data-location="{{ (r.location or '').lower() }}"
                                data-devices="{{ r.devices_count }}"
@@ -158,12 +254,12 @@
                                     {% endif %}
 
                                     <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ status_class }}">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                                        </svg>
-                                        {{ status_label }}
-                                    </span>
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                            {{ status_label }}
+                        </span>
                                 </div>
 
                                 <div class="mt-4 grid grid-cols-3 gap-4 border-t border-border pt-3">
@@ -214,25 +310,39 @@
                 </section>
             {% endif %}
 
+            <!-- ===================== RECENT READINGS ===================== -->
             {% if rows and rows|length > 0 %}
                 <section class="mt-8" id="readingsSection">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-text-secondary">
+                        <h3 class="text-xl font-semibold text-gray-300">
                             {% if session.role in ['admin', 'technician'] %}
                                 All Recent Sensor Readings
                             {% else %}
                                 Your Recent Readings
                             {% endif %}
                         </h3>
-                        <span class="text-xs text-text-muted readings-count">
-                            {{ rows|length }} reading{% if rows|length != 1 %}s{% endif %}
-                            {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
-                        </span>
+                        <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-400 readings-count">
+            {{ rows|length }} reading{% if rows|length != 1 %}s{% endif %}
+            {% if session.role in ['admin', 'technician'] %} system-wide{% endif %}
+        </span>
+                            {% if session.role in ['admin', 'technician'] and rows|length > 0 %}
+                                <button
+                                        onclick="showDeleteAllReadingsConfirm()"
+                                        class="btn bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 flex items-center gap-2"
+                                        title="Delete All Readings"
+                                >
+                                    <i class="fas fa-trash mr-1"></i>
+                                    Delete All
+                                </button>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="min-w-full border border-border text-text-secondary bg-secondary">
-                            <thead class="bg-tertiary">
+                        <table class="min-w-full border border-gray-700 text-gray-300">
+                            <!-- Update the table header to include Actions column -->
+                            <thead class="bg-gray-800">
                             <tr>
                                 <th class="p-2 text-left">Device</th>
                                 <th class="p-2 text-left">UID</th>
@@ -245,11 +355,17 @@
                                 <th class="p-2 text-left">Humidity (%)</th>
                                 <th class="p-2 text-left">Motion</th>
                                 <th class="p-2 text-left">Recorded</th>
+                                {% if session.role in ['admin', 'technician'] %}
+                                    <th class="p-2 text-left">Actions</th>
+                                {% endif %}
                             </tr>
                             </thead>
+
+                            <!-- Update each table row to include delete button -->
                             <tbody id="readingsTable">
                             {% for r in rows %}
-                                <tr class="hover:bg-tertiary/40 transition reading-row"
+                                <tr class="hover:bg-gray-700/40 transition reading-row"
+                                    data-reading-id="{{ r.id }}"
                                     data-device-name="{{ (r.device_name or 'N/A').lower() }}"
                                     data-device-uid="{{ (r.device_uid or '').lower() }}"
                                     data-device-type="{{ ((r.device_type if r.device_type is defined else r.type) or '').lower() }}"
@@ -261,35 +377,46 @@
                                     data-owner="{{ (r.room_owner or '').lower() }}"
                                         {% endif %}
                                 >
-                                    <td class="p-2 reading-device text-text-primary">{{ r.device_name or 'N/A' }}</td>
-                                    <td class="p-2 text-text-muted reading-uid">{{ r.device_uid or '—' }}</td>
-                                    <td class="p-2 reading-type text-text-secondary">
+                                    <td class="p-2 reading-device">{{ r.device_name or 'N/A' }}</td>
+                                    <td class="p-2 text-gray-400 reading-uid">{{ r.device_uid or '—' }}</td>
+                                    <td class="p-2 reading-type">
                                         {{ r.device_type if r.device_type is defined else (r.type or '—') }}
                                     </td>
                                     {% if session.role in ['admin', 'technician'] %}
                                         <td class="p-2 reading-room">
                                             <a href="{{ url_for('room', room_id=r.room_id) }}"
-                                               class="text-accent-blue hover:text-accent-blue-hover">
+                                               class="text-blue-400 hover:text-blue-300">
                                                 {{ r.room_name or '—' }}
                                             </a>
                                         </td>
-                                        <td class="p-2 reading-owner text-text-secondary">{{ r.room_owner or '—' }}</td>
+                                        <td class="p-2 reading-owner">{{ r.room_owner or '—' }}</td>
                                     {% endif %}
-                                    <td class="p-2 reading-temp text-text-secondary">{{ r.temperature if r.temperature is not none else '—' }}</td>
-                                    <td class="p-2 reading-humidity text-text-secondary">{{ r.humidity if r.humidity is not none else '—' }}</td>
+                                    <td class="p-2 reading-temp">{{ r.temperature if r.temperature is not none else '—' }}</td>
+                                    <td class="p-2 reading-humidity">{{ r.humidity if r.humidity is not none else '—' }}</td>
                                     <td class="p-2 reading-motion">
                                         {% if r.motion_detected == 1 %}
-                                            <span class="text-accent-green font-semibold">Yes</span>
+                                            <span class="text-green-400 font-semibold">Yes</span>
                                         {% elif r.motion_detected == 0 %}
-                                            <span class="text-accent-red">No</span>
+                                            <span class="text-red-400">No</span>
                                         {% else %}
                                             —
                                         {% endif %}
                                     </td>
-                                    <td class="p-2 whitespace-nowrap reading-time text-text-muted">
+                                    <td class="p-2 whitespace-nowrap reading-time">
                                         {% if r.recorded_at %}{{ (r.recorded_at|string).replace('T',' ') }}{% else %}
                                             —{% endif %}
                                     </td>
+                                    {% if session.role in ['admin', 'technician'] %}
+                                        <td class="p-2">
+                                            <button
+                                                    onclick="showDeleteReadingConfirm({{ r.id }}, '{{ r.device_name or 'N/A' }}', '{{ r.recorded_at }}')"
+                                                    class="btn bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-5 flex items-center gap-1"
+                                                    title="Delete Reading"
+                                            >
+                                                <i class="fas fa-trash text-xs"></i>
+                                            </button>
+                                        </td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -298,26 +425,28 @@
                 </section>
             {% endif %}
 
+            <!-- ===================== EMPTY STATE ===================== -->
             <div id="noResults" class="hidden">
                 <div class="card text-center py-12">
-                    <svg class="w-16 h-16 text-text-muted mx-auto mb-4" fill="none" stroke="currentColor"
+                    <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor"
                          viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
-                    <h3 class="text-lg font-semibold text-text-primary mb-2">No results found</h3>
-                    <p class="text-text-muted text-sm">
+                    <h3 class="text-lg font-semibold text-gray-300 mb-2">No results found</h3>
+                    <p class="text-gray-400 text-sm">
                         Try adjusting your search terms or filters to find what you're looking for.
                     </p>
                 </div>
             </div>
 
+            <!-- Original empty state (when no data at all) -->
             {% if (not rooms or rooms|length == 0) and (not rows or rows|length == 0) %}
                 <section class="mt-4">
                     <div class="grid-cards">
                         <div class="card">
-                            <h4 class="text-lg font-bold text-text-primary mb-2">No Data Found</h4>
-                            <p class="text-sm text-text-muted mb-4">
+                            <h4 class="text-lg font-bold text-gray-300 mb-2">No Data Found</h4>
+                            <p class="text-sm text-muted mb-4">
                                 {% if session.role in ['admin', 'technician'] %}
                                     No rooms or sensor readings found in the system.
                                 {% else %}
@@ -337,19 +466,29 @@
     </div>
 
     <script>
+        // Data Preview and Download Functions
         let currentPreviewData = null;
         let currentPreviewType = null;
         let currentPreviewFilename = null;
 
+        // Delete Reading Modal State
+        window.deleteReadingState = {
+            readingId: null,
+            deviceName: null,
+            recordedAt: null
+        };
+
+        // Data Preview Functions
         function previewSensorLogs() {
             showLoadingPreview();
             currentPreviewType = 'sensor_logs';
             currentPreviewFilename = 'sensor_logs.csv';
 
+            // Create CSV content from the readings table
             const rows = document.querySelectorAll('.reading-row');
             let csvContent = 'Device Name,Device UID,Device Type,Room,Owner,Temperature (°C),Humidity (%),Motion,Recorded At\n';
 
-            rows.forEach(function (row) {
+            rows.forEach(row => {
                 const device = row.querySelector('.reading-device').textContent;
                 const uid = row.querySelector('.reading-uid').textContent;
                 const type = row.querySelector('.reading-type').textContent;
@@ -360,8 +499,7 @@
                 const motion = row.querySelector('.reading-motion').textContent;
                 const time = row.querySelector('.reading-time').textContent;
 
-                csvContent += '"' + device + '","' + uid + '","' + type + '","' + room + '","' +
-                    owner + '","' + temp + '","' + humidity + '","' + motion + '","' + time + '"\n';
+                csvContent += `"${device}","${uid}","${type}","${room}","${owner}","${temp}","${humidity}","${motion}","${time}"\n`;
             });
 
             currentPreviewData = csvContent;
@@ -374,13 +512,13 @@
             currentPreviewFilename = 'rooms_data.json';
 
             fetch('/api/rooms')
-                .then(function (response) { return response.json(); })
-                .then(function (data) {
+                .then(response => response.json())
+                .then(data => {
                     const jsonContent = JSON.stringify(data, null, 2);
                     currentPreviewData = jsonContent;
                     showPreviewModal('Rooms Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
                 })
-                .catch(function (error) {
+                .catch(error => {
                     console.error('Error fetching rooms JSON:', error);
                     showPreviewError('Failed to load rooms data. Please try again.');
                 });
@@ -392,13 +530,13 @@
             currentPreviewFilename = 'readings_data.json';
 
             fetch('/api/readings?limit=1000')
-                .then(function (response) { return response.json(); })
-                .then(function (data) {
+                .then(response => response.json())
+                .then(data => {
                     const jsonContent = JSON.stringify(data, null, 2);
                     currentPreviewData = jsonContent;
                     showPreviewModal('Readings Data Preview', formatJSONPreview(jsonContent), 'JSON', data.length);
                 })
-                .catch(function (error) {
+                .catch(error => {
                     console.error('Error fetching readings JSON:', error);
                     showPreviewError('Failed to load readings data. Please try again.');
                 });
@@ -407,77 +545,82 @@
         function showPreviewModal(title, content, format, recordCount) {
             document.getElementById('modalTitle').textContent = title;
             document.getElementById('modalContent').innerHTML = content;
-            document.getElementById('dataStats').textContent = recordCount + ' records • ' + format + ' format';
-            document.getElementById('fileInfo').textContent = 'File: ' + currentPreviewFilename;
+            document.getElementById('dataStats').textContent = `${recordCount} records • ${format} format`;
+            document.getElementById('fileInfo').textContent = `File: ${currentPreviewFilename}`;
 
+            // Update download button
             const downloadBtn = document.getElementById('downloadBtn');
             downloadBtn.onclick = downloadCurrentPreview;
-            downloadBtn.innerHTML =
-                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
-                          'd="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>' +
-                '</svg>' +
-                '<span class="ml-1">Download ' + currentPreviewFilename + '</span>';
+            downloadBtn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Download ${currentPreviewFilename}
+        `;
 
             document.getElementById('dataPreviewModal').classList.remove('hidden');
         }
 
         function showLoadingPreview() {
-            document.getElementById('modalContent').innerHTML =
-                '<div class="text-center text-text-muted py-8">' +
-                    '<svg class="w-12 h-12 mx-auto mb-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
-                              'd="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>' +
-                    '</svg>' +
-                    '<p>Loading data preview...</p>' +
-                '</div>';
+            document.getElementById('modalContent').innerHTML = `
+            <div class="text-center text-text-muted py-8">
+                <svg class="w-12 h-12 mx-auto mb-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <p>Loading data preview...</p>
+            </div>
+        `;
             document.getElementById('dataPreviewModal').classList.remove('hidden');
         }
 
         function showPreviewError(message) {
-            document.getElementById('modalContent').innerHTML =
-                '<div class="text-center text-accent-red py-8">' +
-                    '<svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
-                              'd="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>' +
-                    '</svg>' +
-                    '<p class="text-lg font-semibold mb-2">Error</p>' +
-                    '<p>' + message + '</p>' +
-                '</div>';
+            document.getElementById('modalContent').innerHTML = `
+            <div class="text-center text-red-400 py-8">
+                <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-lg font-semibold mb-2">Error</p>
+                <p>${message}</p>
+            </div>
+        `;
             document.getElementById('downloadBtn').style.display = 'none';
         }
 
         function formatCSVPreview(csvContent) {
-            const lines = csvContent.split('\n').slice(0, 101);
+            const lines = csvContent.split('\n').slice(0, 101); // Show first 100 records + header
             const isTruncated = lines.length > 100;
             const displayLines = isTruncated ? lines.slice(0, 100) : lines;
 
-            let html = '' +
-                '<div class="mb-4 p-3 bg-tertiary rounded-lg">' +
-                    '<div class="flex items-center gap-2 text-sm text-text-muted">' +
-                        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
-                                  'd="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>' +
-                        '</svg>' +
-                        '<span>Preview showing ' + (displayLines.length - 1) + ' records' +
-                        (isTruncated ? ' (first 100)' : '') + '</span>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="bg-primary border border-border rounded-lg overflow-hidden">' +
-                    '<pre class="text-sm p-4 overflow-auto max-h-96">' + displayLines.join('\n') + '</pre>' +
-                '</div>';
+            let html = `
+            <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                <div class="flex items-center gap-2 text-sm text-text-muted">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Preview showing ${displayLines.length - 1} records${isTruncated ? ' (first 100)' : ''}
+                </div>
+            </div>
+            <div class="bg-primary border border-border rounded-lg overflow-hidden">
+                <pre class="text-sm p-4 overflow-auto max-h-96">${displayLines.join('\n')}</pre>
+            </div>
+        `;
 
             if (isTruncated) {
-                html += '' +
-                    '<div class="mt-3 p-3 bg-accent-yellow/20 border border-accent-yellow/30 rounded-lg">' +
-                        '<div class="flex items-center gap-2 text-accent-yellow text-sm">' +
-                            '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
-                                      'd="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>' +
-                            '</svg>' +
-                            '<span>Preview truncated. Full download will include all ' + (lines.length - 1) + ' records.</span>' +
-                        '</div>' +
-                    '</div>';
+                html += `
+                <div class="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                    <div class="flex items-center gap-2 text-yellow-400 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        Preview truncated. Full download will include all ${lines.length - 1} records.
+                    </div>
+                </div>
+            `;
             }
 
             return html;
@@ -485,37 +628,36 @@
 
         function formatJSONPreview(jsonContent) {
             const data = JSON.parse(jsonContent);
-            const previewData = data.slice(0, 10);
+            const previewData = data.slice(0, 10); // Show first 10 records
             const isTruncated = data.length > 10;
 
-            let html = '' +
-                '<div class="mb-4 p-3 bg-tertiary rounded-lg">' +
-                    '<div class="flex items-center gap-2 text-sm text-text-muted">' +
-                        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
-                                  'd="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>' +
-                        '</svg>' +
-                        '<span>Preview showing ' + previewData.length + ' records' +
-                        (isTruncated ? ' (first 10)' : '') + '</span>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="bg-primary border border-border rounded-lg overflow-hidden">' +
-                    '<pre class="text-sm p-4 overflow-auto max-h-96">' +
-                        JSON.stringify(previewData, null, 2) +
-                    '</pre>' +
-                '</div>';
+            let html = `
+            <div class="mb-4 p-3 bg-tertiary rounded-lg">
+                <div class="flex items-center gap-2 text-sm text-text-muted">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Preview showing ${previewData.length} records${isTruncated ? ' (first 10)' : ''}
+                </div>
+            </div>
+            <div class="bg-primary border border-border rounded-lg overflow-hidden">
+                <pre class="text-sm p-4 overflow-auto max-h-96">${JSON.stringify(previewData, null, 2)}</pre>
+            </div>
+        `;
 
             if (isTruncated) {
-                html += '' +
-                    '<div class="mt-3 p-3 bg-accent-yellow/20 border border-accent-yellow/30 rounded-lg">' +
-                        '<div class="flex items-center gap-2 text-accent-yellow text-sm">' +
-                            '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
-                                      'd="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>' +
-                            '</svg>' +
-                            '<span>Preview truncated. Full download will include all ' + data.length + ' records.</span>' +
-                        '</div>' +
-                    '</div>';
+                html += `
+                <div class="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                    <div class="flex items-center gap-2 text-yellow-400 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        Preview truncated. Full download will include all ${data.length} records.
+                    </div>
+                </div>
+            `;
             }
 
             return html;
@@ -524,14 +666,14 @@
         function downloadCurrentPreview() {
             if (!currentPreviewData) return;
 
-            const contentType = currentPreviewType.indexOf('json') !== -1 ? 'application/json' : 'text/csv';
+            const contentType = currentPreviewType.includes('json') ? 'application/json' : 'text/csv';
             downloadFile(currentPreviewData, currentPreviewFilename, contentType);
             closePreviewModal();
-            showDownloadFeedback(currentPreviewFilename + ' downloaded successfully', 'success');
+            showToast(`${currentPreviewFilename} downloaded successfully`, 'success');
         }
 
         function downloadFile(content, filename, contentType) {
-            const blob = new Blob([content], { type: contentType });
+            const blob = new Blob([content], {type: contentType});
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.style.display = 'none';
@@ -551,54 +693,231 @@
             document.getElementById('downloadBtn').style.display = 'flex';
         }
 
-        function showDownloadFeedback(message, type) {
-            if (!type) type = 'info';
-            const feedback = document.createElement('div');
-            let className = 'fixed top-4 right-4 p-3 rounded-lg shadow-lg z-50 ';
+        // Delete Reading Functions
+        function showDeleteReadingConfirm(readingId, deviceName, recordedAt) {
+            window.deleteReadingState = {
+                readingId,
+                deviceName,
+                recordedAt
+            };
 
-            if (type === 'success') {
-                className += 'bg-green-600 text-white';
-            } else if (type === 'error') {
-                className += 'bg-red-600 text-white';
+            const modal = document.getElementById('deleteReadingModal');
+            const message = document.getElementById('deleteReadingMessage');
+
+            message.textContent = `Are you sure you want to delete the reading from device "${deviceName}" recorded at ${recordedAt}? This action cannot be undone.`;
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            // Set up the confirm button
+            const confirmBtn = document.getElementById('confirmDeleteReading');
+            confirmBtn.onclick = () => deleteReading(readingId);
+        }
+
+        function showDeleteAllReadingsConfirm() {
+            const modal = document.getElementById('deleteAllReadingsModal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            // Reset confirmation input
+            document.getElementById('deleteAllConfirmation').value = '';
+            document.getElementById('deleteAllError').classList.add('hidden');
+            document.getElementById('confirmDeleteAllReadings').disabled = true;
+        }
+
+        function closeDeleteReadingModal() {
+            const modal = document.getElementById('deleteReadingModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+            window.deleteReadingState = {
+                readingId: null,
+                deviceName: null,
+                recordedAt: null
+            };
+        }
+
+        function closeDeleteAllReadingsModal() {
+            const modal = document.getElementById('deleteAllReadingsModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function validateDeleteAllConfirmation() {
+            const input = document.getElementById('deleteAllConfirmation');
+            const error = document.getElementById('deleteAllError');
+            const confirmBtn = document.getElementById('confirmDeleteAllReadings');
+
+            if (input.value === 'DELETE ALL') {
+                error.classList.add('hidden');
+                confirmBtn.disabled = false;
             } else {
-                className += 'bg-blue-600 text-white';
+                error.classList.remove('hidden');
+                confirmBtn.disabled = true;
             }
+        }
 
-            feedback.className = className;
-            feedback.innerHTML =
-                '<div class="flex items-center gap-2">' +
-                    '<span class="text-sm">' + message + '</span>' +
-                    '<button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200">' +
-                        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
-                                  'd="M6 18L18 6M6 6l12 12"></path>' +
-                        '</svg>' +
-                    '</button>' +
-                '</div>';
+        function deleteReading(readingId) {
+            const confirmBtn = document.getElementById('confirmDeleteReading');
+            const originalText = confirmBtn.innerHTML;
 
-            document.body.appendChild(feedback);
+            // Show loading state
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
+            confirmBtn.disabled = true;
 
-            setTimeout(function () {
-                if (feedback.parentElement) {
-                    feedback.remove();
+            fetch(`/api/readings/${readingId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
                 }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Failed to delete reading');
+                    }
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast('Reading deleted successfully', 'success');
+                        closeDeleteReadingModal();
+
+                        // Remove the row from the table
+                        const row = document.querySelector(`tr[data-reading-id="${readingId}"]`);
+                        if (row) {
+                            row.remove();
+
+                            // Update readings count
+                            updateReadingsCount();
+                        }
+
+                        // Reload after a short delay to ensure UI is updated
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        throw new Error(data.error || 'Failed to delete reading');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting reading:', error);
+                    showToast(`Failed to delete reading: ${error.message}`, 'error');
+
+                    // Reset button state
+                    confirmBtn.innerHTML = originalText;
+                    confirmBtn.disabled = false;
+                });
+        }
+
+        function deleteAllReadings() {
+            const confirmBtn = document.getElementById('confirmDeleteAllReadings');
+            const originalText = confirmBtn.innerHTML;
+
+            // Show loading state
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting All...';
+            confirmBtn.disabled = true;
+
+            fetch('/api/readings', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Failed to delete all readings');
+                    }
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast('All readings deleted successfully', 'success');
+                        closeDeleteAllReadingsModal();
+
+                        // Clear the table
+                        const tableBody = document.getElementById('readingsTable');
+                        if (tableBody) {
+                            tableBody.innerHTML = '';
+                        }
+
+                        // Update readings count
+                        updateReadingsCount();
+
+                        // Reload after a short delay to ensure UI is updated
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        throw new Error(data.error || 'Failed to delete all readings');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting all readings:', error);
+                    showToast(`Failed to delete all readings: ${error.message}`, 'error');
+
+                    // Reset button state
+                    confirmBtn.innerHTML = originalText;
+                    confirmBtn.disabled = false;
+                });
+        }
+
+        function updateReadingsCount() {
+            const tableBody = document.getElementById('readingsTable');
+            const readingsCount = document.querySelector('.readings-count');
+
+            if (tableBody && readingsCount) {
+                const remainingRows = tableBody.querySelectorAll('tr').length;
+                readingsCount.textContent = `${remainingRows} reading${remainingRows !== 1 ? 's' : ''}`;
+
+                // Hide delete all button if no readings left
+                const deleteAllBtn = document.querySelector('button[onclick="showDeleteAllReadingsConfirm()"]');
+                if (deleteAllBtn && remainingRows === 0) {
+                    deleteAllBtn.style.display = 'none';
+                }
+            }
+        }
+
+        // Utility Functions
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-600' :
+                    type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+            } text-white transition-all duration-300 transform translate-x-full`;
+            toast.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas ${
+                type === 'success' ? 'fa-check-circle' :
+                    type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'
+            }"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+            document.body.appendChild(toast);
+
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+                toast.classList.add('translate-x-0');
+            }, 10);
+
+            // Remove after delay
+            setTimeout(() => {
+                toast.classList.remove('translate-x-0');
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.remove();
+                    }
+                }, 300);
             }, 5000);
         }
 
-        document.getElementById('dataPreviewModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closePreviewModal();
-            }
-        });
-
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                closePreviewModal();
-            }
-        });
-    </script>
-
-    <script>
+        // Enhanced Search Script with Admin/Technician Support
         console.log('Debug: Page loaded');
         console.log('User role:', '{{ session.role }}');
 
@@ -616,28 +935,33 @@
             let currentFilter = 'rooms';
             let currentStatusFilter = 'all';
 
+            // Check if user is admin/technician
             const isAdminOrTechnician = '{{ session.role }}' === 'admin' || '{{ session.role }}' === 'technician';
 
             function getRoomStatus(roomCard) {
+                // Extract status from the room card's status badge
                 const statusBadge = roomCard.querySelector('.inline-flex.items-center');
                 if (statusBadge) {
                     const statusText = statusBadge.textContent.trim().toLowerCase();
-                    if (statusText.indexOf('normal') !== -1) return 'normal';
-                    if (statusText.indexOf('warning') !== -1) return 'warning';
-                    if (statusText.indexOf('critical') !== -1) return 'critical';
+                    if (statusText.includes('normal')) return 'normal';
+                    if (statusText.includes('warning')) return 'warning';
+                    if (statusText.includes('critical')) return 'critical';
                 }
                 return 'no-data';
             }
 
             function updateVisibility() {
-                const searchTerm = (searchInput ? searchInput.value : '').toLowerCase();
+                const searchTerm = searchInput.value.toLowerCase();
                 let totalVisible = 0;
+                let hasVisibleRooms = false;
+                let hasVisibleReadings = false;
 
+                // Filter rooms
                 if (roomsSection) {
                     const roomCards = roomsSection.querySelectorAll('.room-card');
                     let visibleRooms = 0;
 
-                    roomCards.forEach(function (card) {
+                    roomCards.forEach(card => {
                         const roomName = card.dataset.roomName || '';
                         const location = card.dataset.location || '';
                         const devices = card.dataset.devices || '';
@@ -646,13 +970,14 @@
                         const owner = card.dataset.owner || '';
 
                         const matchesSearch = !searchTerm ||
-                            roomName.indexOf(searchTerm) !== -1 ||
-                            location.indexOf(searchTerm) !== -1 ||
-                            devices.indexOf(searchTerm) !== -1 ||
-                            temp.indexOf(searchTerm) !== -1 ||
-                            humidity.indexOf(searchTerm) !== -1 ||
-                            (isAdminOrTechnician && owner.indexOf(searchTerm) !== -1);
+                            roomName.includes(searchTerm) ||
+                            location.includes(searchTerm) ||
+                            devices.includes(searchTerm) ||
+                            temp.includes(searchTerm) ||
+                            humidity.includes(searchTerm) ||
+                            (isAdminOrTechnician && owner.includes(searchTerm));
 
+                        // Check status filter for admin/technician
                         let matchesStatus = true;
                         if (isAdminOrTechnician && currentStatusFilter !== 'all') {
                             const roomStatus = getRoomStatus(card);
@@ -668,21 +993,26 @@
                         }
                     });
 
+                    hasVisibleRooms = visibleRooms > 0;
+                    roomsSection.style.display = hasVisibleRooms ? 'block' : 'none';
+
+                    // Update room count display
                     const roomCount = document.querySelector('.room-count');
                     if (roomCount) {
-                        const totalRooms = roomsSection.querySelectorAll('.room-card').length;
+                        const totalRooms = roomCards.length;
                         const displayText = (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) ?
-                            (visibleRooms + '/' + totalRooms + ' rooms') :
-                            (totalRooms + ' room' + (totalRooms !== 1 ? 's' : ''));
+                            `${visibleRooms}/${totalRooms} rooms` :
+                            `${totalRooms} room${totalRooms !== 1 ? 's' : ''}`;
                         roomCount.textContent = displayText;
                     }
                 }
 
+                // Filter readings
                 if (readingsSection) {
                     const readingRows = readingsSection.querySelectorAll('.reading-row');
                     let visibleReadings = 0;
 
-                    readingRows.forEach(function (row) {
+                    readingRows.forEach(row => {
                         const deviceName = row.dataset.deviceName || '';
                         const deviceUid = row.dataset.deviceUid || '';
                         const deviceType = row.dataset.deviceType || '';
@@ -693,14 +1023,14 @@
                         const owner = row.dataset.owner || '';
 
                         const matchesSearch = !searchTerm ||
-                            deviceName.indexOf(searchTerm) !== -1 ||
-                            deviceUid.indexOf(searchTerm) !== -1 ||
-                            deviceType.indexOf(searchTerm) !== -1 ||
-                            temp.indexOf(searchTerm) !== -1 ||
-                            humidity.indexOf(searchTerm) !== -1 ||
-                            motion.indexOf(searchTerm) !== -1 ||
-                            (isAdminOrTechnician && roomName.indexOf(searchTerm) !== -1) ||
-                            (isAdminOrTechnician && owner.indexOf(searchTerm) !== -1);
+                            deviceName.includes(searchTerm) ||
+                            deviceUid.includes(searchTerm) ||
+                            deviceType.includes(searchTerm) ||
+                            temp.includes(searchTerm) ||
+                            humidity.includes(searchTerm) ||
+                            motion.includes(searchTerm) ||
+                            (isAdminOrTechnician && roomName.includes(searchTerm)) ||
+                            (isAdminOrTechnician && owner.includes(searchTerm));
 
                         if (matchesSearch && (currentFilter === 'readings' || currentFilter === 'all')) {
                             row.style.display = '';
@@ -711,52 +1041,67 @@
                         }
                     });
 
+                    hasVisibleReadings = visibleReadings > 0;
+                    readingsSection.style.display = hasVisibleReadings ? 'block' : 'none';
+
+                    // Update readings count display
                     const readingsCount = document.querySelector('.readings-count');
                     if (readingsCount) {
-                        const totalReadings = readingsSection.querySelectorAll('.reading-row').length;
+                        const totalReadings = readingRows.length;
                         const displayText = searchTerm ?
-                            (visibleReadings + '/' + totalReadings + ' readings') :
-                            (totalReadings + ' reading' + (totalReadings !== 1 ? 's' : ''));
+                            `${visibleReadings}/${totalReadings} readings` :
+                            `${totalReadings} reading${totalReadings !== 1 ? 's' : ''}`;
                         readingsCount.textContent = displayText;
                     }
                 }
 
+                // Show/hide no results message
                 if (totalVisible === 0 && (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all'))) {
                     noResults.classList.remove('hidden');
                     if (roomsSection) roomsSection.style.display = 'none';
                     if (readingsSection) readingsSection.style.display = 'none';
                 } else {
                     noResults.classList.add('hidden');
-                    if (roomsSection && roomsSection.querySelectorAll('.room-card').length > 0) {
-                        roomsSection.style.display = '';
-                    }
-                    if (readingsSection && readingsSection.querySelectorAll('.reading-row').length > 0) {
-                        readingsSection.style.display = '';
-                    }
                 }
 
+                // Update search results count
                 if (searchTerm || (isAdminOrTechnician && currentStatusFilter !== 'all')) {
-                    if (searchResults) {
-                        searchResults.classList.remove('hidden');
-                        resultsCount.textContent = totalVisible;
+                    searchResults.classList.remove('hidden');
+                    resultsCount.textContent = totalVisible;
+
+                    // Update status summary
+                    const statusSummary = document.getElementById('statusSummary');
+                    if (statusSummary && isAdminOrTechnician) {
+                        if (currentStatusFilter === 'all') {
+                            statusSummary.textContent = `• ${totalVisible} rooms`;
+                        } else {
+                            const statusLabels = {
+                                'normal': 'Normal',
+                                'warning': 'Warning',
+                                'critical': 'Critical',
+                                'no-data': 'No Data'
+                            };
+                            statusSummary.textContent = `• ${statusLabels[currentStatusFilter]} (${totalVisible})`;
+                        }
                     }
-                } else if (searchResults) {
+                } else {
                     searchResults.classList.add('hidden');
                 }
 
-                if (clearSearch) {
-                    if (searchTerm) {
-                        clearSearch.classList.remove('hidden');
-                    } else {
-                        clearSearch.classList.add('hidden');
-                    }
+                // Show/hide clear button
+                if (searchTerm) {
+                    clearSearch.classList.remove('hidden');
+                } else {
+                    clearSearch.classList.add('hidden');
                 }
             }
 
+            // Search input event
             if (searchInput) {
                 searchInput.addEventListener('input', updateVisibility);
             }
 
+            // Clear search event
             if (clearSearch) {
                 clearSearch.addEventListener('click', function () {
                     searchInput.value = '';
@@ -767,19 +1112,23 @@
                 });
             }
 
+            // Status filter event (admin/technician only)
             if (statusFilter) {
                 statusFilter.addEventListener('change', function () {
                     currentStatusFilter = this.value;
+                    console.log('Status filter changed to:', currentStatusFilter);
                     updateVisibility();
                 });
             }
 
-            filterButtons.forEach(function (btn) {
+            // Filter button events
+            filterButtons.forEach(btn => {
                 btn.addEventListener('click', function () {
                     currentFilter = this.dataset.filter;
 
-                    filterButtons.forEach(function (b) {
-                        if (b === btn) {
+                    // Update button states
+                    filterButtons.forEach(b => {
+                        if (b === this) {
                             b.classList.remove('inactive', 'bg-gray-600', 'text-gray-300');
                             b.classList.add('active', 'bg-blue-600', 'text-white');
                         } else {
@@ -792,10 +1141,222 @@
                 });
             });
 
+            // Delete functionality event listeners
+            const confirmDeleteAllBtn = document.getElementById('confirmDeleteAllReadings');
+            if (confirmDeleteAllBtn) {
+                confirmDeleteAllBtn.onclick = deleteAllReadings;
+            }
+
+            // Close modals when clicking outside
+            const modals = ['dataPreviewModal', 'deleteReadingModal', 'deleteAllReadingsModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.addEventListener('click', function (e) {
+                        if (e.target === this) {
+                            if (modalId === 'dataPreviewModal') {
+                                closePreviewModal();
+                            } else if (modalId === 'deleteReadingModal') {
+                                closeDeleteReadingModal();
+                            } else {
+                                closeDeleteAllReadingsModal();
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Close modals with Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    if (!document.getElementById('dataPreviewModal').classList.contains('hidden')) {
+                        closePreviewModal();
+                    }
+                    if (!document.getElementById('deleteReadingModal').classList.contains('hidden')) {
+                        closeDeleteReadingModal();
+                    }
+                    if (!document.getElementById('deleteAllReadingsModal').classList.contains('hidden')) {
+                        closeDeleteAllReadingsModal();
+                    }
+                }
+            });
+
+            // Initial visibility update
             updateVisibility();
 
             console.log('Search and filter system initialized');
             console.log('Admin/Technician mode:', isAdminOrTechnician);
         });
     </script>
+
+    <style>
+        /* CSS Variables for Theme Support */
+        :root {
+            /* Light Mode Colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #e2e8f0;
+            --bg-tertiary-hover: #cbd5e0;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --accent-red: #ef4444;
+            --accent-red-hover: #dc2626;
+            --accent-yellow: #f59e0b;
+            --accent-yellow-hover: #d97706;
+            --border-color: #cbd5e0;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark {
+            /* Dark Mode Colors */
+            --bg-primary: #0d1117;
+            --bg-secondary: #1f2937;
+            --bg-tertiary: #374151;
+            --bg-tertiary-hover: #4b5563;
+            --text-primary: #ffffff;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --accent-red: #ef4444;
+            --accent-red-hover: #dc2626;
+            --accent-yellow: #f59e0b;
+            --accent-yellow-hover: #d97706;
+            --border-color: #374151;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Apply CSS Variables to Utility Classes */
+        .bg-primary {
+            background-color: var(--bg-primary);
+        }
+
+        .bg-secondary {
+            background-color: var(--bg-secondary);
+        }
+
+        .bg-tertiary {
+            background-color: var(--bg-tertiary);
+        }
+
+        .bg-tertiary-hover:hover {
+            background-color: var(--bg-tertiary-hover);
+        }
+
+        .text-text-primary {
+            color: var(--text-primary);
+        }
+
+        .text-text-secondary {
+            color: var(--text-secondary);
+        }
+
+        .text-text-muted {
+            color: var(--text-muted);
+        }
+
+        .border-border {
+            border-color: var(--border-color);
+        }
+
+        .bg-accent-blue {
+            background-color: var(--accent-blue);
+        }
+
+        .bg-accent-blue-hover:hover {
+            background-color: var(--accent-blue-hover);
+        }
+
+        .bg-accent-green {
+            background-color: var(--accent-green);
+        }
+
+        .bg-accent-green-hover:hover {
+            background-color: var(--accent-green-hover);
+        }
+
+        .bg-accent-red {
+            background-color: var(--accent-red);
+        }
+
+        .bg-accent-red-hover:hover {
+            background-color: var(--accent-red-hover);
+        }
+
+        .bg-accent-yellow {
+            background-color: var(--accent-yellow);
+        }
+
+        .bg-accent-yellow-hover:hover {
+            background-color: var(--accent-yellow-hover);
+        }
+
+        .text-accent-blue {
+            color: var(--accent-blue);
+        }
+
+        .text-accent-blue-hover:hover {
+            color: var(--accent-blue-hover);
+        }
+
+        .text-accent-green {
+            color: var(--accent-green);
+        }
+
+        .text-accent-green-hover:hover {
+            color: var(--accent-green-hover);
+        }
+
+        .text-accent-red {
+            color: var(--accent-red);
+        }
+
+        .text-accent-red-hover:hover {
+            color: var(--accent-red-hover);
+        }
+
+        .text-accent-yellow {
+            color: var(--accent-yellow);
+        }
+
+        .text-accent-yellow-hover:hover {
+            color: var(--accent-yellow-hover);
+        }
+
+        /* Card specific styles */
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            transition: all 0.2s ease;
+            box-shadow: var(--card-shadow);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow);
+            transform: translateY(-1px);
+        }
+
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 {% endblock %}

@@ -1,54 +1,124 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="color-scheme" content="light dark"/>
     <title>Thermo-Track</title>
-
     <!-- Favicon -->
     <link
-        rel="icon"
-        type="image/png"
-        href="{{ url_for('static', filename='images/icon.jpg') }}"
+            rel="icon"
+            type="image/png"
+            href="{{ url_for('static', filename='images/icon.jpg') }}"
     />
     <link
-        rel="shortcut icon"
-        href="{{ url_for('static', filename='images/icon.jpg') }}"
+            rel="shortcut icon"
+            href="{{ url_for('static', filename='images/icon.jpg') }}"
     />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Icons -->
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    >
+    <!-- Critical CSS for theme to prevent flashing -->
+    <script>
+        (function () {
+            const storedTheme = localStorage.getItem("theme");
+            const prefersDark = window.matchMedia(
+                "(prefers-color-scheme: dark)"
+            ).matches;
+            const theme = storedTheme || (prefersDark ? "dark" : "light");
+            document.documentElement.setAttribute("data-theme", theme);
 
-    <!-- Tailwind CSS CDN (utility classes) -->
+            // CSS variables based on detected theme
+            const style = document.createElement("style");
+            style.textContent = `
+          :root {
+            --bg-tertiary-light: #e2e8f0;
+            --text-primary-light: #1a202c;
+            --text-secondary-light: #4a5568;
+            --text-muted-light: #718096;
+            --border-color-light: #cbd5e0;
+            --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+            --bg-primary-dark: #0d1117;
+            --bg-secondary-dark: #1f2937;
+            --bg-tertiary-dark: #374151;
+            --text-primary-dark: #ffffff;
+            --text-secondary-dark: #d1d5db;
+            --text-muted-dark: #9ca3af;
+            --border-color-dark: #374151;
+            --shadow-dark: 0 4px 6px rgba(0, 0, 0, 0.3);
+          }
+
+          [data-theme="light"] {
+            --bg-primary: var(--bg-primary-light);
+            --bg-secondary: var(--bg-secondary-light);
+            --bg-tertiary: var(--bg-tertiary-light);
+            --text-primary: var(--text-primary-light);
+            --text-secondary: var(--text-secondary-light);
+            --text-muted: var(--text-muted-light);
+            --border-color: var(--border-color-light);
+            --shadow: var(--shadow-light);
+          }
+
+          [data-theme="dark"] {
+            --bg-primary: var(--bg-primary-dark);
+            --bg-secondary: var(--bg-secondary-dark);
+            --bg-tertiary: var(--bg-tertiary-dark);
+            --text-primary: var(--text-primary-dark);
+            --text-secondary: var(--text-secondary-dark);
+            --text-muted: var(--text-muted-dark);
+            --border-color: var(--border-color-dark);
+            --shadow: var(--shadow-dark);
+          }
+
+          /* Apply theme immediately */
+          body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+          }
+
+          /* Hide content until fully loaded */
+          .no-flash {
+            opacity: 0;
+          }
+
+          .content-loaded {
+            opacity: 1;
+            transition: opacity 0.1s ease-in;
+          }
+        `;
+            document.head.appendChild(style);
+        })();
+    </script>
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Main app CSS (ALL your styling lives here) -->
-    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet"/>
+    <!-- Custom CSS -->
+    <link
+            href="{{ url_for('static', filename='css/main.css') }}"
+            rel="stylesheet"
+    />
 </head>
-
 <body class="no-flash" data-user-role="{{ session.get('role', 'user') }}">
+{% block body %} {% endblock %}
 
-    {% block body %}{% endblock %}
+<!-- Flash Messages Display -->
+{% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %}
+    <div class="flash-container">
+        {% for category, msg in messages %}
+            <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+{% endif %} {% endwith %}
 
-    <!-- Flash Messages Display -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        <div class="flash-container">
-            {% for category, msg in messages %}
-                <div class="flash {{ category }}">{{ msg }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
-    {% endwith %}
-
-    <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/notification-system.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/voice-recognition.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+<!-- Notification System Script -->
+<script src="{{ url_for('static', filename='js/notification-system.js') }}"></script>
+<!-- Theme Management Script -->
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<!-- Voice Recognition Script -->
+<script src="{{ url_for('static', filename='js/voice-recognition.js') }}"></script>
 </body>
 </html>
