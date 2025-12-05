@@ -1,52 +1,63 @@
-{% extends "layout.html" %}
-
-{% block body %}
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-8s">
-
-  <div class="w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden bg-slate-900/90 border border-slate-800 backdrop-blur">
+{% extends "layout.html" %} {% block body %}
+<div
+  class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-8s"
+>
+  <div
+    class="w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden bg-slate-900/90 border border-slate-800 backdrop-blur"
+  >
     <div class="grid md:grid-cols-2">
-
       {# LEFT – ThermoTrack branding #}
-      <div class="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 px-8 py-10 md:px-10 md:py-12 text-slate-50">
+      <div
+        class="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 px-8 py-10 md:px-10 md:py-12 text-slate-50"
+      >
         <div class="flex flex-col justify-between h-full gap-8">
-
           <div class="flex items-center gap-5">
-            <div class="w-24 h-24 rounded-3xl bg-slate-900/80 shadow-0xl p-0 flex items-center justify-center overflow-hidden">
+            <div
+              class="w-24 h-24 rounded-3xl bg-slate-900/80 shadow-0xl p-0 flex items-center justify-center overflow-hidden"
+            >
               <img
                 src="{{ url_for('static', filename='images/darkLogo.png') }}"
                 alt="ThermoTrack Logo"
                 class="w-full h-full object-contain"
-              >
+              />
             </div>
 
-            <p class="text-xs md:text-sm text-slate-100/80 leading-snug tracking-wide">
-              Smart<br>
-              Environment<br>
+            <p
+              class="text-xs md:text-sm text-slate-100/80 leading-snug tracking-wide"
+            >
+              Smart<br />
+              Environment<br />
               Monitoring
             </p>
           </div>
 
           <div class="space-y-4">
             <h1 class="text-3xl md:text-4xl font-semibold leading-tight">
-              Create your<br>
+              Create your<br />
               Thermo-Track account
             </h1>
             <p class="text-sm md:text-[0.9rem] text-slate-100/90 max-w-md">
-              Set up your account to start inviting team members, connecting devices
-              and viewing real-time comfort data across your spaces.
+              Set up your account to start inviting team members, connecting
+              devices and viewing real-time comfort data across your spaces.
             </p>
 
             <ul class="space-y-2.5 text-sm md:text-[0.9rem]">
               <li class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.4)]"></span>
+                <span
+                  class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.4)]"
+                ></span>
                 <span>Secure, role-based access for your team.</span>
               </li>
               <li class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.4)]"></span>
+                <span
+                  class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.4)]"
+                ></span>
                 <span>Central dashboard for all your rooms.</span>
               </li>
               <li class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.4)]"></span>
+                <span
+                  class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.4)]"
+                ></span>
                 <span>Insights that support energy-efficient decisions.</span>
               </li>
             </ul>
@@ -59,40 +70,48 @@
       </div>
 
       {# RIGHT – register form #}
-      <div class="bg-slate-950 px-8 py-10 md:px-10 md:py-12 flex flex-col justify-center">
+      <div
+        class="bg-slate-950 px-8 py-10 md:px-10 md:py-12 flex flex-col justify-center"
+      >
         <div class="flex items-baseline justify-between gap-3 mb-6">
           <div>
-            <h2 class="text-xl md:text-2xl font-semibold text-slate-50">Create an account</h2>
+            <h2 class="text-xl md:text-2xl font-semibold text-slate-50">
+              Create an account
+            </h2>
             <p class="text-xs md:text-sm text-slate-400 mt-1">
               Use your work email so your team can recognise you.
             </p>
           </div>
           <p class="text-xs md:text-sm text-slate-400">
             Already registered?
-            <a href="{{ url_for('login') }}" class="text-blue-400 hover:text-blue-300 font-medium">
+            <a
+              href="{{ url_for('login') }}"
+              class="text-blue-400 hover:text-blue-300 font-medium"
+            >
               Log in
             </a>
           </p>
         </div>
 
-        {# Flash messages (for generic errors) #}
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div class="space-y-2 mb-4">
-              {% for category, message in messages %}
-                <div class="flash {{ category }} text-center rounded-md text-sm px-3 py-2">
-                  {{ message }}
-                </div>
-              {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
+        {# Flash messages (for generic errors) #} {% with messages =
+        get_flashed_messages(with_categories=true) %} {% if messages %}
+        <div class="space-y-2 mb-4">
+          {% for category, message in messages %}
+          <div
+            class="flash {{ category }} text-center rounded-md text-sm px-3 py-2"
+          >
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %} {% endwith %}
 
-        <form action="{{ url_for('register') }}"
-              method="post"
-              class="space-y-4"
-              novalidate>
-
+        <form
+          action="{{ url_for('register') }}"
+          method="post"
+          class="space-y-4"
+          novalidate
+        >
           {# Username #}
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">
@@ -108,9 +127,9 @@
               class="form-input bg-slate-900/80 border border-slate-700/80 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
             {% if errors is defined and errors.get('username') %}
-              <p class="mt-1 text-[0.7rem] text-red-400">
-                {{ errors.get('username') }}
-              </p>
+            <p class="mt-1 text-[0.7rem] text-red-400">
+              {{ errors.get('username') }}
+            </p>
             {% endif %}
           </div>
 
@@ -128,9 +147,9 @@
               class="form-input bg-slate-900/80 border border-slate-700/80 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
             {% if errors is defined and errors.get('email') %}
-              <p class="mt-1 text-[0.7rem] text-red-400">
-                {{ errors.get('email') }}
-              </p>
+            <p class="mt-1 text-[0.7rem] text-red-400">
+              {{ errors.get('email') }}
+            </p>
             {% endif %}
           </div>
 
@@ -150,9 +169,9 @@
               ≥ 8 characters, at least one uppercase, one number, one symbol.
             </p>
             {% if errors is defined and errors.get('password') %}
-              <p class="mt-1 text-[0.7rem] text-red-400">
-                {{ errors.get('password') }}
-              </p>
+            <p class="mt-1 text-[0.7rem] text-red-400">
+              {{ errors.get('password') }}
+            </p>
             {% endif %}
           </div>
 
@@ -169,13 +188,16 @@
               class="form-input bg-slate-900/80 border border-slate-700/80 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
             {% if errors is defined and errors.get('confirmation') %}
-              <p class="mt-1 text-[0.7rem] text-red-400">
-                {{ errors.get('confirmation') }}
-              </p>
+            <p class="mt-1 text-[0.7rem] text-red-400">
+              {{ errors.get('confirmation') }}
+            </p>
             {% endif %}
           </div>
 
-          <button type="submit" class="btn btn-primary w-full text-[0.95rem] py-2.5 mt-1">
+          <button
+            type="submit"
+            class="btn btn-primary w-full text-[0.95rem] py-2.5 mt-1"
+          >
             Create account
           </button>
         </form>
@@ -183,14 +205,21 @@
         {# Divider + optional Google sign up #}
         <div class="flex items-center gap-3 my-5">
           <div class="h-px bg-slate-800 w-full"></div>
-          <span class="text-slate-500 text-xs tracking-[0.16em] uppercase">or</span>
+          <span class="text-slate-500 text-xs tracking-[0.16em] uppercase"
+            >or</span
+          >
           <div class="h-px bg-slate-800 w-full"></div>
         </div>
 
-        <a href="{{ url_for('login_google') }}"
-           class="w-full flex items-center justify-center gap-3 bg-white text-gray-800 py-2.5 rounded-full font-medium hover:bg-gray-100 transition border border-gray-300 text-sm">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-               alt="Google Logo" class="w-5 h-5">
+        <a
+          href="{{ url_for('login_google') }}"
+          class="w-full flex items-center justify-center gap-3 bg-white text-gray-800 py-2.5 rounded-full font-medium hover:bg-gray-100 transition border border-gray-300 text-sm"
+        >
+          <img
+            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+            alt="Google Logo"
+            class="w-5 h-5"
+          />
           <span>Continue with Google</span>
         </a>
       </div>

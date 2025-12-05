@@ -79,6 +79,8 @@ class SmartHomeMonitor:
         self._gpio.setwarnings(False)
         self._setup_gpio()
         self._setup_dht()
+        self.buzzer_pwm = GPIO.PWM(PinConfig.BUZZER_PIN, 1000)
+        self.buzzer_pwm.start(0)
 
         print("[Monitor] Components initialized.")
 
@@ -110,6 +112,26 @@ class SmartHomeMonitor:
                 print("[Monitor] DHT22 failed.")
                 self.dht_device = None
 
+    # Buzzer logic
+    def beep_on_sound(self):
+        """Short rising chirp"""
+        for freq in [500, 700, 900, 1100]:
+            self.buzzer_pwm.ChangeFrequency(freq)
+            self.buzzer_pwm.ChangeDutyCycle(70)
+            time.sleep(0.07)
+        self.buzzer_pwm.ChangeDutyCycle(0)
+
+    def beep_off_sound(self):
+        """Short falling chirp"""
+        for freq in [900, 700, 500]:
+            self.buzzer_pwm.ChangeFrequency(freq)
+            self.buzzer_pwm.ChangeDutyCycle(50)
+            time.sleep(0.08)
+        self.buzzer_pwm.ChangeDutyCycle(0)
+
+    def _buzzer_loud_beep(self, repeat=2):
+        self.beep_on_sound()
+
     # CMD Handler for PubNub
     def handle_command(self, msg: dict):
         global AUTO_MODE, LAST_MANUAL
@@ -123,19 +145,21 @@ class SmartHomeMonitor:
             print("[MANUAL] Fan ON")
             LAST_MANUAL = time.time()
             AUTO_MODE = False
+            self.beep_on_sound()
 
         elif cmd in ["fan_off", "Fan Off"]:
             GPIO.output(PinConfig.FAN_PIN, GPIO.LOW)
             print("[MANUAL] Fan OFF")
             LAST_MANUAL = time.time()
             AUTO_MODE = False
+            self.beep_off_sound()
 
         elif cmd == "buzzer_on":
-            GPIO.output(PinConfig.BUZZER_PIN, GPIO.HIGH)
+            self.beep_on_sound()
             print("[MANUAL] Buzzer ON")
 
         elif cmd == "buzzer_off":
-            GPIO.output(PinConfig.BUZZER_PIN, GPIO.LOW)
+            self.beep_off_sound()
             print("[MANUAL] Buzzer OFF")
 
         elif cmd == "auto_on":
@@ -160,17 +184,6 @@ class SmartHomeMonitor:
         else:
             GPIO.output(PinConfig.FAN_PIN, GPIO.LOW)
             print(f"[AUTO] Temp {temp_c}°C → FAN OFF")
-
-    # BUZZER BEEP
-    def _buzzer_loud_beep(self, repeat=4):
-
-        for _ in range(repeat):
-            for pulse in range(400):
-                GPIO.output(PinConfig.BUZZER_PIN, True)
-                time.sleep(0.0002)
-                GPIO.output(PinConfig.BUZZER_PIN, False)
-                time.sleep(0.0002)
-            time.sleep(0.02)
 
     # MAIN LOOP
     def run(self):
@@ -222,7 +235,7 @@ class SmartHomeMonitor:
                 # GPIO.output(PinConfig.BUZZER_PIN, GPIO.HIGH)
                 # time.sleep(0.3)
                 # GPIO.output(PinConfig.BUZZER_PIN, GPIO.LOW)
-                self._buzzer_loud_beep(repeat=2)
+                self.beep_on_sound()
 
             elif not motion_detected and last_motion == GPIO.HIGH:
                 if ts - last_motion_time >= 2:
@@ -236,6 +249,8 @@ class SmartHomeMonitor:
                         }
                     )
                 GPIO.output(PinConfig.LED_PIN, GPIO.LOW)
+
+                self.beep_off_sound()
 
             last_motion = current_motion
 
