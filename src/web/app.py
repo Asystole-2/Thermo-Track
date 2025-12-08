@@ -9,7 +9,7 @@ from decimal import Decimal
 from functools import wraps
 from datetime import datetime, date
 
-from src.core.pubnub_client import publish_data
+# from src.core.pubnub_client import publish_data
 
 from flask import (
     Flask,
@@ -21,7 +21,7 @@ from flask import (
     url_for,
     jsonify,
     Response,
-    send_file
+    send_file,
 )
 from flask_mysqldb import MySQL
 from dotenv import load_dotenv, find_dotenv
@@ -31,9 +31,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 
-# from utils.weather_gemini import WeatherAIAnalyzer
+from utils.weather_gemini import WeatherAIAnalyzer
 
-from src.web.utils.weather_gemini import WeatherAIAnalyzer
+# from src.web.utils.weather_gemini import WeatherAIAnalyzer
 
 # Google OAuth (Authlib)
 try:
@@ -727,7 +727,7 @@ def role_required(*roles):
 def after_request(response):
     # Ensure API routes return JSON even on errors
     if request.path.startswith("/api/") or (
-            request.path.startswith("/room/") and "/request_adjustment" in request.path
+        request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         if response.status_code >= 400 and not response.is_json:
             data = {
@@ -750,7 +750,7 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     if request.path.startswith("/api/") or (
-            request.path.startswith("/room/") and "/request_adjustment" in request.path
+        request.path.startswith("/room/") and "/request_adjustment" in request.path
     ):
         return jsonify({"success": False, "error": "Internal server error"}), 500
     return error
@@ -916,9 +916,6 @@ def logout():
     return redirect(url_for("index"))
 
 
-from flask import session  # make sure this is imported at the top
-
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -973,8 +970,8 @@ def register():
             # create user
             pwd_hash = generate_password_hash(password)
             cur.execute(
-                "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
-                (username_lc, email_lc, pwd_hash),
+                "INSERT INTO users (username, email, password, role) VALUES (%s, %s, %s, %s)",
+                (username_lc, email_lc, pwd_hash, "user"),
             )
 
             # get new user id
@@ -982,10 +979,11 @@ def register():
 
             mysql.connection.commit()
 
-            # 🔥 auto-login & go to dashboard
+            # auto-login & go to dashboard
             session.clear()
             session["user_id"] = new_user_id
-            session["username"] = username  # or username_lc if you prefer
+            session["username"] = username
+            session["role"] = "user"
             flash("Registration successful. Welcome to Thermo-Track!", "success")
             return redirect(url_for("dashboard"))
 
@@ -1278,8 +1276,10 @@ def room_apply_ai(room_id):
 # REPORT ROUTES
 # =============================================================================
 
-def fetch_report_readings(user_id=None, user_role=None,
-                          room_id=None, start_date=None, end_date=None):
+
+def fetch_report_readings(
+    user_id=None, user_role=None, room_id=None, start_date=None, end_date=None
+):
     """
     Returns individual readings joined with devices + rooms.
     - Admin/technician: all rooms.
@@ -1352,8 +1352,7 @@ def reports():
 
     # small list for dropdown
     rooms_for_dropdown = [
-        {"id": r["id"], "name": r["room_name"]}
-        for r in rooms_summary
+        {"id": r["id"], "name": r["room_name"]} for r in rooms_summary
     ]
 
     # readings for table
@@ -1393,28 +1392,32 @@ def export_reports_csv():
     output = io.StringIO()
     writer = csv.writer(output)
 
-    writer.writerow([
-        "Device",
-        "Room",
-        "Temperature",
-        "Humidity",
-        "MotionDetected",
-        "Pressure",
-        "LightLevel",
-        "RecordedAt",
-    ])
+    writer.writerow(
+        [
+            "Device",
+            "Room",
+            "Temperature",
+            "Humidity",
+            "MotionDetected",
+            "Pressure",
+            "LightLevel",
+            "RecordedAt",
+        ]
+    )
 
     for r in readings:
-        writer.writerow([
-            r["device_name"],
-            r["room_name"],
-            r["temperature"],
-            r["humidity"],
-            r["motion_detected"],
-            r["pressure"],
-            r["light_level"],
-            r["recorded_at"],
-        ])
+        writer.writerow(
+            [
+                r["device_name"],
+                r["room_name"],
+                r["temperature"],
+                r["humidity"],
+                r["motion_detected"],
+                r["pressure"],
+                r["light_level"],
+                r["recorded_at"],
+            ]
+        )
 
     output.seek(0)
 
@@ -1686,7 +1689,7 @@ def add_device():
 # =============================================================================
 
 
-@app.route('/api/realtime-data', methods=['GET'])
+@app.route("/api/realtime-data", methods=["GET"])
 def get_realtime_data():
     """
     API endpoint for the Android companion app.
@@ -1700,7 +1703,7 @@ def get_realtime_data():
         "temperatureC": 21.0,
         "humidityPercent": 50.0,
         "motionDetected": False,  # Default/Fallback
-        "lastUpdated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "lastUpdated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
     cursor = db_cursor()
@@ -1722,35 +1725,51 @@ def get_realtime_data():
 
         if latest_reading:
             # Safely convert Decimal/None types to Python float/bool
-            temp_c = float(latest_reading['temperature']) if latest_reading.get('temperature') is not None else \
-            default_data["temperatureC"]
-            humidity_pc = float(latest_reading['humidity']) if latest_reading.get('humidity') is not None else \
-            default_data["humidityPercent"]
+            temp_c = (
+                float(latest_reading["temperature"])
+                if latest_reading.get("temperature") is not None
+                else default_data["temperatureC"]
+            )
+            humidity_pc = (
+                float(latest_reading["humidity"])
+                if latest_reading.get("humidity") is not None
+                else default_data["humidityPercent"]
+            )
 
             data = {
                 "temperatureC": temp_c,
                 "humidityPercent": humidity_pc,
                 "motionDetected": False,  # FORCING FALSE as we only requested T/H data
-                "lastUpdated": latest_reading['recorded_at'].isoformat() if latest_reading.get('recorded_at') else
-                default_data["lastUpdated"]
+                "lastUpdated": (
+                    latest_reading["recorded_at"].isoformat()
+                    if latest_reading.get("recorded_at")
+                    else default_data["lastUpdated"]
+                ),
             }
             log.info(f"[Mobile API] Fetched latest T/H data: T={data['temperatureC']}")
             return jsonify(data), 200
 
         else:
             log.warning(
-                "[Mobile API] Database returned no valid DHT22 readings for device_id 11. Returning default data.")
+                "[Mobile API] Database returned no valid DHT22 readings for device_id 11. Returning default data."
+            )
             return jsonify(default_data), 200
 
     except Exception as e:
         log.error(f"[Mobile API] Error fetching latest reading from DB: {e}")
         # Return 500 status on failure, but include a fallback structure
-        return jsonify({
-            **default_data,
-            "error": f"API internal error during DB fetch: {str(e)}"
-        }), 500
+        return (
+            jsonify(
+                {
+                    **default_data,
+                    "error": f"API internal error during DB fetch: {str(e)}",
+                }
+            ),
+            500,
+        )
     finally:
         cursor.close()
+
 
 @app.get("/api/rooms")
 @login_required
@@ -1829,11 +1848,13 @@ def delete_all_readings():
         cursor.execute("DELETE FROM readings")
         mysql.connection.commit()
 
-        return jsonify({
-            "success": True,
-            "message": f"All {total_readings} readings deleted successfully",
-            "deleted_count": total_readings
-        })
+        return jsonify(
+            {
+                "success": True,
+                "message": f"All {total_readings} readings deleted successfully",
+                "deleted_count": total_readings,
+            }
+        )
 
     except Exception as e:
         mysql.connection.rollback()
@@ -2156,7 +2177,7 @@ def get_request_details(request_id):
         # Convert datetime objects and Decimal objects
         for date_field in ["created_at", "updated_at", "estimated_completion_time"]:
             if request_dict.get(date_field) and hasattr(
-                    request_dict[date_field], "isoformat"
+                request_dict[date_field], "isoformat"
             ):
                 request_dict[date_field] = request_dict[date_field].isoformat()
 
@@ -3268,8 +3289,8 @@ def upload_profile_picture():
     # Validate file type
     allowed_extensions = {"png", "jpg", "jpeg", "gif"}
     if not (
-            "." in file.filename
-            and file.filename.rsplit(".", 1)[1].lower() in allowed_extensions
+        "." in file.filename
+        and file.filename.rsplit(".", 1)[1].lower() in allowed_extensions
     ):
         return jsonify({"success": False, "error": "Invalid file type"}), 400
 
