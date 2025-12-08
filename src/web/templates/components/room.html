@@ -183,7 +183,7 @@
                                                     value="{{ format_temperature(recommendations.target_temperature, room.temperature_unit) | replace('°C', '') | replace('°F', '') | replace('K', '') | trim }}"
                                                     min="{{ convert_temperature(16, 'celsius', room.temperature_unit) | round(1) }}"
                                                     max="{{ convert_temperature(28, 'celsius', room.temperature_unit) | round(1) }}"
-                                                    step="0.5"
+                                                    step="0.1"
                                                     required
                                             >
                                             <span class="absolute right-1 top-1/2 -translate-y-1/2 text-text-muted text-xs"

@@ -2,15 +2,60 @@ class NotificationSystem {
     constructor() {
         this.isDropdownOpen = false;
         this.userRole = document.body.dataset.userRole || 'user';
+        // Confirmed audio file access in the provided context
+        this.soundPath = '/static/audio/notification.mp3';
         this.init();
+        this.initialNotificationCount = 0;
     }
 
     init() {
         this.bindEvents();
-        this.loadNotificationCount();
+        this.loadNotificationCount(true);
         // Poll for new notifications every 3 seconds
         setInterval(() => this.loadNotificationCount(), 3000);
     }
+
+    globalUnlockAudio() {
+        if (this.isAudioUnlocked) return;
+
+        try {
+            const audio = new Audio(this.soundPath);
+            audio.volume = 0;
+            audio.play().then(() => {
+                this.isAudioUnlocked = true;
+                console.log("[Notification] Audio unlocked by user interaction.");
+
+                // Play the notification sound if the initial count was > 0
+                if (this.initialNotificationCount > 0) {
+                    this.animateBell();
+                    this.playSound(0.8); // Play the sound now, at a slightly lower volume
+                }
+
+            }).catch(e => {
+                this.isAudioUnlocked = true;
+                console.warn("[Notification] Audio unlock failed, relying on user interaction event.");
+            });
+        } catch (e) {
+        }
+    }
+
+    playSound(volume = 0.5) {
+        if (!this.isAudioUnlocked) return;
+        try {
+            const audio = new Audio(this.soundPath);
+            audio.volume = volume;
+
+            // Attempt to play the audio. The .catch() handles the Promise rejection if the browser blocks autoplay.
+            audio.play().then(() => {
+                console.log("[Notification] Successfully played sound.");
+            }).catch(e => {
+                console.warn("[Notification] Audio playback prevented by browser:", e);
+            });
+        } catch (e) {
+            console.error("Error creating audio object:", e);
+        }
+    }
+    // --- END REFINED METHOD ---
 
     bindEvents() {
         const bell = document.getElementById('notification-bell');
@@ -92,21 +137,27 @@ class NotificationSystem {
         }
     }
 
-    updateNotificationCount(count) {
+    updateNotificationCount(count, skipSound = false) {
         const countElement = document.getElementById('notification-count');
         if (!countElement) return;
+
+        // Capture previous count before updating the UI
+        const previousCount = parseInt(countElement.dataset.previousCount || 0);
 
         if (count > 0) {
             countElement.textContent = count > 99 ? '99+' : count;
             countElement.classList.remove('hidden');
 
-            // Add animation for new notifications
-            if (count > parseInt(countElement.dataset.previousCount || 0)) {
+            // Play sound and animate if count increased and is greater than 0
+            if (count > previousCount && !skipSound) {
                 this.animateBell();
+                this.playSound();
             }
             countElement.dataset.previousCount = count;
         } else {
             countElement.classList.add('hidden');
+            // Reset previous count to ensure sound plays when new notifications arrive after an empty state
+            countElement.dataset.previousCount = 0;
         }
     }
 
@@ -320,4 +371,4 @@ class NotificationSystem {
 // Initialize notification system when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     window.notificationSystem = new NotificationSystem();
-});
+    window.unlockAudio = window.notificationSystem.globalUnlockAudio.bind(window.notificationSystem);});
